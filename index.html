@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Zombie Tower Defence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<!-- ═══════════════════ MAIN MENU ═══════════════════ -->
+<div id="screen-menu" class="screen active">
+  <canvas id="menuParticles"></canvas>
+  <div class="menu-bg-overlay"></div>
+
+  <div class="menu-header">
+    <div class="skull-icon">💀</div>
+    <h1 class="game-title"><span class="t1">ZOMBIE</span><br><span class="t2">TOWER DEFENCE</span></h1>
+    <p class="game-sub">SURVIVE · BUILD · DOMINATE</p>
+  </div>
+
+  <nav class="menu-tabs">
+    <button class="mtab active" data-tab="play">⚔ PLAY</button>
+    <button class="mtab" data-tab="shop">🏪 SHOP</button>
+    <button class="mtab" data-tab="leaderboard">🏆 LEADERBOARD</button>
+    <button class="mtab" data-tab="profile">👤 PROFILE</button>
+  </nav>
+
+  <div class="menu-body">
+    <!-- PLAY TAB -->
+    <div class="tab active" id="tab-play">
+      <h2 class="tab-title">SELECT MAP</h2>
+      <div class="map-grid" id="mapGrid"></div>
+    </div>
+
+    <!-- SHOP TAB -->
+    <div class="tab" id="tab-shop">
+      <h2 class="tab-title">TOWER SHOP &nbsp;<span class="coins-badge">💰 <span id="shopCoins">0</span></span></h2>
+      <div class="shop-filters">
+        <button class="sf active" data-sf="all">ALL</button>
+        <button class="sf" data-sf="basic">BASIC</button>
+        <button class="sf" data-sf="advanced">ADVANCED</button>
+        <button class="sf" data-sf="special">SPECIAL</button>
+        <button class="sf" data-sf="legendary">LEGENDARY</button>
+      </div>
+      <div class="shop-grid" id="shopGrid"></div>
+    </div>
+
+    <!-- LEADERBOARD TAB -->
+    <div class="tab" id="tab-leaderboard">
+      <h2 class="tab-title">🏆 LIVE LEADERBOARD <span class="live-dot"></span></h2>
+      <div class="lb-tabs">
+        <button class="lbt active" data-lb="HighScore">HIGH SCORE</button>
+        <button class="lbt" data-lb="BestWave">BEST WAVE</button>
+        <button class="lbt" data-lb="TotalKills">TOTAL KILLS</button>
+      </div>
+      <div id="lbWrap" class="lb-wrap"><p class="lb-loading">Fetching leaderboard…</p></div>
+    </div>
+
+    <!-- PROFILE TAB -->
+    <div class="tab" id="tab-profile">
+      <h2 class="tab-title">PROFILE</h2>
+      <div id="authBox" class="auth-box">
+        <input type="text" id="authUser" placeholder="Username" class="td-input"/>
+        <input type="password" id="authPass" placeholder="Password" class="td-input"/>
+        <div class="auth-btns">
+          <button class="td-btn green" id="btnLogin">LOGIN</button>
+          <button class="td-btn blue" id="btnRegister">REGISTER</button>
+        </div>
+        <p id="authMsg" class="auth-msg"></p>
+      </div>
+      <div id="profilePanel" class="hidden">
+        <div class="profile-card">
+          <div class="profile-avatar" id="pAvatar">💀</div>
+          <div class="profile-info">
+            <h3 id="pName">Survivor</h3>
+            <div class="pstat">💰 Coins <strong id="pCoins">0</strong></div>
+            <div class="pstat">🌊 Best Wave <strong id="pBestWave">0</strong></div>
+            <div class="pstat">💀 Total Kills <strong id="pTotalKills">0</strong></div>
+            <div class="pstat">🗼 Towers Owned <strong id="pTowersOwned">0</strong></div>
+          </div>
+        </div>
+        <div class="cosmetic-section">
+          <h4>YOUR COSMETICS</h4>
+          <div id="cosmeticList" class="cosmetic-inventory"></div>
+        </div>
+        <button class="td-btn red" id="btnLogout">LOGOUT</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live ticker -->
+  <div class="live-ticker">
+    <span class="ticker-dot">● LIVE</span>
+    <div class="ticker-inner"><span id="tickerText">Connecting to live server…</span></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ GAME SCREEN ═══════════════════ -->
+<div id="screen-game" class="screen">
+
+  <!-- TOP HUD -->
+  <div class="hud-top">
+    <div class="hud-pill">💰 <span id="hudMoney">100</span></div>
+    <div class="hud-pill">❤️ <span id="hudLives">20</span></div>
+    <div class="hud-wave-badge">WAVE <span id="hudWave">1</span></div>
+    <div class="hud-pill">💀 <span id="hudKills">0</span></div>
+    <div class="hud-pill">⭐ <span id="hudScore">0</span></div>
+    <div class="hud-controls">
+      <button class="hud-btn pulse-green" id="btnStartWave">▶ SEND WAVE</button>
+      <button class="hud-btn" id="btnSpeed">1×</button>
+      <button class="hud-btn danger" id="btnBackMenu">✕ QUIT</button>
+    </div>
+  </div>
+
+  <!-- GAME LAYOUT -->
+  <div class="game-layout">
+    <!-- CANVAS -->
+    <div class="canvas-wrap">
+      <canvas id="gameCanvas"></canvas>
+      <div id="dmgLayer"></div>
+    </div>
+
+    <!-- SIDE PANEL -->
+    <aside class="side-panel">
+      <div class="sp-block">
+        <div class="sp-title">BUILD TOWER</div>
+        <div class="tower-palette" id="towerPalette"></div>
+      </div>
+
+      <div class="sp-block" id="selPanel" style="display:none">
+        <div class="sp-title">SELECTED TOWER</div>
+        <div id="selInfo" class="sel-info"></div>
+        <button class="td-btn green full" id="btnUpgrade">⬆ UPGRADE <span id="upgradePrice"></span></button>
+        <button class="td-btn red full" id="btnSell">💲 SELL</button>
+        <button class="td-btn full" id="btnDeselect">DESELECT</button>
+      </div>
+
+      <div class="sp-block">
+        <div class="sp-title">NEXT WAVE</div>
+        <div id="wavePreview" class="wave-preview"></div>
+      </div>
+
+      <div class="sp-block">
+        <div class="sp-title">TARGET MODE</div>
+        <div class="target-btns">
+          <button class="tgt-btn active" data-tgt="first">FIRST</button>
+          <button class="tgt-btn" data-tgt="last">LAST</button>
+          <button class="tgt-btn" data-tgt="strong">STRONGEST</button>
+          <button class="tgt-btn" data-tgt="close">CLOSEST</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- WAVE ANNOUNCE -->
+  <div id="waveAnnounce" class="wave-announce hidden">
+    <div class="wa-content">
+      <div class="wa-wave">WAVE <span id="waNum">1</span></div>
+      <div class="wa-sub" id="waSub">INCOMING!</div>
+    </div>
+  </div>
+
+  <!-- GAME OVER -->
+  <div id="gameOverScreen" class="fullscreen-overlay hidden">
+    <div class="overlay-box go-box">
+      <div class="go-skull">💀</div>
+      <h2>GAME OVER</h2>
+      <div class="result-grid">
+        <div class="rg-item"><span>Wave</span><strong id="goWave">1</strong></div>
+        <div class="rg-item"><span>Score</span><strong id="goScore">0</strong></div>
+        <div class="rg-item"><span>Kills</span><strong id="goKills">0</strong></div>
+        <div class="rg-item"><span>Coins Earned</span><strong id="goCoins">0</strong></div>
+      </div>
+      <div class="overlay-btns">
+        <button class="td-btn green" id="btnRetry">↺ RETRY</button>
+        <button class="td-btn" id="btnGoMenu">⬅ MENU</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- VICTORY -->
+  <div id="victoryScreen" class="fullscreen-overlay hidden">
+    <div class="overlay-box vic-box">
+      <div class="vic-stars-anim" id="vicStars">⭐⭐⭐</div>
+      <h2 class="vic-title">VICTORY!</h2>
+      <p id="vicMsg">Map complete!</p>
+      <div class="overlay-btns">
+        <button class="td-btn gold" id="btnNextMap">NEXT MAP ▶</button>
+        <button class="td-btn" id="btnVicMenu">⬅ MENU</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /screen-game -->
+
+<!-- ═══════════════════ OWNER PANEL ═══════════════════ -->
+
+<!-- Trigger button — bottom right corner, green text label -->
+<div id="ownerTrigger" class="owner-trigger hidden">
+  <div class="ot-bg-glow"></div>
+  <div class="ot-content">
+    <span class="ot-crown-icon">👑</span>
+    <span class="ot-label">OWNER PANEL</span>
+    <span class="ot-arrow" id="otArrow">▲</span>
+  </div>
+  <div class="ot-scanline"></div>
+</div>
+
+<!-- Panel — floats up from trigger -->
+<div id="ownerPanel" class="owner-panel hidden">
+  <!-- Decorative corner accents -->
+  <div class="op-corner op-corner-tl"></div>
+  <div class="op-corner op-corner-tr"></div>
+  <div class="op-corner op-corner-bl"></div>
+  <div class="op-corner op-corner-br"></div>
+
+  <div class="op-hdr">
+    <div class="op-hdr-left">
+      <span class="op-hdr-crown">👑</span>
+      <div>
+        <h3>OWNER CONSOLE</h3>
+        <span class="op-hdr-sub">Zombie Tower Defence</span>
+      </div>
+    </div>
+    <button id="btnCloseOwner" class="op-x">✕</button>
+  </div>
+
+  <div class="op-body">
+
+    <div class="op-block">
+      <label>🎯 TARGET PLAYER</label>
+      <input type="text" id="ownerTarget" class="td-input" placeholder="PlayFab Player ID"/>
+      <span class="op-hint">Find ID in PlayFab dashboard → Players</span>
+    </div>
+
+    <!-- Cosmetics from catalog — populated dynamically -->
+    <div class="op-block">
+      <label>🎁 GRANT CATALOG COSMETICS</label>
+      <div id="opCosmeticBtns">
+        <span style="color:var(--text2);font-size:12px">Loading catalog…</span>
+      </div>
+    </div>
+
+    <div class="op-block">
+      <label>🗼 INVENTORY</label>
+      <button class="op-btn green" data-oa="giveAllTowers">🗼 Give All Towers</button>
+      <button class="op-btn green" data-oa="unlockAllPerks">🔓 Unlock All Perks</button>
+      <div class="op-row">
+        <input type="number" id="ownerCoinAmt" class="td-input sm" value="5000"/>
+        <button class="op-btn blue" data-oa="giveCoins">💰 Give Coins</button>
+      </div>
+    </div>
+
+    <div class="op-block" id="opIngame">
+      <label>⚡ LIVE ROUND COMMANDS</label>
+      <div class="op-row">
+        <input type="number" id="ownerIngameMoney" class="td-input sm" value="500"/>
+        <button class="op-btn blue" data-oa="addIngameMoney">+ Money</button>
+      </div>
+      <button class="op-btn purple" data-oa="skipWave">⏭ Skip Current Wave</button>
+      <button class="op-btn purple" data-oa="godMode">🛡 Toggle God Mode</button>
+      <button class="op-btn red"    data-oa="nukeEnemies">💥 Nuke All Enemies</button>
+    </div>
+
+    <div class="op-block">
+      <label>⚙ ADMIN</label>
+      <button class="op-btn red" data-oa="makeOwner">👑 Grant Owner Status</button>
+      <button class="op-btn red" data-oa="resetPlayer">⚠ Reset Player Data</button>
+    </div>
+
+    <div class="op-log-wrap">
+      <div class="op-log-title">ACTION LOG</div>
+      <div class="op-log" id="ownerLog">
+        <p class="op-placeholder">— awaiting commands —</p>
+      </div>
+    </div>
+
+  </div><!-- /op-body -->
+</div><!-- /ownerPanel -->
+
+<script src="playfab.js"></script>
+<script src="maps.js"></script>
+<script src="towers.js"></script>
+<script src="enemies.js"></script>
+<script src="game.js"></script>
+<script src="ui.js"></script>
+<script src="owner.js"></script>
+<script src="main.js"></script>
+</body>
+</html>
