@@ -420,26 +420,28 @@ class Tower {
     const col = this.def.color;
 
     // ── Tile background ──────────────────────────────────────────────────
-    // Subtle rounded bg panel
+    const rarityColors = { basic:'#3b82f6', advanced:'#06b6d4', special:'#a78bfa', legendary:'#f59e0b' };
+    const rarityCol = rarityColors[this.def.rarity] || col;
+
     ctx.save();
     if (this.auraBuff > 1.0) {
-      // Aura-buffed: gold shimmer bg
       const ag = ctx.createRadialGradient(cx,cy,s*0.1,cx,cy,s*0.55);
-      ag.addColorStop(0,'rgba(241,196,15,0.22)');
+      ag.addColorStop(0,'rgba(241,196,15,0.25)');
       ag.addColorStop(1,'rgba(241,196,15,0.04)');
       ctx.fillStyle = ag;
     } else if (this.selected) {
-      ctx.fillStyle = 'rgba(241,196,15,0.18)';
+      ctx.fillStyle = 'rgba(241,196,15,0.16)';
     } else {
-      ctx.fillStyle = 'rgba(0,0,0,0.45)';
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
     }
     ctx.beginPath();
     ctx.roundRect(tx+pad, ty+pad, s-pad*2, s-pad*2, 4);
     ctx.fill();
 
-    // Border ring on tile
-    ctx.strokeStyle = this.selected ? col : 'rgba(255,255,255,0.07)';
-    ctx.lineWidth = this.selected ? 2 : 1;
+    // Rarity-colored border
+    const borderCol = this.selected ? '#f1c40f' : rarityCol + (this.def.rarity==='legendary'?'55':'33');
+    ctx.strokeStyle = borderCol;
+    ctx.lineWidth = this.selected ? 2 : (this.def.rarity === 'legendary' ? 1.5 : 1);
     ctx.beginPath();
     ctx.roundRect(tx+pad, ty+pad, s-pad*2, s-pad*2, 4);
     ctx.stroke();
@@ -482,13 +484,17 @@ class Tower {
       ctx.shadowBlur = 0;
     }
 
-    // Level stripe(s) on body
+    // Level upgrade pips (glowing dots)
     if (this.level > 0) {
-      ctx.fillStyle = '#f1c40f';
+      ctx.shadowBlur = 6; ctx.shadowColor = '#f1c40f';
       for (let i = 0; i < this.level; i++) {
-        const rx = (i - (this.level-1)/2) * s*0.14;
-        ctx.fillRect(rx - s*0.04, s*0.12, s*0.08, s*0.12);
+        const rx = (i - (this.level-1)/2) * s*0.16;
+        ctx.beginPath();
+        ctx.arc(rx, s*0.22, s*0.055, 0, Math.PI*2);
+        ctx.fillStyle = i < 3 ? '#f1c40f' : '#fff';
+        ctx.fill();
       }
+      ctx.shadowBlur = 0;
     }
 
     ctx.restore();
@@ -644,25 +650,64 @@ class Bullet {
   }
 
   draw(ctx) {
+    // Instant beams (laser / phantom)
     if (this.speed >= 900 && this.target && !this.target.dead) {
       ctx.save();
+      const grd = ctx.createLinearGradient(this.x, this.y, this.target.x, this.target.y);
+      grd.addColorStop(0, this.color);
+      grd.addColorStop(1, this.color + '00');
       ctx.beginPath();
       ctx.moveTo(this.x, this.y);
       ctx.lineTo(this.target.x, this.target.y);
-      ctx.strokeStyle = this.color;
-      ctx.lineWidth = 2;
-      ctx.shadowBlur = 10; ctx.shadowColor = this.color;
-      ctx.globalAlpha = 0.7;
+      ctx.strokeStyle = grd;
+      ctx.lineWidth = this.size || 2;
+      ctx.shadowBlur = 14; ctx.shadowColor = this.color;
+      ctx.globalAlpha = 0.85;
+      ctx.stroke();
+      // Core line
+      ctx.globalAlpha = 0.5;
+      ctx.lineWidth = (this.size||2) * 0.4;
+      ctx.strokeStyle = '#fff';
+      ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(this.target.x, this.target.y);
       ctx.stroke();
       ctx.restore();
       this.dead = true;
       return;
     }
+
+    ctx.save();
+    ctx.shadowBlur = this.size * 2.5;
+    ctx.shadowColor = this.color;
+
+    // Trail effect: draw fading tail toward previous position
+    if (this.target && !this.target.dead) {
+      const dx = this.target.x - this.x, dy = this.target.y - this.y;
+      const dist = Math.sqrt(dx*dx+dy*dy)||1;
+      const tailLen = this.size * 4;
+      const tx = this.x - (dx/dist)*tailLen, ty = this.y - (dy/dist)*tailLen;
+      const tg = ctx.createLinearGradient(this.x, this.y, tx, ty);
+      tg.addColorStop(0, this.color + 'cc');
+      tg.addColorStop(1, this.color + '00');
+      ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(tx, ty);
+      ctx.strokeStyle = tg;
+      ctx.lineWidth = this.size * 0.65;
+      ctx.lineCap = 'round';
+      ctx.globalAlpha = 0.7;
+      ctx.stroke();
+    }
+
+    // Main bullet body
+    ctx.globalAlpha = 1;
+    const g = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size);
+    g.addColorStop(0, '#fff');
+    g.addColorStop(0.3, this.color);
+    g.addColorStop(1, this.color + '88');
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.size, 0, Math.PI*2);
-    ctx.fillStyle = this.color;
-    ctx.shadowBlur = 8; ctx.shadowColor = this.color;
+    ctx.fillStyle = g;
     ctx.fill();
+
     ctx.shadowBlur = 0;
+    ctx.restore();
   }
 }

@@ -64,6 +64,7 @@ const Game = (() => {
     waves = generateWaves(map.id, map.waves, map.waveModifier);
 
     _buildMapCache();
+    _buildMinimap();
     _bindEvents();
     _updateHUD();
     _updateWavePreview();
@@ -387,6 +388,68 @@ const Game = (() => {
     c.restore();
   }
 
+  // ── Minimap ───────────────────────────────────
+  let minimapCanvas = null, minimapCtx = null;
+  const MM_W = 120, MM_H = 72;
+
+  function _buildMinimap() {
+    let mm = document.getElementById('minimap');
+    if (!mm) {
+      mm = document.createElement('div');
+      mm.id = 'minimap';
+      mm.innerHTML = '<canvas id="mmCanvas"></canvas><div id="minimap-label">MINIMAP</div>';
+      document.querySelector('.canvas-wrap').appendChild(mm);
+    }
+    minimapCanvas = document.getElementById('mmCanvas');
+    minimapCanvas.width  = MM_W;
+    minimapCanvas.height = MM_H;
+    minimapCtx = minimapCanvas.getContext('2d');
+  }
+
+  function _drawMinimap() {
+    if (!minimapCtx || !map) return;
+    const c = minimapCtx;
+    const scX = MM_W / map.cols, scY = MM_H / map.rows;
+    c.clearRect(0, 0, MM_W, MM_H);
+
+    // BG
+    c.fillStyle = map.bgColor || '#1a2a15';
+    c.fillRect(0, 0, MM_W, MM_H);
+
+    // Path
+    c.strokeStyle = map.pathColor || '#4a3820';
+    c.lineWidth = Math.max(scX, scY) * 0.88;
+    c.lineCap = 'round'; c.lineJoin = 'round';
+    c.beginPath();
+    map.path.forEach(([pc,pr],i)=>{
+      const px=(pc+0.5)*scX, py=(pr+0.5)*scY;
+      i===0?c.moveTo(px,py):c.lineTo(px,py);
+    });
+    c.stroke();
+
+    // Towers (cyan dots)
+    towers.forEach(t => {
+      const mx=t.tileX*scX+scX/2, my=t.tileY*scY+scY/2;
+      c.beginPath(); c.arc(mx, my, 2, 0, Math.PI*2);
+      c.fillStyle = t.def.ownerOnly ? t.def.color : '#22d3ee';
+      c.fill();
+    });
+
+    // Enemies (red/gold dots)
+    enemies.forEach(e => {
+      if (e.dead) return;
+      const ex=(e.x/tileSize)*scX, ey=(e.y/tileSize)*scY;
+      c.beginPath(); c.arc(ex, ey, e.isBoss?3:1.5, 0, Math.PI*2);
+      c.fillStyle = e.isBoss?'#f1c40f':'#ef4444';
+      c.fill();
+    });
+
+    // Border
+    c.strokeStyle = 'rgba(6,182,212,0.25)';
+    c.lineWidth = 1;
+    c.strokeRect(0.5, 0.5, MM_W-1, MM_H-1);
+  }
+
   // ── Game Loop ──────────────────────────────────
   function _loop(ts) {
     raf = requestAnimationFrame(_loop);
@@ -495,6 +558,9 @@ const Game = (() => {
           shakeAmount = 18;
           killFeed.unshift({ text:`${e.name} KILLED`, age:0, boss:true });
           _floatText(`${e.name} DEFEATED! +${e.reward}`, 'gold');
+        } else if (kills % 50 === 0) {
+          killFeed.unshift({ text:`${kills} KILLS`, age:0, boss:false });
+          _spawnStreakPop(`💀 ${kills} KILLS!`);
         } else if (kills % 10 === 0) {
           killFeed.unshift({ text:`${kills} KILLS`, age:0, boss:false });
         }
@@ -603,6 +669,17 @@ const Game = (() => {
 
     // Boss bar (DOM overlay, updated each frame)
     _updateBossBar();
+
+    // Minimap
+    _drawMinimap();
+  }
+
+  function _spawnStreakPop(text) {
+    const el = document.createElement('div');
+    el.className = 'streak-pop';
+    el.textContent = text;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1900);
   }
 
   function _updateBossBar() {
@@ -927,26 +1004,47 @@ const Game = (() => {
     document.getElementById('hudKills').textContent = kills;
     document.getElementById('hudScore').textContent = score.toLocaleString();
 
-    // Flash lives red if low
-    const livesEl = document.getElementById('hudLives');
-    livesEl.parentElement.style.borderColor = lives <= 3 ? 'rgba(231,76,60,0.7)' : '';
+    // Lives danger pulse
+    const livesPill = document.getElementById('hudLives').parentElement;
+    if (lives <= 3) {
+      livesPill.classList.add('lives-danger');
+      livesPill.style.borderColor = '';
+    } else if (lives <= 8) {
+      livesPill.classList.remove('lives-danger');
+      livesPill.style.borderColor = 'rgba(251,191,36,0.5)';
+    } else {
+      livesPill.classList.remove('lives-danger');
+      livesPill.style.borderColor = '';
+    }
   }
 
   function _updateWavePreview() {
     const panel = document.getElementById('wavePreview');
     if (currentWaveIndex >= waves.length) {
-      panel.innerHTML = '<span style="color:#2ecc71">✓ All waves cleared!</span>';
+      panel.innerHTML = '<span style="color:var(--grn2);font-family:var(--f-mono);font-size:10px;letter-spacing:1px">✓ ALL WAVES CLEARED</span>';
       return;
     }
     const next = waves[currentWaveIndex];
     const counts = {};
     next.enemies.forEach(g => { counts[g.type] = (counts[g.type] || 0) + g.count; });
-    const bossTag = next.isBossWave ? '<strong style="color:#f1c40f;letter-spacing:2px">!! BOSS WAVE</strong>' : '';
-    let html = `<div class="wp-row"><span>WAVE ${next.number}/${waves.length}</span>${bossTag}</div>`;
+
+    let html = `<div style="font-family:var(--f-mono);font-size:9px;color:var(--txt2);letter-spacing:1px;margin-bottom:5px;display:flex;align-items:center;justify-content:space-between">
+      <span>WAVE ${next.number}/${waves.length}</span>
+      <span style="color:var(--txt3)">${Object.values(counts).reduce((a,b)=>a+b,0)} units</span>
+    </div>`;
+
+    if (next.isBossWave) {
+      html += '<div class="wp-boss-tag">⚠ BOSS WAVE</div>';
+    }
+
     Object.entries(counts).forEach(([type, count]) => {
       const def = ENEMY_TYPES[type];
-      const imm = def.immunities?.length ? ` <span style="color:#888;font-size:10px">[${def.immunities.join(',')}]</span>` : '';
-      html += `<div class="wp-row"><span style="color:${def.color||'#ccc'}">${def.name}${imm}</span><strong>×${count}</strong></div>`;
+      const imm = def.immunities?.length ? `<span style="color:var(--txt3);font-size:8px">[${def.immunities.slice(0,2).join(',')}${def.immunities.length>2?'…':''}]</span>` : '';
+      html += `<div class="wp-enemy-row">
+        <div class="wp-e-dot" style="background:${def.color||'#888'}"></div>
+        <div class="wp-e-name">${def.name} ${imm}</div>
+        <div class="wp-e-count">×${count}</div>
+      </div>`;
     });
     panel.innerHTML = html;
   }

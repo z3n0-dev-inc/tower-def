@@ -197,350 +197,313 @@ function getMap(id) {
 }
 
 // ── Map Preview Renderer ──────────────────────────────────
+
+// ══════════════════════════════════════════════
+// drawMapPreview — rich canvas art per theme
+// ══════════════════════════════════════════════
 function drawMapPreview(canvas, map) {
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
   const tW = W / map.cols, tH = H / map.rows;
+  const seed = map.id.split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+  const rng = mulberry32Preview(seed * 7 + 3);
+  const rng2 = mulberry32Preview(seed * 13 + 9);
 
-  ctx.fillStyle = map.bgColor || '#1a2a15';
-  ctx.fillRect(0, 0, W, H);
+  const TC = {
+    graveyard:{ bg1:'#141f10', bg2:'#1c2b15', acc:'#253d1c', fog:'rgba(140,200,120,0.05)' },
+    urban:    { bg1:'#111214', bg2:'#181b1e', acc:'#242628', fog:null },
+    volcanic: { bg1:'#120400', bg2:'#1c0700', acc:'#280c00', fog:'rgba(255,70,0,0.05)' },
+    arctic:   { bg1:'#08111e', bg2:'#0c1928', acc:'#142035', fog:'rgba(180,220,255,0.05)' },
+    hell:     { bg1:'#0c0000', bg2:'#130000', acc:'#1c0000', fog:'rgba(255,20,0,0.06)' },
+    nuclear:  { bg1:'#091000', bg2:'#0f1800', acc:'#172300', fog:'rgba(100,190,0,0.04)' },
+    shadow:   { bg1:'#020206', bg2:'#04040c', acc:'#080818', fog:'rgba(80,0,200,0.05)' },
+    omega:    { bg1:'#000002', bg2:'#010006', acc:'#04000c', fog:'rgba(200,0,30,0.06)' },
+  };
+  const th = TC[map.theme] || TC.graveyard;
 
-  // Texture dots
-  ctx.fillStyle = map.accentColor || '#2d4a28';
-  const rng = mulberry32Preview(7);
-  for (let i = 0; i < 80; i++) {
-    ctx.globalAlpha = 0.5;
-    ctx.fillRect(rng()*W, rng()*H, rng()<0.3?2:1, rng()<0.3?2:1);
+  // 1. Background gradient
+  const bg = ctx.createLinearGradient(0,0,W,H);
+  bg.addColorStop(0, th.bg1); bg.addColorStop(0.6, th.bg2); bg.addColorStop(1, th.bg1);
+  ctx.fillStyle = bg; ctx.fillRect(0,0,W,H);
+
+  // 2. Ground patches
+  for (let i = 0; i < 55; i++) {
+    ctx.globalAlpha = 0.1 + rng()*0.18;
+    ctx.fillStyle = th.acc;
+    ctx.beginPath();
+    ctx.ellipse(rng()*W, rng()*H, rng()*14+4, rng()*9+3, rng()*Math.PI, 0, Math.PI*2);
+    ctx.fill();
   }
   ctx.globalAlpha = 1;
 
-  // Theme colors
-  const themeColors = {
-    graveyard:{ path1:'#4f3e22', path2:'#6b5530', edge:'rgba(0,0,0,0.4)' },
-    urban:    { path1:'#505050', path2:'#707070', edge:'rgba(0,0,0,0.5)' },
-    volcanic: { path1:'#3d1500', path2:'#552000', edge:'rgba(180,60,0,0.5)' },
-    arctic:   { path1:'#8ab4d4', path2:'#c0d8f0', edge:'rgba(200,235,255,0.3)' },
-    hell:     { path1:'#600000', path2:'#880000', edge:'rgba(200,0,0,0.5)' },
-    nuclear:  { path1:'#506800', path2:'#708000', edge:'rgba(160,200,0,0.3)' },
-    shadow:   { path1:'#2a0060', path2:'#400090', edge:'rgba(120,0,255,0.4)' },
-    omega:    { path1:'#400000', path2:'#660000', edge:'rgba(220,0,30,0.5)' },
-  };
-  const tc = themeColors[map.theme] || themeColors.graveyard;
+  // 3. Fine noise dots
+  for (let i = 0; i < 180; i++) {
+    ctx.globalAlpha = 0.07 + rng2()*0.14;
+    ctx.fillStyle = th.acc;
+    ctx.fillRect(rng2()*W, rng2()*H, rng2()<0.3?2:1, rng2()<0.3?2:1);
+  }
+  ctx.globalAlpha = 1;
 
-  ctx.save();
-  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  // Shadow
-  ctx.strokeStyle = 'rgba(0,0,0,0.5)';
-  ctx.lineWidth = Math.max(tW,tH)*.9+4;
-  ctx.beginPath();
-  map.path.forEach(([c,r],i)=>{const px=c*tW+tW/2,py=r*tH+tH/2; i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);});
-  ctx.stroke();
-  // Edge
-  ctx.strokeStyle = tc.edge;
-  ctx.lineWidth = Math.max(tW,tH)*.88+2;
-  ctx.globalAlpha=0.7;
-  ctx.beginPath();
-  map.path.forEach(([c,r],i)=>{const px=c*tW+tW/2,py=r*tH+tH/2; i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);});
-  ctx.stroke(); ctx.globalAlpha=1;
-  // Main fill
-  ctx.strokeStyle = tc.path1;
-  ctx.lineWidth = Math.max(tW,tH)*.84;
-  ctx.beginPath();
-  map.path.forEach(([c,r],i)=>{const px=c*tW+tW/2,py=r*tH+tH/2; i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);});
-  ctx.stroke();
-  // Center highlight
-  ctx.strokeStyle = tc.path2;
-  ctx.lineWidth = Math.max(tW,tH)*.3;
-  ctx.globalAlpha=0.5;
-  ctx.beginPath();
-  map.path.forEach(([c,r],i)=>{const px=c*tW+tW/2,py=r*tH+tH/2; i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);});
-  ctx.stroke(); ctx.globalAlpha=1;
-  ctx.restore();
-
-  // Start portal
-  const [sc,sr] = map.path[0];
-  const scx=sc*tW+tW/2, scy=sr*tH+tH/2, sr2=Math.min(tW,tH)*.42;
-  const sg=ctx.createRadialGradient(scx,scy,sr2*.2,scx,scy,sr2*1.3);
-  sg.addColorStop(0,'rgba(46,204,113,0.5)'); sg.addColorStop(1,'rgba(39,174,96,0)');
-  ctx.fillStyle=sg; ctx.fillRect(sc*tW-tW,sr*tH-tH,tW*3,tH*3);
-  ctx.strokeStyle='#2ecc71'; ctx.lineWidth=Math.min(tW,tH)*.08;
-  ctx.beginPath(); ctx.arc(scx,scy,sr2,0,Math.PI*2); ctx.stroke();
-  ctx.fillStyle='rgba(46,204,113,0.4)'; ctx.beginPath(); ctx.arc(scx,scy,sr2*.7,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='#fff'; ctx.font=`bold ${Math.floor(Math.min(tH,tW)*.45)}px monospace`;
-  ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('S',scx,scy);
-
-  // End portal
-  const [ec,er] = map.path[map.path.length-1];
-  const ecx=ec*tW+tW/2, ecy=er*tH+tH/2;
-  const eg2=ctx.createRadialGradient(ecx,ecy,sr2*.2,ecx,ecy,sr2*1.3);
-  eg2.addColorStop(0,'rgba(231,76,60,0.5)'); eg2.addColorStop(1,'rgba(192,57,43,0)');
-  ctx.fillStyle=eg2; ctx.fillRect(ec*tW-tW,er*tH-tH,tW*3,tH*3);
-  ctx.strokeStyle='#e74c3c'; ctx.lineWidth=Math.min(tW,tH)*.08;
-  ctx.beginPath(); ctx.arc(ecx,ecy,sr2,0,Math.PI*2); ctx.stroke();
-  ctx.fillStyle='rgba(192,57,43,0.4)'; ctx.beginPath(); ctx.arc(ecx,ecy,sr2*.7,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='#fff'; ctx.fillText('E',ecx,ecy);
-}
-
-
-// ── Map decoration canvas drawing — theme based, no emojis ──
-function _drawMapDeco(c, theme, x, y, s, rng) {
-  const pick = rng();
-  c.save();
-  c.translate(x, y);
-  c.scale(s/14, s/14);
-
-  switch(theme) {
-    case 'graveyard': {
-      if (pick < 0.4) {
-        // Gravestone
-        c.fillStyle = '#7f8c8d';
-        c.beginPath(); c.roundRect(-5, -10, 10, 14, 2); c.fill();
-        c.fillStyle = '#95a5a6';
-        c.beginPath(); c.arc(0, -10, 5, Math.PI, 0); c.fill();
-        c.fillStyle = '#555';
-        c.fillRect(-3, -8, 6, 1.5);
-        c.fillRect(-1.5, -9.5, 3, 4);
-      } else if (pick < 0.75) {
-        // Dead tree
-        c.strokeStyle = '#4a3728'; c.lineWidth = 2.5; c.lineCap = 'round';
-        c.beginPath(); c.moveTo(0, 12); c.lineTo(0, -4); c.stroke();
-        c.beginPath(); c.moveTo(0, 2); c.lineTo(-7, -5); c.stroke();
-        c.beginPath(); c.moveTo(0, -1); c.lineTo(7, -7); c.stroke();
-        c.beginPath(); c.moveTo(0, -4); c.lineTo(-4, -10); c.stroke();
-        c.beginPath(); c.moveTo(0, -4); c.lineTo(5, -11); c.stroke();
-      } else {
-        // Fog wisps
-        c.fillStyle = 'rgba(200,220,200,0.5)';
-        c.beginPath(); c.ellipse(0, 0, 10, 4, 0, 0, Math.PI*2); c.fill();
-        c.beginPath(); c.ellipse(-5, 3, 7, 3, 0, 0, Math.PI*2); c.fill();
-      }
-      break;
-    }
-    case 'urban': {
-      if (pick < 0.35) {
-        // Ruined wall stub
-        c.fillStyle = '#555';
-        c.fillRect(-8, -4, 6, 14);
-        c.fillStyle = '#444';
-        c.fillRect(-8, -4, 6, 3);
-        c.fillRect(-8, 2, 6, 3);
-        c.fillStyle = '#666';
-        c.fillRect(2, 2, 7, 8);
-        c.fillStyle = '#4a4a4a';
-        c.fillRect(2, 2, 7, 2.5);
-      } else if (pick < 0.65) {
-        // Wrecked car chassis
-        c.fillStyle = '#7f8c8d';
-        c.beginPath(); c.roundRect(-10, -4, 20, 8, 2); c.fill();
-        c.fillStyle = '#555';
-        c.beginPath(); c.roundRect(-8, -7, 16, 6, 2); c.fill();
-        c.fillStyle = '#222';
-        c.beginPath(); c.arc(-6, 5, 4, 0, Math.PI*2); c.fill();
-        c.beginPath(); c.arc(6, 5, 4, 0, Math.PI*2); c.fill();
-      } else {
-        // Lamppost
-        c.strokeStyle = '#888'; c.lineWidth = 2; c.lineCap = 'round';
-        c.beginPath(); c.moveTo(0, 12); c.lineTo(0, -8); c.stroke();
-        c.beginPath(); c.moveTo(0, -8); c.quadraticCurveTo(0, -13, 6, -13); c.stroke();
-        c.fillStyle = '#ffe082';
-        c.beginPath(); c.arc(6, -13, 2.5, 0, Math.PI*2); c.fill();
-      }
-      break;
-    }
-    case 'volcanic': {
-      if (pick < 0.4) {
-        // Rock formation
-        c.fillStyle = '#4a2c0a';
-        c.beginPath(); c.moveTo(-10,12); c.lineTo(-12,-4); c.lineTo(-4,-12); c.lineTo(4,-10); c.lineTo(12,-2); c.lineTo(10,12); c.fill();
-        c.fillStyle = '#5a3812';
-        c.beginPath(); c.moveTo(-4,-12); c.lineTo(4,-10); c.lineTo(2,-6); c.lineTo(-2,-8); c.fill();
-      } else if (pick < 0.7) {
-        // Lava crack
-        c.strokeStyle = '#e64a19'; c.lineWidth = 2.5;
-        c.beginPath(); c.moveTo(-10,-3); c.lineTo(-4,2); c.lineTo(0,-1); c.lineTo(6,4); c.lineTo(10,1); c.stroke();
-        c.strokeStyle = '#ff6d00'; c.lineWidth = 1;
-        c.beginPath(); c.moveTo(-10,-3); c.lineTo(-4,2); c.lineTo(0,-1); c.lineTo(6,4); c.lineTo(10,1); c.stroke();
-      } else {
-        // Crystal shard
-        c.fillStyle = '#880e4f';
-        c.beginPath(); c.moveTo(0,-13); c.lineTo(5,-2); c.lineTo(3,12); c.lineTo(-3,12); c.lineTo(-5,-2); c.closePath(); c.fill();
-        c.fillStyle = '#ad1457';
-        c.beginPath(); c.moveTo(0,-13); c.lineTo(5,-2); c.lineTo(0,0); c.lineTo(-5,-2); c.fill();
-      }
-      break;
-    }
-    case 'arctic': {
-      if (pick < 0.4) {
-        // Ice spike cluster
-        c.fillStyle = '#b3e5fc';
-        for(let i=-1;i<=1;i++){
-          c.save(); c.translate(i*5,0); c.rotate(i*.2);
-          c.beginPath(); c.moveTo(-2.5,10); c.lineTo(0,-12+Math.abs(i)*3); c.lineTo(2.5,10); c.fill();
-          c.restore();
-        }
-      } else if (pick < 0.7) {
-        // Snow mound
-        c.fillStyle = '#e1f5fe';
-        c.beginPath(); c.ellipse(0, 4, 11, 6, 0, 0, Math.PI*2); c.fill();
-        c.fillStyle = '#fff';
-        c.beginPath(); c.ellipse(0, 0, 8, 5, 0, 0, Math.PI*2); c.fill();
-      } else {
-        // Penguin silhouette
-        c.fillStyle = '#212121';
-        c.beginPath(); c.ellipse(0, 2, 5, 8, 0, 0, Math.PI*2); c.fill();
-        c.beginPath(); c.arc(0, -8, 5, 0, Math.PI*2); c.fill();
-        c.fillStyle = '#fff';
-        c.beginPath(); c.ellipse(0, 3, 3, 5, 0, 0, Math.PI*2); c.fill();
-        c.fillStyle = '#f57f17';
-        c.beginPath(); c.moveTo(-2,-6); c.lineTo(2,-6); c.lineTo(0,-4); c.fill();
-      }
-      break;
-    }
-    case 'hell': {
-      if (pick < 0.35) {
-        // Bone pile
-        c.fillStyle = '#bcaaa4';
-        c.beginPath(); c.ellipse(0, 8, 9, 4, 0, 0, Math.PI*2); c.fill();
-        c.strokeStyle = '#d7ccc8'; c.lineWidth = 2.5; c.lineCap = 'round';
-        c.beginPath(); c.moveTo(-8, 4); c.lineTo(8, 4); c.stroke();
-        c.beginPath(); c.moveTo(-6, 0); c.lineTo(6, 8); c.stroke();
-        c.fillStyle = '#bcaaa4';
-        c.beginPath(); c.arc(0, -4, 5, 0, Math.PI*2); c.fill();
-        c.fillStyle = '#d7ccc8';
-        c.beginPath(); c.arc(-2.5, -6, 2, 0, Math.PI*2); c.fill();
-        c.beginPath(); c.arc(2.5, -6, 2, 0, Math.PI*2); c.fill();
-      } else if (pick < 0.65) {
-        // Fire pillar
-        c.fillStyle = '#b71c1c';
-        c.beginPath(); c.moveTo(-5,12); c.quadraticCurveTo(-7,-2,0,-14); c.quadraticCurveTo(7,-2,5,12); c.fill();
-        c.fillStyle = '#e53935';
-        c.beginPath(); c.moveTo(-3,12); c.quadraticCurveTo(-4,0,0,-9); c.quadraticCurveTo(4,0,3,12); c.fill();
-        c.fillStyle = '#ff8f00';
-        c.beginPath(); c.moveTo(-1.5,12); c.quadraticCurveTo(-2,4,0,-3); c.quadraticCurveTo(2,4,1.5,12); c.fill();
-      } else {
-        // Demon skull
-        c.fillStyle = '#5d4037';
-        c.beginPath(); c.arc(0,-2,8,0,Math.PI*2); c.fill();
-        c.fillRect(-5,3,10,8);
-        c.fillStyle = '#b71c1c';
-        c.beginPath(); c.arc(-3,-3,2.5,0,Math.PI*2); c.fill();
-        c.beginPath(); c.arc(3,-3,2.5,0,Math.PI*2); c.fill();
-        c.fillStyle = '#5d4037';
-        for(let i=0;i<4;i++) c.fillRect(-4+i*2.5,4,1.8,5);
-      }
-      break;
-    }
-    case 'nuclear': {
-      if (pick < 0.35) {
-        // Radiation sign
-        c.strokeStyle = '#f9a825'; c.lineWidth = 1.5;
-        c.beginPath(); c.arc(0,0,12,0,Math.PI*2); c.stroke();
-        c.beginPath(); c.arc(0,0,4,0,Math.PI*2); c.fillStyle='#f9a825'; c.fill();
-        for(let i=0;i<3;i++){
-          const a=i/3*Math.PI*2-Math.PI/2;
-          c.fillStyle='#f9a825';
-          c.beginPath();
-          c.moveTo(Math.cos(a)*5,Math.sin(a)*5);
-          c.arc(0,0,11,a+.3,a+Math.PI/1.5-0.3);
-          c.closePath(); c.fill();
-        }
-      } else if (pick < 0.7) {
-        // Mutant plant
-        c.strokeStyle = '#558b2f'; c.lineWidth = 2; c.lineCap = 'round';
-        c.beginPath(); c.moveTo(0,12); c.lineTo(0,-2); c.stroke();
-        c.fillStyle = '#33691e';
-        c.beginPath(); c.ellipse(-6,-6,7,4,-0.5,0,Math.PI*2); c.fill();
-        c.beginPath(); c.ellipse(6,-8,7,4,0.5,0,Math.PI*2); c.fill();
-        c.beginPath(); c.ellipse(0,-11,5,3,0,0,Math.PI*2); c.fill();
-        c.fillStyle = '#8bc34a';
-        c.beginPath(); c.arc(0,-11,2,0,Math.PI*2); c.fill();
-      } else {
-        // Barrel
-        c.fillStyle = '#33691e';
-        c.beginPath(); c.roundRect(-6,-10,12,20,2); c.fill();
-        c.fillStyle = '#1b5e20';
-        c.fillRect(-6,-2,12,3); c.fillRect(-6,4,12,3);
-        c.fillStyle = '#f9a825';
-        c.fillRect(-3,-7,6,5);
-        // Biohazard mini
-        c.fillStyle = '#558b2f';
-        c.beginPath(); c.arc(-1,-4,1.5,0,Math.PI*2); c.fill();
-      }
-      break;
-    }
-    case 'shadow': {
-      if (pick < 0.4) {
-        // Candle
-        c.fillStyle = '#795548';
-        c.beginPath(); c.roundRect(-3, -2, 6, 14, 1); c.fill();
-        c.fillStyle = '#fff8e1';
-        c.beginPath(); c.ellipse(0,-2,3,2,0,0,Math.PI*2); c.fill();
-        // Flame
-        c.fillStyle = '#ff6d00';
-        c.beginPath(); c.moveTo(0,-13); c.quadraticCurveTo(4,-8,0,-3); c.quadraticCurveTo(-4,-8,0,-13); c.fill();
-        c.fillStyle = '#ffe082';
-        c.beginPath(); c.moveTo(0,-11); c.quadraticCurveTo(2,-8,0,-5); c.quadraticCurveTo(-2,-8,0,-11); c.fill();
-      } else if (pick < 0.7) {
-        // Floating eye
-        c.fillStyle = 'rgba(30,0,60,0.8)';
-        c.beginPath(); c.ellipse(0,0,11,7,0,0,Math.PI*2); c.fill();
-        c.fillStyle = '#7b1fa2';
-        c.beginPath(); c.arc(0,0,5,0,Math.PI*2); c.fill();
-        c.fillStyle = '#e040fb';
-        c.beginPath(); c.arc(0,0,3,0,Math.PI*2); c.fill();
-        c.fillStyle = '#000';
-        c.beginPath(); c.arc(0,0,1.5,0,Math.PI*2); c.fill();
-        c.fillStyle = '#fff';
-        c.beginPath(); c.arc(-1,-1,0.8,0,Math.PI*2); c.fill();
-      } else {
-        // Shadow void rift
-        c.fillStyle = 'rgba(20,0,40,0.9)';
-        c.beginPath(); c.ellipse(0,0,10,6,0,0,Math.PI*2); c.fill();
-        c.strokeStyle = '#7c4dff'; c.lineWidth=1.5;
-        c.beginPath(); c.ellipse(0,0,10,6,0,0,Math.PI*2); c.stroke();
-        c.fillStyle='#ea80fc';
-        c.beginPath(); c.arc(0,0,2,0,Math.PI*2); c.fill();
-      }
-      break;
-    }
-    case 'omega': {
-      if (pick < 0.35) {
-        // Red warning light
-        c.fillStyle = '#1a0000';
-        c.beginPath(); c.roundRect(-4,-10,8,20,2); c.fill();
-        c.fillStyle = '#e53935';
-        c.beginPath(); c.arc(0,-7,4,0,Math.PI*2); c.fill();
-        c.fillStyle='#ff8a80';
-        c.beginPath(); c.arc(-1,-8,1.5,0,Math.PI*2); c.fill();
-        c.fillStyle='#e53935'; c.globalAlpha=0.3;
-        c.beginPath(); c.arc(0,-7,8,0,Math.PI*2); c.fill();
-      } else if (pick < 0.65) {
-        // Tech pillar
-        c.fillStyle = '#0a0a1a';
-        c.beginPath(); c.roundRect(-5,-12,10,24,1); c.fill();
-        c.fillStyle = '#1a237e';
-        c.fillRect(-4,-8,8,4); c.fillRect(-4,0,8,4);
-        c.fillStyle = '#304ffe';
-        c.fillRect(-3,-7,6,2); c.fillRect(-3,1,6,2);
-        c.fillStyle = '#e53935';
-        c.beginPath(); c.arc(0,8,2,0,Math.PI*2); c.fill();
-      } else {
-        // Cracked floor mark
-        c.strokeStyle = '#b71c1c'; c.lineWidth = 1.5; c.lineCap = 'round';
-        c.beginPath(); c.moveTo(0,-12); c.lineTo(-3,-4); c.lineTo(5,0); c.lineTo(-2,6); c.lineTo(3,12); c.stroke();
-        c.strokeStyle = '#ff1744'; c.lineWidth = 0.8;
-        c.globalAlpha *= 0.5;
-        c.beginPath(); c.moveTo(0,-12); c.lineTo(-3,-4); c.lineTo(5,0); c.lineTo(-2,6); c.lineTo(3,12); c.stroke();
-      }
-      break;
-    }
-    default: {
-      c.fillStyle = '#444';
-      c.beginPath(); c.arc(0,0,s,0,Math.PI*2); c.fill();
+  // 4. Theme-specific ground effects
+  if (map.theme === 'volcanic' || map.theme === 'hell') {
+    for (let i = 0; i < 5; i++) {
+      const lx = rng2()*W, ly = rng2()*H;
+      const lg = ctx.createRadialGradient(lx, ly, 0, lx, ly, 28);
+      lg.addColorStop(0, map.theme==='hell'?'rgba(180,0,0,0.22)':'rgba(255,60,0,0.18)');
+      lg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = lg; ctx.fillRect(0,0,W,H);
     }
   }
-  c.restore();
+  if (map.theme === 'arctic') {
+    for (let i = 0; i < 7; i++) {
+      ctx.globalAlpha = 0.05 + rng2()*0.07;
+      ctx.fillStyle = '#b3e5fc';
+      ctx.beginPath();
+      ctx.ellipse(rng2()*W, rng2()*H, rng2()*22+8, rng2()*14+5, rng2()*Math.PI, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  if (map.theme === 'nuclear') {
+    for (let i = 0; i < 5; i++) {
+      ctx.globalAlpha = 0.1 + rng2()*0.12;
+      ctx.fillStyle = '#a4c400';
+      ctx.beginPath();
+      ctx.ellipse(rng2()*W, rng2()*H, rng2()*18+6, rng2()*11+4, rng2()*Math.PI, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  if (map.theme === 'shadow' || map.theme === 'omega') {
+    ctx.strokeStyle = map.theme==='omega'?'rgba(180,0,20,0.28)':'rgba(80,0,180,0.22)';
+    ctx.lineWidth = 1;
+    for (let i = 0; i < 5; i++) {
+      ctx.globalAlpha = 0.3 + rng2()*0.4;
+      ctx.beginPath();
+      let cx2=rng2()*W, cy2=rng2()*H; ctx.moveTo(cx2,cy2);
+      for(let j=0;j<4;j++){cx2+=(rng2()-0.5)*42;cy2+=(rng2()-0.5)*38;ctx.lineTo(cx2,cy2);}
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // 5. Build path set
+  const pathSet = new Set(map.path.map(([c,r])=>`${c},${r}`));
+
+  // 6. Theme path colors
+  const PC = {
+    graveyard:{ p1:'#4f3e22', p2:'#6b5530', edge:'rgba(0,0,0,0.5)',   hi:'rgba(255,255,255,0.07)' },
+    urban:    { p1:'#484848', p2:'#686868', edge:'rgba(0,0,0,0.6)',   hi:'rgba(255,255,255,0.06)' },
+    volcanic: { p1:'#3d1500', p2:'#5a2000', edge:'rgba(200,60,0,0.5)',hi:'rgba(255,100,0,0.07)' },
+    arctic:   { p1:'#7aaac8', p2:'#b0d0e8', edge:'rgba(180,220,255,0.3)',hi:'rgba(255,255,255,0.12)' },
+    hell:     { p1:'#580000', p2:'#800000', edge:'rgba(220,0,0,0.55)',hi:'rgba(255,0,0,0.07)' },
+    nuclear:  { p1:'#445e00', p2:'#607a00', edge:'rgba(140,190,0,0.3)',hi:'rgba(180,240,0,0.06)' },
+    shadow:   { p1:'#220055', p2:'#380090', edge:'rgba(100,0,240,0.4)',hi:'rgba(160,0,255,0.07)' },
+    omega:    { p1:'#380000', p2:'#560000', edge:'rgba(220,0,30,0.5)',hi:'rgba(255,0,30,0.08)' },
+  };
+  const pc = PC[map.theme] || PC.graveyard;
+  const pw = Math.max(tW, tH);
+
+  const strokePath = (lw, col, alpha, dash) => {
+    ctx.save();
+    if (alpha!==undefined) ctx.globalAlpha = alpha;
+    if (dash) ctx.setLineDash(dash);
+    ctx.strokeStyle = col; ctx.lineWidth = pw * lw;
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    map.path.forEach(([c,r],i)=>{
+      const px=c*tW+tW/2, py=r*tH+tH/2;
+      i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+    });
+    ctx.stroke(); ctx.restore();
+  };
+
+  strokePath(1.02, 'rgba(0,0,0,0.72)');
+  strokePath(0.96, pc.edge, 0.58);
+  strokePath(0.88, pc.p1);
+  strokePath(0.4,  pc.p2, 0.65);
+  strokePath(0.14, pc.hi);
+  strokePath(0.04, 'rgba(255,255,255,0.13)', 0.55, [pw*0.28, pw*0.38]);
+
+  // 7. Decorations (fast, simple canvas shapes)
+  const decSeed = seed + 42;
+  const dRng = mulberry32Preview(decSeed);
+  let placed = 0;
+  for (let row = 0; row < map.rows && placed < 22; row++) {
+    for (let col = 0; col < map.cols && placed < 22; col++) {
+      if (pathSet.has(`${col},${row}`)) continue;
+      if (dRng() < 0.12) {
+        const dx = col*tW+tW/2, dy = row*tH+tH/2, sz = tW*0.32;
+        ctx.globalAlpha = 0.38 + dRng()*0.28;
+        _drawPreviewDeco(ctx, map.theme, dx, dy, sz, dRng);
+        placed++;
+      }
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  // 8. Fog & vignette
+  if (th.fog) { ctx.fillStyle = th.fog; ctx.fillRect(0,0,W,H); }
+  const vig = ctx.createRadialGradient(W/2,H/2,H*0.1,W/2,H/2,H*0.95);
+  vig.addColorStop(0,'rgba(0,0,0,0)'); vig.addColorStop(1,'rgba(0,0,0,0.55)');
+  ctx.fillStyle = vig; ctx.fillRect(0,0,W,H);
+
+  // 9. Portals
+  const [sc,sr] = map.path[0], [ec,er] = map.path[map.path.length-1];
+  _drawPortalPrev(ctx, sc*tW+tW/2, sr*tH+tH/2, Math.min(tW,tH)*0.48, '#27ae60', '#2ecc71', 'S');
+  _drawPortalPrev(ctx, ec*tW+tW/2, er*tH+tH/2, Math.min(tW,tH)*0.48, '#c0392b', '#e74c3c', 'E');
 }
+
+function _drawPortalPrev(ctx, x, y, r, c1, c2, label) {
+  const g = ctx.createRadialGradient(x,y,0,x,y,r*2);
+  g.addColorStop(0,c2+'55'); g.addColorStop(1,c1+'00');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,r*2,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle=c2; ctx.lineWidth=r*0.18;
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.stroke();
+  ctx.fillStyle=c1+'90'; ctx.beginPath(); ctx.arc(x,y,r*0.68,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.font=`bold ${Math.floor(r*0.9)}px monospace`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.shadowBlur=6; ctx.shadowColor='#000';
+  ctx.fillText(label,x,y); ctx.shadowBlur=0;
+}
+
+function _drawPreviewDeco(ctx, theme, x, y, s, rng) {
+  ctx.save(); ctx.translate(x,y); ctx.scale(s/10,s/10);
+  const p = rng();
+  switch(theme) {
+    case 'graveyard':
+      if (p<0.4) {
+        // Gravestone
+        ctx.fillStyle='#7f8c8d';
+        ctx.beginPath(); ctx.roundRect(-4.5,-9.5,9,13,1.5); ctx.fill();
+        ctx.fillStyle='#95a5a6';
+        ctx.beginPath(); ctx.arc(0,-9.5,4.5,Math.PI,0); ctx.fill();
+        ctx.fillStyle='rgba(0,0,0,0.35)';
+        ctx.fillRect(-3,-7.5,6,1.5); ctx.fillRect(-1.2,-9,2.5,4);
+      } else if (p<0.75) {
+        // Dead tree
+        ctx.strokeStyle='#4a3728'; ctx.lineWidth=2.5; ctx.lineCap='round';
+        ctx.beginPath(); ctx.moveTo(0,12); ctx.lineTo(0,-3); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0,2); ctx.lineTo(-7,-4); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0,-1); ctx.lineTo(7,-7); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0,-3); ctx.lineTo(-4,-10); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0,-3); ctx.lineTo(5,-10); ctx.stroke();
+      } else {
+        // Fog wisp
+        ctx.fillStyle='rgba(180,210,165,0.45)';
+        ctx.beginPath(); ctx.ellipse(0,0,10,4,0,0,Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(-4,3,7,3,0,0,Math.PI*2); ctx.fill();
+      }
+      break;
+    case 'urban':
+      if (p<0.35) {
+        ctx.fillStyle='#555'; ctx.fillRect(-7,-3,5.5,13); ctx.fillStyle='#666'; ctx.fillRect(2,2,6.5,8);
+      } else if (p<0.65) {
+        ctx.fillStyle='#7f8c8d'; ctx.beginPath(); ctx.roundRect(-9,-3,18,7,2); ctx.fill();
+        ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(-5.5,5,3.5,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(5.5,5,3.5,0,Math.PI*2); ctx.fill();
+      } else {
+        ctx.strokeStyle='#888'; ctx.lineWidth=1.5; ctx.lineCap='round';
+        ctx.beginPath(); ctx.moveTo(0,11); ctx.lineTo(0,-7); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0,-7); ctx.quadraticCurveTo(0,-12,5.5,-12); ctx.stroke();
+        ctx.fillStyle='#ffe082'; ctx.beginPath(); ctx.arc(5.5,-12,2.2,0,Math.PI*2); ctx.fill();
+      }
+      break;
+    case 'volcanic':
+      if (p<0.4) {
+        ctx.fillStyle='#4a2c0a';
+        ctx.beginPath(); ctx.moveTo(-10,11); ctx.lineTo(-11,-3); ctx.lineTo(-3,-11); ctx.lineTo(3,-9); ctx.lineTo(11,-2); ctx.lineTo(10,11); ctx.fill();
+      } else if (p<0.7) {
+        ctx.strokeStyle='#e64a19'; ctx.lineWidth=2.5;
+        ctx.beginPath(); ctx.moveTo(-9,-2); ctx.lineTo(-3,2); ctx.lineTo(0,-1); ctx.lineTo(5,4); ctx.lineTo(9,1); ctx.stroke();
+        ctx.strokeStyle='#ff6d00'; ctx.lineWidth=0.9;
+        ctx.beginPath(); ctx.moveTo(-9,-2); ctx.lineTo(-3,2); ctx.lineTo(0,-1); ctx.lineTo(5,4); ctx.lineTo(9,1); ctx.stroke();
+      } else {
+        ctx.fillStyle='#880e4f';
+        ctx.beginPath(); ctx.moveTo(0,-12); ctx.lineTo(4.5,-2); ctx.lineTo(3,11); ctx.lineTo(-3,11); ctx.lineTo(-4.5,-2); ctx.closePath(); ctx.fill();
+        ctx.fillStyle='#ad1457';
+        ctx.beginPath(); ctx.moveTo(0,-12); ctx.lineTo(4.5,-2); ctx.lineTo(0,0); ctx.lineTo(-4.5,-2); ctx.fill();
+      }
+      break;
+    case 'arctic':
+      if (p<0.45) {
+        ctx.fillStyle='#b3e5fc';
+        for(let i=-1;i<=1;i++){
+          ctx.save(); ctx.translate(i*4.5,0); ctx.rotate(i*0.14);
+          ctx.beginPath(); ctx.moveTo(-2.5,10); ctx.lineTo(0,-11+Math.abs(i)*2.5); ctx.lineTo(2.5,10); ctx.fill();
+          ctx.restore();
+        }
+      } else {
+        ctx.fillStyle='#e1f5fe'; ctx.beginPath(); ctx.ellipse(0,3.5,10.5,5.5,0,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(0,0,7.5,4.5,0,0,Math.PI*2); ctx.fill();
+      }
+      break;
+    case 'hell':
+      if (p<0.4) {
+        ctx.fillStyle='#b71c1c';
+        ctx.beginPath(); ctx.moveTo(-4,11); ctx.quadraticCurveTo(-6,-1,0,-12); ctx.quadraticCurveTo(6,-1,4,11); ctx.fill();
+        ctx.fillStyle='#e53935';
+        ctx.beginPath(); ctx.moveTo(-2.5,11); ctx.quadraticCurveTo(-3.5,1,0,-8); ctx.quadraticCurveTo(3.5,1,2.5,11); ctx.fill();
+        ctx.fillStyle='#ff8f00';
+        ctx.beginPath(); ctx.moveTo(-1.2,11); ctx.quadraticCurveTo(-1.5,4,0,-2); ctx.quadraticCurveTo(1.5,4,1.2,11); ctx.fill();
+      } else {
+        ctx.fillStyle='#5d4037'; ctx.beginPath(); ctx.arc(0,-1.5,7.5,0,Math.PI*2); ctx.fill(); ctx.fillRect(-4.5,4,9,7.5);
+        ctx.fillStyle='#b71c1c'; ctx.beginPath(); ctx.arc(-2.5,-3,2.2,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(2.5,-3,2.2,0,Math.PI*2); ctx.fill();
+      }
+      break;
+    case 'nuclear':
+      if (p<0.4) {
+        ctx.strokeStyle='#f9a825'; ctx.lineWidth=1.3;
+        ctx.beginPath(); ctx.arc(0,0,10,0,Math.PI*2); ctx.stroke();
+        ctx.fillStyle='#f9a825'; ctx.beginPath(); ctx.arc(0,0,2.8,0,Math.PI*2); ctx.fill();
+        for(let i=0;i<3;i++){
+          const a=i/3*Math.PI*2-Math.PI/2;
+          ctx.beginPath(); ctx.moveTo(Math.cos(a)*3.8,Math.sin(a)*3.8);
+          ctx.arc(0,0,9.5,a+0.3,a+Math.PI/1.5-0.3); ctx.closePath(); ctx.fill();
+        }
+      } else {
+        ctx.strokeStyle='#558b2f'; ctx.lineWidth=1.8; ctx.lineCap='round';
+        ctx.beginPath(); ctx.moveTo(0,11); ctx.lineTo(0,-1); ctx.stroke();
+        ctx.fillStyle='#33691e';
+        ctx.beginPath(); ctx.ellipse(-5.5,-5,6.5,3.5,-0.45,0,Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(5.5,-7,6.5,3.5,0.45,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#8bc34a'; ctx.beginPath(); ctx.arc(0,-10,2.2,0,Math.PI*2); ctx.fill();
+      }
+      break;
+    case 'shadow':
+      if (p<0.4) {
+        ctx.fillStyle='#795548'; ctx.beginPath(); ctx.roundRect(-2.5,-1,5,13,1); ctx.fill();
+        ctx.fillStyle='#ff6d00';
+        ctx.beginPath(); ctx.moveTo(0,-12); ctx.quadraticCurveTo(3.5,-7,0,-2); ctx.quadraticCurveTo(-3.5,-7,0,-12); ctx.fill();
+        ctx.fillStyle='#ffe082';
+        ctx.beginPath(); ctx.moveTo(0,-10); ctx.quadraticCurveTo(2,-7.5,0,-4); ctx.quadraticCurveTo(-2,-7.5,0,-10); ctx.fill();
+      } else {
+        ctx.fillStyle='rgba(20,0,45,0.88)'; ctx.beginPath(); ctx.ellipse(0,0,9.5,6,0,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#7b1fa2'; ctx.beginPath(); ctx.arc(0,0,4.5,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#e040fb'; ctx.beginPath(); ctx.arc(0,0,2.8,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(0,0,1.4,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(-0.8,-0.8,0.7,0,Math.PI*2); ctx.fill();
+      }
+      break;
+    case 'omega':
+      if (p<0.4) {
+        ctx.fillStyle='#1a0000'; ctx.beginPath(); ctx.roundRect(-3.5,-9,7,18,1.5); ctx.fill();
+        ctx.fillStyle='#e53935'; ctx.beginPath(); ctx.arc(0,-6,3.8,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#ff8a80'; ctx.beginPath(); ctx.arc(-1,-7,1.4,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#e53935'; ctx.globalAlpha*=0.22;
+        ctx.beginPath(); ctx.arc(0,-6,8,0,Math.PI*2); ctx.fill();
+      } else {
+        ctx.strokeStyle='#b71c1c'; ctx.lineWidth=1.4; ctx.lineCap='round';
+        ctx.beginPath(); ctx.moveTo(0,-12); ctx.lineTo(-2.8,-3); ctx.lineTo(4.5,0); ctx.lineTo(-2,5.5); ctx.lineTo(3,12); ctx.stroke();
+        ctx.strokeStyle='#ff1744'; ctx.lineWidth=0.7; ctx.globalAlpha*=0.5;
+        ctx.beginPath(); ctx.moveTo(0,-12); ctx.lineTo(-2.8,-3); ctx.lineTo(4.5,0); ctx.lineTo(-2,5.5); ctx.lineTo(3,12); ctx.stroke();
+      }
+      break;
+    default:
+      ctx.fillStyle='#444'; ctx.beginPath(); ctx.arc(0,0,6,0,Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+}
+
 
 function mulberry32Preview(seed) {
   return function() {

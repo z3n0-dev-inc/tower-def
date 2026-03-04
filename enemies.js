@@ -735,55 +735,114 @@ class Enemy {
     ctx.globalAlpha = alpha;
     const s = this.size;
 
-    // Shadow
-    ctx.beginPath(); ctx.ellipse(this.x,this.y+s*.7,s*.6,s*.2,0,0,Math.PI*2);
-    ctx.fillStyle='rgba(0,0,0,0.3)'; ctx.fill();
+    // Shadow (softer, elliptical)
+    const sg = ctx.createRadialGradient(this.x, this.y+s*.75, 0, this.x, this.y+s*.75, s*.7);
+    sg.addColorStop(0,'rgba(0,0,0,0.45)'); sg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle = sg;
+    ctx.beginPath(); ctx.ellipse(this.x, this.y+s*.75, s*.65, s*.22, 0, 0, Math.PI*2); ctx.fill();
 
-    // Flash override
+    // Flash override (hit flash)
     if (this.flashTimer > 0) {
-      ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(this.x,this.y,s,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#fff';
+      ctx.shadowBlur = 15; ctx.shadowColor = '#fff';
+      ctx.beginPath(); ctx.arc(this.x, this.y, s, 0, Math.PI*2); ctx.fill();
+      ctx.shadowBlur = 0;
     } else {
-      // Draw canvas art — no emojis
       const fn = EnemyArt[this.type] || EnemyArt._default;
-      // Apply rage / burn tint
-      if (this.rageActive) { ctx.globalAlpha = alpha * 0.4; ctx.fillStyle='#ff0000'; ctx.beginPath(); ctx.arc(this.x,this.y,s,0,Math.PI*2); ctx.fill(); ctx.globalAlpha = alpha; }
+      if (this.rageActive) {
+        // Rage: red aura pulse
+        ctx.globalAlpha = alpha * 0.5;
+        ctx.fillStyle = '#ff0000';
+        ctx.shadowBlur = 12; ctx.shadowColor = '#ff0000';
+        ctx.beginPath(); ctx.arc(this.x, this.y, s*1.25, 0, Math.PI*2); ctx.fill();
+        ctx.shadowBlur = 0; ctx.globalAlpha = alpha;
+      }
       fn(ctx, this.x, this.y, s);
     }
 
-    // Boss gold ring
-    if (this.isBoss) { ctx.strokeStyle='#f1c40f'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(this.x,this.y,s+3,0,Math.PI*2); ctx.stroke(); }
+    // Boss: animated gold ring + spinning dashes
+    if (this.isBoss) {
+      const t = Date.now() * 0.002;
+      ctx.strokeStyle = '#f1c40f';
+      ctx.lineWidth = s * 0.1;
+      ctx.shadowBlur = 10; ctx.shadowColor = '#f59e0b';
+      ctx.beginPath(); ctx.arc(this.x, this.y, s + s*0.2, 0, Math.PI*2); ctx.stroke();
+      ctx.shadowBlur = 0;
+      // Spinning dashes
+      ctx.save();
+      ctx.translate(this.x, this.y);
+      ctx.rotate(t);
+      ctx.strokeStyle = 'rgba(251,191,36,0.45)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([s*0.25, s*0.25]);
+      ctx.beginPath(); ctx.arc(0, 0, s + s*0.45, 0, Math.PI*2); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
 
-    // HP bar
+    // HP bar — improved gradient, rounded
     if (this.hp < this.maxHp) {
-      const bw=s*2.2, bh=this.isBoss?7:4;
-      const bx=this.x-bw/2, by=this.y-s-(this.isBoss?14:9);
-      ctx.fillStyle='#333'; ctx.fillRect(bx,by,bw,bh);
-      const ratio=this.hp/this.maxHp;
-      ctx.fillStyle=ratio>.6?'#2ecc71':ratio>.3?'#f39c12':'#e74c3c';
-      ctx.fillRect(bx,by,bw*ratio,bh);
-      ctx.strokeStyle='#111'; ctx.lineWidth=1; ctx.strokeRect(bx,by,bw,bh);
-    }
+      const bw = s * (this.isBoss ? 2.6 : 2.2);
+      const bh = this.isBoss ? 8 : 4;
+      const bx = this.x - bw/2;
+      const by = this.y - s - (this.isBoss ? 17 : 10);
+      const ratio = Math.max(0, this.hp / this.maxHp);
 
-    // Slow ring
-    if (this.slowTimer > 0) { ctx.fillStyle='rgba(52,152,219,0.4)'; ctx.beginPath(); ctx.arc(this.x,this.y,s+3,0,Math.PI*2); ctx.fill(); }
+      // Background
+      ctx.fillStyle = 'rgba(0,0,0,0.65)';
+      ctx.beginPath(); ctx.roundRect(bx-1, by-1, bw+2, bh+2, bh/2+1); ctx.fill();
 
-    // Burn sparks (drawn, not emoji)
-    if (this.burnTimer > 0) {
-      const t=Date.now()*.006;
-      for(let i=0;i<4;i++){
-        const a=t+i*1.57, r=s*.85;
-        const fx=this.x+Math.cos(a)*r, fy=this.y+Math.sin(a)*r;
-        ctx.fillStyle=i%2?'#ff6600':'#ffcc00';
-        ctx.beginPath(); ctx.arc(fx,fy,s*.12,0,Math.PI*2); ctx.fill();
+      // Fill gradient
+      const hpGrad = ctx.createLinearGradient(bx, by, bx + bw, by);
+      if (ratio > 0.6) {
+        hpGrad.addColorStop(0,'#16a34a'); hpGrad.addColorStop(1,'#22c55e');
+      } else if (ratio > 0.3) {
+        hpGrad.addColorStop(0,'#d97706'); hpGrad.addColorStop(1,'#f59e0b');
+      } else {
+        hpGrad.addColorStop(0,'#b91c1c'); hpGrad.addColorStop(1,'#ef4444');
       }
+      ctx.fillStyle = hpGrad;
+      ctx.beginPath(); ctx.roundRect(bx, by, bw * ratio, bh, bh/2); ctx.fill();
+
+      // Sheen
+      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      ctx.beginPath(); ctx.roundRect(bx, by, bw * ratio, bh * 0.45, bh/2); ctx.fill();
     }
 
-    // Immune indicator — small colored X for each immunity type
+    // Slow ring (icy blue)
+    if (this.slowTimer > 0) {
+      const sr = Math.min(1, this.slowTimer / 2);
+      ctx.globalAlpha = alpha * sr * 0.55;
+      ctx.strokeStyle = '#60a5fa';
+      ctx.lineWidth = s * 0.12;
+      ctx.shadowBlur = 8; ctx.shadowColor = '#3b82f6';
+      ctx.beginPath(); ctx.arc(this.x, this.y, s + s*0.22, 0, Math.PI*2); ctx.stroke();
+      ctx.shadowBlur = 0; ctx.globalAlpha = alpha;
+    }
+
+    // Burn sparks (orbiting)
+    if (this.burnTimer > 0) {
+      const t = Date.now() * 0.007;
+      for (let i = 0; i < 5; i++) {
+        const a = t + i * 1.257;
+        const r = s * (0.8 + Math.sin(t * 2 + i) * 0.2);
+        const fx = this.x + Math.cos(a) * r;
+        const fy = this.y + Math.sin(a) * r;
+        ctx.fillStyle = i % 2 ? '#ff6600' : '#ffcc00';
+        ctx.shadowBlur = 6; ctx.shadowColor = '#ff4400';
+        ctx.beginPath(); ctx.arc(fx, fy, s * 0.13, 0, Math.PI*2); ctx.fill();
+      }
+      ctx.shadowBlur = 0;
+    }
+
+    // Immunity dots (small, only for regular enemies)
     if (this.immunities.length && !this.isBoss) {
-      const TC={bullet:'#95a5a6',fire:'#e74c3c',ice:'#3498db',explosive:'#e67e22',electric:'#f1c40f',laser:'#ff0040',poison:'#16a085'};
+      const TC = { bullet:'#94a3b8', fire:'#ef4444', ice:'#3b82f6', explosive:'#f97316', electric:'#facc15', laser:'#ff0040', poison:'#10b981' };
       this.immunities.forEach((imm, i) => {
-        ctx.fillStyle=TC[imm]||'#fff';
-        ctx.beginPath(); ctx.arc(this.x+s+i*s*.35-this.immunities.length*s*.17, this.y-s*1.2, s*.15, 0, Math.PI*2); ctx.fill();
+        const ix = this.x - (this.immunities.length-1)*s*0.18 + i*s*0.36;
+        const iy = this.y - s - 2;
+        ctx.fillStyle = TC[imm] || '#fff';
+        ctx.beginPath(); ctx.arc(ix, iy, s*0.14, 0, Math.PI*2); ctx.fill();
       });
     }
 

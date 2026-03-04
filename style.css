@@ -676,3 +676,188 @@ select.td-input option { background: var(--bg2); color: var(--txt); }
 ::-webkit-scrollbar       { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+
+/* ═══════════════════════════════════════
+   IMPROVEMENTS — visual polish & new UI
+   ═══════════════════════════════════════ */
+
+/* ── Minimap overlay ── */
+#minimap {
+  position: absolute; bottom: 36px; left: 8px;
+  background: rgba(4,6,12,0.94); border: 1px solid rgba(6,182,212,0.2);
+  border-radius: 5px; padding: 4px; z-index: 40; pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.8), 0 0 0 1px rgba(6,182,212,0.06);
+}
+#minimap canvas { display: block; }
+#minimap-label {
+  font-family: var(--f-mono); font-size: 7px; letter-spacing: 2px;
+  color: rgba(6,182,212,0.5); text-align: center; margin-top: 2px;
+  text-transform: uppercase;
+}
+
+/* ── Rarity separator inside tower palette ── */
+.tp-sep {
+  grid-column: 1 / -1; padding: 4px 2px 2px;
+  font-family: var(--f-mono); font-size: 7px; letter-spacing: 3px;
+  text-transform: uppercase; border-top: 1px solid rgba(255,255,255,0.04);
+  margin-top: 2px;
+}
+.tp-sep-basic    { color: #475569; }
+.tp-sep-advanced { color: var(--cyan2); }
+.tp-sep-special  { color: #a78bfa; }
+.tp-sep-legendary { color: var(--amber2); }
+
+/* ── Rarity-tinted palette items ── */
+.tp-item[data-rarity="advanced"]  { border-color: rgba(6,182,212,0.15); }
+.tp-item[data-rarity="special"]   { border-color: rgba(167,139,250,0.18); }
+.tp-item[data-rarity="legendary"] { border-color: rgba(251,191,36,0.2); }
+.tp-item[data-rarity="legendary"]:hover:not(.locked) { background: rgba(251,191,36,0.07); border-color: rgba(251,191,36,0.5); }
+.tp-item[data-rarity="special"]:hover:not(.locked)   { background: rgba(167,139,250,0.06); border-color: rgba(167,139,250,0.45); }
+
+/* ── Tower palette tooltip ── */
+.tp-item { overflow: visible; }
+.tp-tip {
+  display: none; position: absolute; left: calc(100% + 6px); top: 50%;
+  transform: translateY(-50%); z-index: 300; width: 160px;
+  background: rgba(4,6,14,0.98); border: 1px solid rgba(6,182,212,0.25);
+  border-radius: 5px; padding: 8px 10px; pointer-events: none;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.85); line-height: 1.5;
+}
+.tp-item:hover .tp-tip { display: block; }
+.tp-tip-name { font-family: var(--f-hdr); font-size: 10px; color: var(--amber3); margin-bottom: 3px; letter-spacing: 1px; }
+.tp-tip-desc { font-size: 9px; color: var(--txt2); margin-bottom: 5px; }
+.tp-tip-stat { display: flex; justify-content: space-between; font-family: var(--f-mono); font-size: 9px; color: var(--txt2); }
+.tp-tip-stat strong { color: var(--cyan3); }
+
+/* ── Upgrade path visualizer ── */
+.upg-path { display: flex; align-items: center; gap: 0; margin: 5px 0 3px; }
+.upg-node {
+  width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
+  border: 1.5px solid rgba(255,255,255,0.1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8px; font-family: var(--f-mono); transition: all 0.25s;
+}
+.upg-node.done    { background: var(--amber2); border-color: var(--amber3); color: #000; font-weight: 700; }
+.upg-node.current { border-color: var(--cyan2); box-shadow: 0 0 8px rgba(6,182,212,0.5); color: var(--cyan3); }
+.upg-node.future  { color: var(--txt3); }
+.upg-line { flex: 1; height: 2px; background: rgba(255,255,255,0.07); }
+.upg-line.done { background: var(--amber2); }
+
+/* ── Wave preview: enemy row upgrade ── */
+.wp-enemy-row {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.03);
+  font-family: var(--f-mono);
+}
+.wp-e-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.wp-e-name { flex: 1; font-size: 9px; color: var(--txt2); text-transform: uppercase; letter-spacing: 0.5px; }
+.wp-e-count { font-size: 11px; color: var(--red2); font-weight: 700; }
+.wp-boss-tag {
+  display: inline-block; background: rgba(251,191,36,0.12); color: var(--amber3);
+  font-family: var(--f-mono); font-size: 8px; letter-spacing: 2px;
+  border: 1px solid rgba(251,191,36,0.3); padding: 2px 6px; border-radius: 2px;
+  margin-bottom: 5px;
+}
+
+/* ── Stat mini-bars in selected tower panel ── */
+.sbar-row { display: flex; align-items: center; gap: 5px; margin: 2px 0; }
+.sbar-lbl { font-size: 9px; color: var(--txt2); width: 34px; flex-shrink: 0; font-family: var(--f-mono); }
+.sbar-track { flex: 1; height: 3px; background: rgba(255,255,255,0.06); border-radius: 2px; overflow: hidden; }
+.sbar-fill  { height: 100%; border-radius: 2px; transition: width 0.35s ease; }
+.sbar-val   { font-size: 9px; width: 32px; text-align: right; font-family: var(--f-mono); color: var(--cyan3); }
+
+/* ── Damage numbers: crits bigger ── */
+.dmg-num.crit { color: var(--amber3); font-size: 21px; font-weight: 900; }
+.dmg-num.heal { color: var(--grn2); }
+
+/* ── HUD: lives heartbeat at low HP ── */
+.hud-pill.lives-danger {
+  border-color: rgba(220,38,38,0.7) !important;
+  animation: heartbeat 0.85s ease-in-out infinite;
+}
+@keyframes heartbeat {
+  0%,100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.5); }
+  50%      { box-shadow: 0 0 0 5px rgba(220,38,38,0); }
+}
+
+/* ── Boss bar: shimmer ── */
+#bossBarFill {
+  background: linear-gradient(90deg, #dc2626, #ef4444, #f97316);
+  position: relative; transition: width 0.12s linear;
+}
+#bossBarFill::after {
+  content: ''; position: absolute; inset: 0 0 40% 0;
+  background: rgba(255,255,255,0.15); border-radius: inherit;
+  pointer-events: none;
+}
+#bossBar { position: relative; overflow: visible; }
+.boss-aura {
+  position: absolute; top: -6px; left: 50%; transform: translateX(-50%);
+  font-family: var(--f-mono); font-size: 8px; letter-spacing: 3px;
+  color: var(--amber3); text-transform: uppercase;
+  animation: bossGlow 1.5s ease-in-out infinite;
+}
+@keyframes bossGlow { 0%,100%{opacity:0.5} 50%{opacity:1;text-shadow:0 0 12px var(--amber2)} }
+
+/* ── Map card: unlocked badge ── */
+.map-badge {
+  position: absolute; top: 7px; left: 7px; z-index: 2;
+  font-family: var(--f-mono); font-size: 8px; letter-spacing: 2px;
+  padding: 2px 6px; border-radius: 2px; text-transform: uppercase;
+}
+.map-badge-open { background:rgba(34,197,94,0.15); color:var(--grn2); border:1px solid rgba(34,197,94,0.3); }
+.map-badge-lock { background:rgba(100,116,139,0.12); color:var(--txt3); border:1px solid rgba(255,255,255,0.07); }
+
+/* ── Map card wave count chip ── */
+.map-waves-chip {
+  font-family: var(--f-mono); font-size: 9px; color: var(--red2);
+  letter-spacing: 1px; margin-top: 3px;
+}
+
+/* ── Particle canvas (game screen overlay) ── */
+#particleLayer {
+  position: absolute; inset: 0; pointer-events: none; z-index: 4;
+}
+
+/* ── Interest float (exists in original — just ensure it's still here) ── */
+.interest-float {
+  position: fixed; top: 56px; left: 50%; transform: translateX(-50%);
+  font-family: var(--f-mono); font-size: 15px; font-weight: 700;
+  color: var(--amber3); letter-spacing: 3px;
+  text-shadow: 0 0 20px rgba(251,191,36,0.6);
+  pointer-events: none; z-index: 9001;
+  animation: interestPop 1.6s ease-out forwards;
+}
+@keyframes interestPop {
+  0%   { opacity:0; transform:translateX(-50%) scale(0.7); }
+  20%  { opacity:1; transform:translateX(-50%) scale(1.05); }
+  70%  { opacity:1; transform:translateX(-50%) translateY(-8px); }
+  100% { opacity:0; transform:translateX(-50%) translateY(-36px); }
+}
+
+/* ── Kill streak popup ── */
+.streak-pop {
+  position: fixed; top: 100px; left: 50%; transform: translateX(-50%);
+  font-family: var(--f-hdr); font-size: 22px; font-weight: 900; letter-spacing: 4px;
+  color: var(--amber3); text-shadow: 0 0 30px rgba(251,191,36,0.7);
+  pointer-events: none; z-index: 9002;
+  animation: streakPop 1.8s ease-out forwards;
+}
+@keyframes streakPop {
+  0%   { opacity:0; transform:translateX(-50%) scale(0.5) translateY(20px); }
+  25%  { opacity:1; transform:translateX(-50%) scale(1.15) translateY(0); }
+  70%  { opacity:1; transform:translateX(-50%) scale(1) translateY(-10px); }
+  100% { opacity:0; transform:translateX(-50%) scale(0.9) translateY(-30px); }
+}
+
+/* ── Victory screen: star rating ── */
+.vic-stars-wrap { margin-bottom: 6px; }
+.vic-star { font-size: 40px; display: inline-block; animation: starPop 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
+.vic-star:nth-child(1) { animation-delay: 0.1s; }
+.vic-star:nth-child(2) { animation-delay: 0.3s; }
+.vic-star:nth-child(3) { animation-delay: 0.5s; }
+@keyframes starPop { from{opacity:0;transform:scale(0) rotate(-30deg)} to{opacity:1;transform:scale(1) rotate(0)} }
+
+/* ── Side panel scroll thin ── */
+.side-panel::-webkit-scrollbar { width: 3px; }
+.side-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 2px; }
