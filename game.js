@@ -469,7 +469,7 @@ const Game = (() => {
     shakeY = (Math.random() - 0.5) * shakeAmount;
 
     // Kill feed age-out
-    killFeed = killFeed.filter(k => k.age < 3.5);
+    killFeed = killFeed.filter(k => k.age < 4.0);
     killFeed.forEach(k => k.age += rawDt);
 
     // Spawn queue
@@ -494,13 +494,15 @@ const Game = (() => {
       const interest = Math.max(15, Math.floor(money * 0.06));
       money += interest;
       _updateHUD();
-      _floatText(`+${interest} INTEREST`, 'gold');
+      _floatText(`+${interest} INTEREST EARNED`, 'gold');
 
       if (currentWaveIndex >= waves.length) {
         _triggerVictory();
         return;
       }
-      document.getElementById('btnStartWave').classList.add('pulse-green');
+      const waveBtn = document.getElementById('btnStartWave');
+      waveBtn.textContent = '▶ SEND WAVE';
+      waveBtn.classList.add('pulse-green');
     }
 
     // Update enemies + collect pending boss spawns
@@ -699,11 +701,11 @@ const Game = (() => {
     if (killFeed.length === 0) return;
     const W = canvas.width;
     killFeed.slice(0, 6).forEach((k, i) => {
-      const alpha = Math.max(0, 1 - k.age / 3.5);
+      const alpha = Math.max(0, 1 - k.age / 4.0);
       c.save();
       c.globalAlpha = alpha;
       const fs = k.boss ? 13 : 11;
-      c.font = `bold ${fs}px monospace`;
+      c.font = `700 ${fs}px 'Barlow Condensed', sans-serif`;
       const tw = c.measureText(k.text).width;
       const px = W - 14, py = 16 + i * 20;
       // Pill bg
@@ -920,10 +922,12 @@ const Game = (() => {
   }
 
   function toggleSpeed() {
-    const speeds = [1, 2, 3];
+    const speeds = [1, 2, 3, 4];
     const idx = speeds.indexOf(speed);
     speed = speeds[(idx + 1) % speeds.length];
-    document.getElementById('btnSpeed').textContent = speed + '×';
+    const btn = document.getElementById('btnSpeed');
+    btn.textContent = speed + '×';
+    btn.dataset.spd = speed;
   }
 
   function stopGame() {
@@ -936,7 +940,7 @@ const Game = (() => {
   function _triggerGameOver() {
     gameOver = true;
     stopGame();
-    shakeAmount = 24;
+    shakeAmount = 18;
     PF.saveGameResult(wave, score, kills, totalCoinsEarned);
     UI.unlockMap(map.id, false);
 
@@ -982,7 +986,7 @@ const Game = (() => {
     const el = document.createElement('div');
     el.style.cssText = `
       position:fixed; top:80px; left:50%; transform:translateX(-50%);
-      font-family:var(--f-hdr); font-size:20px; letter-spacing:3px;
+      font-family:'Barlow Condensed',sans-serif; font-size:22px; font-weight:700; letter-spacing:4px;
       color:${colors[type]||colors['']}; text-shadow:0 2px 8px rgba(0,0,0,0.8);
       pointer-events:none; z-index:9000;
       animation:floatUp 1.8s ease-out forwards;

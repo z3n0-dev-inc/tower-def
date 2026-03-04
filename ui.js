@@ -132,7 +132,7 @@ const UI = (() => {
       const diffStars = '⭐'.repeat(map.difficulty);
       card.innerHTML = `
         <div class="map-preview">
-          <canvas id="prev-${map.id}" width="230" height="128"></canvas>
+          <canvas id="prev-${map.id}" width="230" height="110"></canvas>
           ${locked ? '<div class="map-lock-overlay">🔒</div>' : ''}
           <div class="map-badge ${locked?'map-badge-lock':'map-badge-open'}">${locked?'LOCKED':'OPEN'}</div>
         </div>
@@ -257,6 +257,7 @@ const UI = (() => {
     const auraMult = tower.auraBuff || 1;
     const effDmg = Math.floor(tower.damage * auraMult);
     const dps = (tower.damage * tower.fireRate * auraMult).toFixed(1);
+    const effRate = (tower.fireRate * auraMult).toFixed(2);
     const buffed = auraMult > 1.0;
 
     // Upgrade path nodes
@@ -329,7 +330,7 @@ const UI = (() => {
           <div class="sc-rarity rarity-${def.rarity}">${def.rarity.toUpperCase()}</div>
           <div class="sc-icon">${def.icon}</div>
           <div class="sc-name">${def.name}</div>
-          <div class="sc-desc">${def.desc}</div>
+          <div class="sc-desc" style="font-family:var(--f-body);font-size:11.5px;font-weight:400">${def.desc}</div>
           <div class="sc-stats">
             <div class="sc-stat"><span>Damage</span><strong>${def.damage}</strong></div>
             <div class="sc-stat"><span>Range</span><strong>${def.range}</strong></div>
@@ -589,7 +590,7 @@ const UI = (() => {
       background:rgba(17,17,24,0.97);border:1px solid rgba(255,255,255,0.1);
       color:${colors[type]||colors['']};
       padding:9px 22px;border-radius:6px;
-      font-family:var(--f-hdr);font-size:17px;letter-spacing:2px;
+      font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:600;letter-spacing:2.5px;
       z-index:9999;pointer-events:none;
       box-shadow:0 8px 24px rgba(0,0,0,0.6);
       animation:tIn 0.2s ease-out,tOut 0.3s ease-in 1.7s forwards;

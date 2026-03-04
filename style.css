@@ -3,7 +3,7 @@
    Aesthetic: Industrial tactical / dev terminal / military HUD
 ═══════════════════════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=JetBrains+Mono:wght@300;400;700&family=Inter+Tight:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=JetBrains+Mono:wght@300;400;700&family=Barlow+Condensed:wght@300;400;500;600;700&display=swap');
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -42,7 +42,7 @@
 
   --f-hdr:   'Orbitron', sans-serif;
   --f-mono:  'JetBrains Mono', monospace;
-  --f-body:  'Inter Tight', sans-serif;
+  --f-body:  'Barlow Condensed', sans-serif;
 
   --radius:   4px;
   --radius2:  8px;
@@ -94,27 +94,28 @@ body::after {
 /* Header */
 .menu-header {
   position: relative; z-index: 2;
-  text-align: center; padding: 22px 20px 10px;
+  text-align: center; padding: 24px 20px 12px;
   pointer-events: none;
 }
 .skull-icon {
-  font-size: 34px; line-height: 1; display: block; margin-bottom: 6px;
-  animation: skullPulse 3s ease-in-out infinite;
+  font-size: 38px; line-height: 1; display: block; margin-bottom: 8px;
+  animation: skullPulse 3.5s ease-in-out infinite;
 }
 @keyframes skullPulse {
-  0%,100% { transform: scale(1);    filter: drop-shadow(0 0 8px rgba(220,38,38,0.5)); }
-  50%      { transform: scale(1.08); filter: drop-shadow(0 0 28px rgba(220,38,38,1)); }
+  0%,100% { transform: scale(1) rotate(-2deg);   filter: drop-shadow(0 0 6px rgba(220,38,38,0.5)); }
+  50%      { transform: scale(1.1) rotate(2deg); filter: drop-shadow(0 0 22px rgba(220,38,38,0.9)); }
 }
-.game-title { font-family: var(--f-hdr); line-height: 0.9; letter-spacing: 2px; }
+.game-title { font-family: var(--f-hdr); line-height: 0.85; letter-spacing: 2px; }
 .t1 {
-  font-size: 58px; font-weight: 900; color: var(--red2); display: block;
-  text-shadow: 0 0 60px rgba(220,38,38,0.5), 0 2px 0 rgba(0,0,0,0.8); letter-spacing: 6px;
+  font-size: 64px; font-weight: 900; color: var(--red2); display: block;
+  text-shadow: 0 0 40px rgba(220,38,38,0.35), 0 3px 0 rgba(0,0,0,0.95), 0 7px 14px rgba(0,0,0,0.5);
+  letter-spacing: 10px;
 }
 .t2 {
-  font-size: 20px; font-weight: 400; color: var(--cyan3); display: block;
-  letter-spacing: 14px; text-shadow: 0 0 30px rgba(6,182,212,0.4);
+  font-size: 16px; font-weight: 400; color: #7dafc2; display: block;
+  letter-spacing: 18px; opacity: 0.75;
 }
-.game-sub { color: var(--txt2); font-family: var(--f-mono); font-size: 9px; letter-spacing: 4px; margin-top: 8px; text-transform: uppercase; }
+.game-sub { color: var(--txt2); font-family: var(--f-mono); font-size: 8px; letter-spacing: 5px; margin-top: 10px; text-transform: uppercase; opacity: 0.5; }
 
 /* Tab nav */
 .menu-tabs {
@@ -176,9 +177,9 @@ body::after {
   display: flex; align-items: center; justify-content: center; font-size: 30px;
 }
 .map-info { padding: 10px 12px; border-top: 1px solid var(--bdr); }
-.map-name { font-family: var(--f-hdr); font-size: 12px; font-weight: 700; color: var(--txt); letter-spacing: 3px; text-transform: uppercase; }
-.map-diff  { font-size: 10px; color: var(--txt2); margin-top: 3px; font-family: var(--f-mono); }
-.map-waves { font-size: 9px; color: var(--txt3); margin-top: 2px; }
+.map-name { font-family: var(--f-hdr); font-size: 11px; font-weight: 700; color: var(--txt); letter-spacing: 2px; text-transform: uppercase; }
+.map-diff  { font-size: 11px; color: var(--txt2); margin-top: 4px; font-family: var(--f-body); font-weight: 500; letter-spacing: 0.5px; }
+.map-waves { font-size: 10px; color: var(--txt3); margin-top: 2px; font-family: var(--f-body); }
 
 /* Shop */
 .coins-badge {
@@ -196,12 +197,18 @@ body::after {
 .sf.active, .sf:hover { background: var(--bg4); color: var(--cyan3); border-color: rgba(6,182,212,0.35); }
 .shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); gap: 8px; }
 .shop-card {
-  background: var(--bg2); border: 1px solid var(--bdr);
-  border-radius: var(--radius2); padding: 13px 11px;
-  cursor: pointer; transition: all 0.18s; position: relative; overflow: hidden;
+  background: linear-gradient(160deg, var(--bg2), var(--bg1));
+  border: 1px solid var(--bdr);
+  border-radius: var(--radius2); padding: 14px 12px;
+  cursor: pointer; transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+  position: relative; overflow: hidden;
 }
-.shop-card:hover  { border-color: rgba(6,182,212,0.35); transform: translateY(-2px); }
-.shop-card.owned  { border-color: rgba(34,197,94,0.3); cursor: default; }
+.shop-card::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, transparent 50%);
+}
+.shop-card:hover  { border-color: rgba(6,182,212,0.4); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+.shop-card.owned  { border-color: rgba(34,197,94,0.35); cursor: default; }
 .shop-card.owned::before {
   content: "OWNED"; position: absolute; top: 6px; right: 7px;
   font-size: 8px; font-family: var(--f-mono); color: var(--grn2); letter-spacing: 2px;
@@ -322,12 +329,13 @@ body::after {
 }
 
 .hud-pill {
-  background: var(--bg2); border: 1px solid var(--bdr);
-  border-radius: var(--radius); padding: 3px 11px;
+  background: rgba(14,20,30,0.9); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius); padding: 4px 12px;
   font-family: var(--f-mono); font-size: 13px;
-  display: flex; align-items: center; gap: 5px; letter-spacing: 1px;
+  display: flex; align-items: center; gap: 6px; letter-spacing: 0.5px;
+  transition: border-color 0.2s;
 }
-.hud-pill span { color: var(--amber3); font-weight: 700; }
+.hud-pill span { color: var(--amber3); font-weight: 700; font-size: 14px; }
 
 .hud-wave-badge {
   background: linear-gradient(135deg, rgba(220,38,38,0.18), rgba(220,38,38,0.06));
@@ -383,7 +391,7 @@ body::after {
 }
 .sp-block { padding: 10px; border-bottom: 1px solid var(--bdr); }
 .sp-title {
-  font-family: var(--f-mono); font-size: 9px; letter-spacing: 4px; color: var(--txt3);
+  font-family: var(--f-body); font-size: 10px; font-weight: 600; letter-spacing: 3px; color: rgba(100,116,139,0.8);
   margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid var(--bdr);
   text-transform: uppercase;
 }
@@ -435,11 +443,11 @@ kbd {
 @keyframes waIn  { from{ transform: scale(0.5) translateY(20px); opacity: 0; } to{ transform: scale(1) translateY(0); opacity: 1; } }
 @keyframes waOut { from{ opacity: 1; } to{ opacity: 0; transform: translateY(-20px); } }
 .wa-wave {
-  font-family: var(--f-hdr); font-size: 78px; font-weight: 900; line-height: 1;
-  color: var(--red2); letter-spacing: 4px;
-  text-shadow: 0 0 80px rgba(220,38,38,0.7), 0 4px 20px rgba(0,0,0,0.9);
+  font-family: var(--f-hdr); font-size: 80px; font-weight: 900; line-height: 1;
+  color: #fff; letter-spacing: 6px;
+  text-shadow: 0 0 60px rgba(220,38,38,0.8), 0 0 120px rgba(220,38,38,0.3), 0 4px 24px rgba(0,0,0,0.95);
 }
-.wa-sub { font-family: var(--f-mono); font-size: 16px; color: var(--cyan3); letter-spacing: 8px; text-transform: uppercase; }
+.wa-sub { font-family: var(--f-body); font-size: 18px; font-weight: 600; color: #9ecad8; letter-spacing: 10px; text-transform: uppercase; opacity: 0.9; }
 .wa-wave.boss-wave { color: var(--amber3); }
 .wa-sub.boss-wave  { color: var(--amber3); }
 
@@ -450,10 +458,11 @@ kbd {
 }
 .fullscreen-overlay.hidden { display: none; }
 .overlay-box {
-  background: var(--bg1); border: 1px solid var(--bdr2);
-  border-radius: var(--radius2); padding: 36px 48px;
-  text-align: center; box-shadow: 0 32px 100px rgba(0,0,0,0.9);
-  animation: overlayIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  background: linear-gradient(160deg, var(--bg2), var(--bg1));
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px; padding: 38px 50px;
+  text-align: center; box-shadow: 0 40px 120px rgba(0,0,0,0.95), inset 0 1px 0 rgba(255,255,255,0.06);
+  animation: overlayIn 0.32s cubic-bezier(0.34,1.56,0.64,1);
   max-width: 440px; width: 90%;
 }
 @keyframes overlayIn { from{ transform: scale(0.8) translateY(20px); opacity: 0; } to{ transform: scale(1) translateY(0); opacity: 1; } }
@@ -861,3 +870,112 @@ select.td-input option { background: var(--bg2); color: var(--txt); }
 /* ── Side panel scroll thin ── */
 .side-panel::-webkit-scrollbar { width: 3px; }
 .side-panel::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 2px; }
+
+/* ══════════════════════════════════════════════════
+   HANDCRAFTED IMPROVEMENTS — v2 polish pass
+   ══════════════════════════════════════════════════ */
+
+/* Better body font rendering */
+body { font-size: 14px; letter-spacing: 0.2px; }
+
+/* Improved HUD top - slightly taller, more breathing room */
+.hud-top { height: 46px; gap: 5px; padding: 0 10px; }
+
+/* HUD wave badge - more dramatic */
+.hud-wave-badge {
+  background: linear-gradient(135deg, rgba(220,38,38,0.2), rgba(220,38,38,0.07));
+  border: 1px solid rgba(220,38,38,0.45);
+  margin: 0 6px; letter-spacing: 4px;
+}
+.hud-wave-badge span { font-size: 17px; font-weight: 900; }
+
+/* Buttons - stronger hover feedback */
+.hud-btn {
+  transition: all 0.12s;
+  font-size: 10px;
+  padding: 5px 13px;
+}
+.hud-btn:active { transform: scale(0.96); }
+
+/* Send wave button - cleaner pulse */
+@keyframes pulseGreen {
+  0%,100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.5); border-color: rgba(34,197,94,0.5); }
+  50%      { box-shadow: 0 0 0 6px rgba(34,197,94,0); border-color: rgba(34,197,94,0.8); }
+}
+
+/* Speed button - distinct visual state per level */
+#btnSpeed[data-spd="2"] { color: var(--amber3); border-color: rgba(251,191,36,0.4); }
+#btnSpeed[data-spd="3"] { color: var(--red2); border-color: rgba(220,38,38,0.4); }
+#btnSpeed[data-spd="4"] { color: var(--neon); border-color: rgba(0,255,136,0.4); animation: speedGlow 0.6s ease-in-out infinite alternate; }
+@keyframes speedGlow { from { box-shadow: none; } to { box-shadow: 0 0 10px rgba(0,255,136,0.3); } }
+
+/* Selected tower panel - slightly more room */
+.sel-info { font-size: 11.5px; line-height: 2; }
+.si-name { font-family: var(--f-hdr); font-size: 12px; font-weight: 700; color: #e2e8f0; letter-spacing: 1.5px; margin-bottom: 6px; }
+
+/* Stat bars - thicker, more readable */
+.sbar-track { height: 4px; border-radius: 2px; }
+.sbar-fill { transition: width 0.4s cubic-bezier(0.25, 1, 0.5, 1); }
+
+/* Upgrade nodes - cleaner */
+.upg-node { width: 20px; height: 20px; font-size: 9px; }
+.upg-node.done { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+/* Wave preview - better readability */
+.wp-e-name { font-size: 10px; font-family: var(--f-body); font-weight: 500; letter-spacing: 0.5px; }
+.wp-e-count { font-size: 12px; font-family: var(--f-mono); }
+
+/* Map card info - better hierarchy */
+.map-info { padding: 11px 13px; }
+.map-preview { height: 110px; }
+
+/* Shop card icon - bigger */
+.sc-icon { font-size: 32px; }
+.sc-name { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; }
+.sc-desc { font-size: 11px; font-family: var(--f-body); font-weight: 400; line-height: 1.5; }
+
+/* Auth inputs - more refined */
+.td-input {
+  font-size: 13px;
+  background: rgba(14,20,30,0.8);
+}
+.td-input:focus { background: rgba(18,26,40,0.95); box-shadow: 0 0 0 2px rgba(6,182,212,0.1); }
+
+/* Leaderboard - alternating rows for readability */
+.lb-row:nth-child(even) { background: rgba(255,255,255,0.01); }
+.lb-name { font-family: var(--f-body); font-weight: 600; font-size: 13px; letter-spacing: 0.5px; }
+
+/* Profile stats more readable */
+.pstat { font-family: var(--f-body); font-size: 13px; font-weight: 400; }
+.pstat strong { font-family: var(--f-mono); }
+
+/* Hotkey list - slightly larger */
+.hk { font-size: 11px; font-family: var(--f-body); font-weight: 400; }
+kbd { font-size: 9px; min-width: 30px; }
+
+/* Ticker - less intrusive */
+.live-ticker { height: 26px; }
+#tickerText { color: rgba(100,116,139,0.7); }
+
+/* Tab title - cleaner */
+.tab-title { font-size: 11px; letter-spacing: 4px; }
+.tab-title::before { width: 2px; height: 14px; border-radius: 1px; }
+
+/* Game over / victory overlay improvements */
+.go-box h2, .vic-box h2 { font-size: 42px; letter-spacing: 6px; }
+.rg-item span { letter-spacing: 1.5px; }
+.rg-item strong { font-size: 24px; }
+
+/* Result grid - more visual impact */
+.rg-item {
+  background: rgba(14,20,30,0.8);
+  border: 1px solid rgba(255,255,255,0.07);
+  transition: all 0.2s;
+}
+
+/* Wave announce - less jittery */
+.wa-content { text-align: center; animation: waIn 0.28s cubic-bezier(0.34,1.5,0.64,1), waOut 0.28s ease-in 1.85s forwards; }
+
+/* Scroll bars - thinner, less obtrusive */
+.menu-body::-webkit-scrollbar { width: 3px; }
+.menu-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 2px; }

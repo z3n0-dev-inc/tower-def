@@ -321,7 +321,7 @@ class Tower {
   get name()  { return this.def.name; }
   get icon()  { return this.def.icon; }
 
-  getSellValue() { return Math.floor(this.totalCostSpent * 0.6); }
+  getSellValue() { return Math.floor(this.totalCostSpent * 0.65); }
 
   getUpgradeCost() {
     if (this.level >= this.def.maxUpgrade || !this.def.upgrades[this.level]) return 0;
@@ -522,57 +522,26 @@ class Tower {
     // ── Aura pulse ring ──────────────────────────────────────────────────
     if (this.def.aura) {
       const t = Date.now() * 0.003;
+      this.auraAlpha = (Math.sin(t)+1)*0.10;
       ctx.beginPath();
       ctx.arc(cx, cy, this.range*0.7, 0, Math.PI*2);
-      ctx.fillStyle = `rgba(241,196,15,${(Math.sin(t)+1)*0.07})`;
+      ctx.fillStyle = `rgba(241,196,15,${this.auraAlpha})`;
       ctx.fill();
     }
 
-    // ── Owner glow pulse ─────────────────────────────────────────────────
+    // ── Owner glow pulse (single, clean) ─────────────────────────────────
     if (this.def.ownerOnly) {
-      const t = Date.now() * 0.003;
+      const t = Date.now() * 0.002;
+      ctx.save();
+      ctx.shadowBlur = 20 + Math.sin(t)*10;
+      ctx.shadowColor = col;
       ctx.beginPath();
       ctx.arc(cx, cy, s*0.44, 0, Math.PI*2);
       ctx.strokeStyle = col;
-      ctx.lineWidth = 3;
-      ctx.globalAlpha = 0.4 + Math.sin(t)*0.3;
+      ctx.lineWidth = 2.5;
+      ctx.globalAlpha = 0.35 + Math.sin(t)*0.25;
       ctx.stroke();
-      ctx.globalAlpha = 1;
-    }
-
-    // Owner glow pulse
-    if (this.def.ownerOnly) {
-      const t = Date.now()*0.003;
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, s*0.44, 0, Math.PI*2);
-      ctx.strokeStyle = this.def.color;
-      ctx.lineWidth = 3;
-      ctx.globalAlpha = 0.4+Math.sin(t)*0.3;
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-    }
-
-    if (this.selected) {
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, this.range, 0, Math.PI*2);
-      ctx.strokeStyle = 'rgba(241,196,15,0.22)';
-      ctx.lineWidth = 1.5;
-      ctx.setLineDash([6,4]);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, s*0.43, 0, Math.PI*2);
-      ctx.strokeStyle = '#f1c40f';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-
-    if (this.def.aura) {
-      this.auraAlpha = (Math.sin(Date.now()*0.003)+1)*0.12;
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, this.range*0.7, 0, Math.PI*2);
-      ctx.fillStyle = `rgba(241,196,15,${this.auraAlpha})`;
-      ctx.fill();
+      ctx.restore();
     }
   }
 }
