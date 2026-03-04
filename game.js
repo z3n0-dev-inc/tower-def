@@ -721,16 +721,85 @@ const Game = (() => {
   }
 
   // ── Owner commands ─────────────────────────────
-  function ownerAddMoney(amount) { money += amount; _updateHUD(); }
-  function ownerSkipWave()       { enemies = []; bullets = []; waveActive = false; waveSpawnQueue = []; }
-  function ownerNukeEnemies()    { ownerSkipWave(); }
-  function ownerGodMode()        { godMode = !godMode; UI.toast('God Mode: ' + (godMode?'ON ✓':'OFF'), godMode?'green':'red'); }
+  function ownerAddMoney(amount) {
+    money += amount;
+    _updateHUD();
+    _floatText(`+$${amount} OWNER CASH 💰`, 'gold');
+  }
+
+  function ownerSkipWave() {
+    enemies = []; bullets = [];
+    waveActive = false; waveSpawnQueue = [];
+    _floatText('⏭ WAVE SKIPPED', 'green');
+  }
+
+  function ownerNukeEnemies() {
+    // Dramatic nuke effect
+    shakeAmount = 30;
+    enemies.forEach(e => { e.hp = 0; e.dead = true; });
+    bullets = [];
+    _floatText('☢️ NUKE ACTIVATED', 'red');
+    setTimeout(() => {
+      enemies = []; waveActive = false; waveSpawnQueue = [];
+    }, 100);
+  }
+
+  function ownerGodMode() {
+    godMode = !godMode;
+    _floatText(godMode ? '🛡 GOD MODE ON' : '🛡 GOD MODE OFF', godMode?'green':'red');
+    return godMode;
+  }
+
+  function ownerFreezeAll() {
+    enemies.forEach(e => {
+      e.slowTimer = 10;
+      e.speed = e.baseSpeed * 0.05;
+      e.flashTimer = 10;
+    });
+    _floatText('❄️ ALL ENEMIES FROZEN!', 'green');
+    shakeAmount = 8;
+  }
+
+  let ownerSpeedLevel = 0;
+  function ownerSpeedHack() {
+    const levels = [1, 2, 4, 8, 1];
+    ownerSpeedLevel = (ownerSpeedLevel + 1) % levels.length;
+    speed = levels[ownerSpeedLevel];
+    document.getElementById('btnSpeed').textContent = speed + '×';
+    _floatText(`⚡ SPEED: ${speed}×`, 'gold');
+    return speed;
+  }
+
+  function ownerSpawnBoss(bossType) {
+    if (!map) return;
+    const boss = new Enemy(bossType, map.path, tileSize, wave || 1, map.waveModifier || 1);
+    enemies.push(boss);
+    shakeAmount = 14;
+    UI.announceWave(wave || 1, true);
+  }
+
+  function ownerMaxAllTowers() {
+    towers.forEach(t => {
+      while (t.level < t.def.maxUpgrade) {
+        t.upgrade();
+      }
+    });
+    _floatText('⬆ ALL TOWERS MAXED!', 'gold');
+    shakeAmount = 10;
+  }
+
+  function ownerSetLives(amount) {
+    lives = amount;
+    _updateHUD();
+    _floatText(`❤️ LIVES SET TO ${amount}`, 'green');
+  }
 
   return {
     init, stopGame, selectTowerToPlace,
     upgradeTower, sellTower, deselectTower,
     startNextWave, toggleSpeed,
     ownerAddMoney, ownerSkipWave, ownerNukeEnemies, ownerGodMode,
+    ownerFreezeAll, ownerSpeedHack, ownerSpawnBoss, ownerMaxAllTowers, ownerSetLives,
     get money()  { return money;  },
     get lives()  { return lives;  },
     get wave()   { return wave;   },
