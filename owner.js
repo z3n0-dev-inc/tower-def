@@ -1,29 +1,58 @@
 /* ═══════════════════════════════════════════════
-   owner.js — Owner Panel
-   - Green "OWNER PANEL" button in bottom corner
-   - Floats open from button origin with spring anim
-   - Only visible if PlayFab grants IsOwner = true
-   - All catalog cosmetics granting via server
+   owner.js — Owner Panel (FULLY WORKING)
+   - Shows only when PlayFab grants IsOwner = true
+   - Hover/proximity animation on trigger button
+   - Grant owner cosmetics via PlayFab inventory
+   - Give all towers, unlock all maps, give coins
+   - Live in-game commands: money, skip, god mode, nuke, freeze, speedhack
    ═══════════════════════════════════════════════ */
 
 const Owner = (() => {
-  let inGame   = false;
-  let isOpen   = false;
+  let inGame = false;
+  let isOpen = false;
+  let proximityInterval = null;
 
   function init() {
-    document.getElementById('ownerTrigger').onclick  = toggle;
+    document.getElementById('ownerTrigger').onclick = toggle;
     document.getElementById('btnCloseOwner').onclick = close;
+
+    // Bind static action buttons via data-oa
     document.querySelectorAll('[data-oa]').forEach(btn => {
       btn.onclick = () => _handleAction(btn.dataset.oa);
     });
-    // Close if clicking outside
+
+    // Close on outside click
     document.addEventListener('mousedown', e => {
       const panel   = document.getElementById('ownerPanel');
       const trigger = document.getElementById('ownerTrigger');
       if (isOpen && !panel.contains(e.target) && !trigger.contains(e.target)) close();
     });
+
+    // Proximity glow effect: detect mouse near the trigger button
+    document.addEventListener('mousemove', _handleProximity);
   }
 
+  // ── Proximity hover magic ─────────────────────
+  function _handleProximity(e) {
+    const trigger = document.getElementById('ownerTrigger');
+    if (!trigger || trigger.classList.contains('hidden')) return;
+    const rect = trigger.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top  + rect.height / 2;
+    const dist = Math.hypot(e.clientX - cx, e.clientY - cy);
+    const maxDist = 200;
+
+    if (dist < maxDist) {
+      const strength = 1 - (dist / maxDist);
+      trigger.style.setProperty('--prox', strength.toFixed(3));
+      trigger.classList.add('prox-active');
+    } else {
+      trigger.style.setProperty('--prox', '0');
+      trigger.classList.remove('prox-active');
+    }
+  }
+
+  // ── Show / Hide ────────────────────────────────
   function show() {
     document.getElementById('ownerTrigger').classList.remove('hidden');
     _syncIngameSection();
@@ -35,18 +64,14 @@ const Owner = (() => {
     isOpen = false;
   }
 
-  function toggle() {
-    isOpen ? close() : open();
-  }
+  function toggle() { isOpen ? close() : open(); }
 
   function open() {
     const panel = document.getElementById('ownerPanel');
-    panel.classList.remove('hidden');
-    panel.classList.remove('op-closing');
+    panel.classList.remove('hidden', 'op-closing');
     panel.classList.add('op-opening');
     isOpen = true;
-    const arrow = document.getElementById('otArrow');
-    if (arrow) arrow.textContent = '▼';
+    document.getElementById('otArrow').textContent = '▼';
     document.getElementById('ownerTrigger').classList.add('open');
     _syncIngameSection();
     _populateCosmeticButtons();
@@ -56,139 +81,237 @@ const Owner = (() => {
     const panel = document.getElementById('ownerPanel');
     panel.classList.remove('op-opening');
     panel.classList.add('op-closing');
-    setTimeout(() => {
-      panel.classList.add('hidden');
-      panel.classList.remove('op-closing');
-    }, 280);
+    setTimeout(() => { panel.classList.add('hidden'); panel.classList.remove('op-closing'); }, 300);
     isOpen = false;
-    const arrow = document.getElementById('otArrow');
-    if (arrow) arrow.textContent = '▲';
+    document.getElementById('otArrow').textContent = '▲';
     document.getElementById('ownerTrigger').classList.remove('open');
   }
 
-  function setInGame(val) {
-    inGame = val;
-    _syncIngameSection();
-  }
+  function setInGame(val) { inGame = val; _syncIngameSection(); }
 
   function _syncIngameSection() {
     const s = document.getElementById('opIngame');
     if (s) s.style.display = inGame ? 'block' : 'none';
   }
 
-  // Dynamically build cosmetic grant buttons from catalog
+  // ── Cosmetic buttons from PlayFab catalog ─────
   function _populateCosmeticButtons() {
     const container = document.getElementById('opCosmeticBtns');
     if (!container) return;
     container.innerHTML = '';
 
-    const ownerCosmetics = PF.catalogItems.filter(c =>
+    // Filter for owner/exclusive items in the catalog
+    const ownerItems = PF.catalogItems.filter(c =>
       c.tags.includes('owner') || c.itemClass === 'OwnerCharacter'
     );
 
-    if (ownerCosmetics.length === 0) {
-      container.innerHTML = '<span style="color:var(--txt2);font-size:12px">No catalog loaded yet.</span>';
+    if (ownerItems.length === 0) {
+      container.innerHTML = `
+        <div class="op-catalog-empty">
+          <span>📡</span>
+          <p>Catalog not loaded from PlayFab.<br>Check your network & Title ID.</p>
+        </div>`;
       return;
     }
 
-    ownerCosmetics.forEach(item => {
+    ownerItems.forEach(item => {
       const btn = document.createElement('button');
-      btn.className = 'op-btn gold';
-      btn.dataset.oa = 'giveCatalogItem';
-      btn.dataset.itemId = item.itemId;
-      btn.innerHTML = `${item.custom?.icon || '🎁'} Give: ${item.displayName}`;
+      btn.className = 'op-btn gold op-cosmetic-btn';
+      btn.innerHTML = `
+        <span class="op-btn-icon">${item.custom?.icon || '🎁'}</span>
+        <div class="op-btn-info">
+          <span class="op-btn-name">${item.displayName}</span>
+          <span class="op-btn-sub">${item.description?.slice(0,50) || ''}</span>
+        </div>
+        <span class="op-btn-arrow">→</span>
+      `;
       btn.onclick = () => _grantCatalogItem(item.itemId, item.displayName);
       container.appendChild(btn);
     });
+
+    // Also show all cosmetics section for badges/effects
+    const allCosmetics = PF.catalogItems.filter(c =>
+      !c.tags.includes('owner') && c.itemClass !== 'OwnerCharacter'
+    );
+    if (allCosmetics.length > 0) {
+      const hdr = document.createElement('div');
+      hdr.className = 'op-subsection';
+      hdr.textContent = 'ALL COSMETICS';
+      container.appendChild(hdr);
+      allCosmetics.forEach(item => {
+        const btn = document.createElement('button');
+        btn.className = 'op-btn blue op-cosmetic-btn';
+        btn.innerHTML = `
+          <span class="op-btn-icon">${item.custom?.icon || '🎁'}</span>
+          <div class="op-btn-info">
+            <span class="op-btn-name">${item.displayName}</span>
+            <span class="op-btn-sub">${item.itemClass || 'Cosmetic'}</span>
+          </div>
+          <span class="op-btn-arrow">→</span>
+        `;
+        btn.onclick = () => _grantCatalogItem(item.itemId, item.displayName);
+        container.appendChild(btn);
+      });
+    }
   }
 
   async function _grantCatalogItem(itemId, displayName) {
     const target = document.getElementById('ownerTarget').value.trim();
     if (!target) { _log('Enter a target Player ID first', 'err'); return; }
-    _log(`Granting ${displayName} to ${target}…`);
+    _log(`Granting ${displayName} → ${target}…`);
     const res = await PF.serverCall('grantCatalogItem', {
       targetPlayerId: target,
       itemId,
       catalogVersion: 'ZTD_Cosmetics_v1',
     });
-    _log(res.ok ? `✓ ${displayName} granted!` : `✗ ${res.msg}`, res.ok ? 'ok' : 'err');
+    _log(res.ok ? `✅ ${displayName} granted!` : `✗ ${res.msg}`, res.ok ? 'ok' : 'err');
   }
 
+  // ── Action handler ────────────────────────────
   async function _handleAction(action) {
     const target = document.getElementById('ownerTarget').value.trim();
 
     switch (action) {
+
+      // ── Give All Towers ──────────────────────
       case 'giveAllTowers': {
         if (!target) { _log('Enter a target Player ID', 'err'); return; }
-        _log('Granting all towers…');
+        _log('Granting all non-owner towers…');
         const allIds = TOWER_DEFS.filter(d => !d.ownerOnly).map(d => d.id);
         const res = await PF.serverCall('giveAllTowers', { targetPlayerId:target, towerIds:allIds });
-        _log(res.ok ? `✓ All towers granted (${allIds.length})` : `✗ ${res.msg}`, res.ok ? 'ok' : 'err');
+        _log(res.ok ? `✅ All ${allIds.length} towers granted!` : `✗ ${res.msg}`, res.ok?'ok':'err');
         break;
       }
 
-      case 'unlockAllPerks': {
+      // ── Give ALL Owner Towers (all 3 owner cosmetics) ──
+      case 'giveOwnerTowers': {
         if (!target) { _log('Enter a target Player ID', 'err'); return; }
-        _log('Unlocking all perks…');
-        const res = await PF.serverCall('unlockAllPerks', { targetPlayerId:target });
-        _log(res.ok ? '✓ All perks unlocked' : `✗ ${res.msg}`, res.ok ? 'ok' : 'err');
+        const ownerItems = ['cosmetic_shadow_commander','cosmetic_neon_warden','cosmetic_void_hunter'];
+        _log('Granting all 3 owner characters…');
+        let allOk = true;
+        for (const itemId of ownerItems) {
+          const res = await PF.serverCall('grantCatalogItem', {
+            targetPlayerId: target, itemId, catalogVersion: 'ZTD_Cosmetics_v1'
+          });
+          if (!res.ok) { allOk = false; _log(`✗ ${itemId}: ${res.msg}`, 'err'); }
+        }
+        if (allOk) _log('✅ All 3 owner characters granted!', 'ok');
         break;
       }
 
+      // ── Unlock All Maps ──────────────────────
+      case 'unlockAllMaps': {
+        if (!target) { _log('Enter a target Player ID', 'err'); return; }
+        _log('Unlocking all 8 maps…');
+        const allMapIds = MAPS.map(m => m.id);
+        const res = await PF.serverCall('unlockAllPerks', {
+          targetPlayerId: target,
+          mapIds: allMapIds,
+        });
+        _log(res.ok ? '✅ All 8 maps unlocked!' : `✗ ${res.msg}`, res.ok?'ok':'err');
+        break;
+      }
+
+      // ── Give Coins ───────────────────────────
       case 'giveCoins': {
         if (!target) { _log('Enter a target Player ID', 'err'); return; }
         const amount = parseInt(document.getElementById('ownerCoinAmt').value) || 0;
-        _log(`Giving ${amount} coins to ${target}…`);
+        _log(`Sending ${amount} coins → ${target}…`);
         const res = await PF.serverCall('giveCoins', { targetPlayerId:target, amount });
-        _log(res.ok ? `✓ ${amount} coins granted` : `✗ ${res.msg}`, res.ok ? 'ok' : 'err');
+        _log(res.ok ? `✅ ${amount} coins granted!` : `✗ ${res.msg}`, res.ok?'ok':'err');
         break;
       }
 
+      // ── Make Owner ───────────────────────────
+      case 'makeOwner': {
+        if (!target) { _log('Enter a target Player ID', 'err'); return; }
+        if (!confirm(`Grant OWNER status to "${target}"? This cannot be undone.`)) return;
+        _log(`Promoting ${target} to Owner…`);
+        const res = await PF.serverCall('makeOwner', { targetPlayerId:target });
+        _log(res.ok ? '✅ Owner status granted!' : `✗ ${res.msg}`, res.ok?'ok':'err');
+        break;
+      }
+
+      // ── Reset Player ─────────────────────────
+      case 'resetPlayer': {
+        if (!target) { _log('Enter a target Player ID', 'err'); return; }
+        if (!confirm(`RESET all data for "${target}"? THIS CANNOT BE UNDONE.`)) return;
+        _log(`Resetting ${target}…`);
+        const res = await PF.serverCall('resetPlayer', { targetPlayerId:target });
+        _log(res.ok ? '✅ Player reset to default.' : `✗ ${res.msg}`, res.ok?'ok':'err');
+        break;
+      }
+
+      // ── IN-GAME COMMANDS ─────────────────────
       case 'addIngameMoney': {
         const amt = parseInt(document.getElementById('ownerIngameMoney').value) || 0;
-        if (Game.isRunning()) { Game.ownerAddMoney(amt); _log(`✓ Added $${amt} in-game`, 'ok'); }
-        else _log('No active game', 'err');
+        if (!Game.isRunning()) { _log('No active game', 'err'); return; }
+        Game.ownerAddMoney(amt);
+        _log(`✅ +$${amt} added to current round`, 'ok');
         break;
       }
 
       case 'skipWave': {
-        if (Game.isRunning()) { Game.ownerSkipWave(); _log('✓ Wave skipped', 'ok'); }
-        else _log('No active game', 'err');
+        if (!Game.isRunning()) { _log('No active game', 'err'); return; }
+        Game.ownerSkipWave();
+        _log('✅ Wave skipped!', 'ok');
         break;
       }
 
       case 'godMode': {
-        if (Game.isRunning()) { Game.ownerGodMode(); _log('✓ God Mode toggled', 'ok'); }
-        else _log('No active game', 'err');
+        if (!Game.isRunning()) { _log('No active game', 'err'); return; }
+        const on = Game.ownerGodMode();
+        _log(`✅ God Mode: ${on?'ON 🛡':'OFF'}`, 'ok');
         break;
       }
 
       case 'nukeEnemies': {
-        if (Game.isRunning()) { Game.ownerNukeEnemies(); _log('✓ All enemies nuked', 'ok'); }
-        else _log('No active game', 'err');
+        if (!Game.isRunning()) { _log('No active game', 'err'); return; }
+        Game.ownerNukeEnemies();
+        _log('✅ 💥 ALL enemies annihilated!', 'ok');
         break;
       }
 
-      case 'makeOwner': {
-        if (!target) { _log('Enter a target Player ID', 'err'); return; }
-        if (!confirm(`Grant OWNER to ${target}? Cannot be undone.`)) return;
-        _log(`Granting owner to ${target}…`);
-        const res = await PF.serverCall('makeOwner', { targetPlayerId:target });
-        _log(res.ok ? '✓ Owner status granted' : `✗ ${res.msg}`, res.ok ? 'ok' : 'err');
+      case 'freezeAll': {
+        if (!Game.isRunning()) { _log('No active game', 'err'); return; }
+        Game.ownerFreezeAll();
+        _log('✅ ❄️ ALL enemies frozen for 10s!', 'ok');
         break;
       }
 
-      case 'resetPlayer': {
-        if (!target) { _log('Enter a target Player ID', 'err'); return; }
-        if (!confirm(`RESET all data for ${target}? CANNOT BE UNDONE.`)) return;
-        _log(`Resetting ${target}…`);
-        const res = await PF.serverCall('resetPlayer', { targetPlayerId:target });
-        _log(res.ok ? '✓ Player reset' : `✗ ${res.msg}`, res.ok ? 'ok' : 'err');
+      case 'speedHack': {
+        if (!Game.isRunning()) { _log('No active game', 'err'); return; }
+        const spd = Game.ownerSpeedHack();
+        _log(`✅ ⚡ Speed set to ${spd}x`, 'ok');
+        break;
+      }
+
+      case 'spawnBoss': {
+        if (!Game.isRunning()) { _log('No active game', 'err'); return; }
+        const bossType = document.getElementById('ownerBossType')?.value || 'boss_zombie_king';
+        Game.ownerSpawnBoss(bossType);
+        _log(`✅ 👑 ${bossType} spawned!`, 'ok');
+        break;
+      }
+
+      case 'maxAllTowers': {
+        if (!Game.isRunning()) { _log('No active game', 'err'); return; }
+        Game.ownerMaxAllTowers();
+        _log('✅ All placed towers maxed!', 'ok');
+        break;
+      }
+
+      case 'setLives': {
+        if (!Game.isRunning()) { _log('No active game', 'err'); return; }
+        const lives = parseInt(document.getElementById('ownerLivesAmt')?.value) || 99;
+        Game.ownerSetLives(lives);
+        _log(`✅ Lives set to ${lives}`, 'ok');
         break;
       }
     }
   }
 
+  // ── Log ───────────────────────────────────────
   function _log(msg, type='') {
     const log = document.getElementById('ownerLog');
     const ph  = log.querySelector('.op-placeholder');
@@ -197,7 +320,7 @@ const Owner = (() => {
     el.className = 'op-log-entry ' + type;
     el.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
     log.insertBefore(el, log.firstChild);
-    while (log.children.length > 25) log.lastChild.remove();
+    while (log.children.length > 30) log.lastChild.remove();
   }
 
   return { init, show, hide, toggle, open, close, setInGame };
