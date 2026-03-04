@@ -45,6 +45,9 @@ const Owner = (() => {
     panel.classList.remove('op-closing');
     panel.classList.add('op-opening');
     isOpen = true;
+    const arrow = document.getElementById('otArrow');
+    if (arrow) arrow.textContent = '▼';
+    document.getElementById('ownerTrigger').classList.add('open');
     _syncIngameSection();
     _populateCosmeticButtons();
   }
@@ -58,6 +61,9 @@ const Owner = (() => {
       panel.classList.remove('op-closing');
     }, 280);
     isOpen = false;
+    const arrow = document.getElementById('otArrow');
+    if (arrow) arrow.textContent = '▲';
+    document.getElementById('ownerTrigger').classList.remove('open');
   }
 
   function setInGame(val) {
@@ -81,7 +87,7 @@ const Owner = (() => {
     );
 
     if (ownerCosmetics.length === 0) {
-      container.innerHTML = '<span style="color:var(--text2);font-size:12px">No catalog loaded yet.</span>';
+      container.innerHTML = '<span style="color:var(--txt2);font-size:12px">No catalog loaded yet.</span>';
       return;
     }
 
