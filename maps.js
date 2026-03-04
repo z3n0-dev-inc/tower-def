@@ -141,7 +141,7 @@ const MAPS = [
   },
   {
     id: 'shadow_realm',
-    name: 'SHADOW REALM',
+    name: 'SHADOW GOON REALM',
     theme: 'shadow',
     difficulty: 7,
     waves: 36,
@@ -165,11 +165,11 @@ const MAPS = [
   },
   {
     id: 'omega_facility',
-    name: 'OMEGA FACILITY',
+    name: 'OMEGA GOON FACILITY',
     theme: 'omega',
     difficulty: 8,
     waves: 42,
-    description: 'ENDGAME. The longest path. The hardest enemies. Legends only.',
+    description: 'ENDGAME. The longest path. The hardest enemies. Gooners only.',
     bgColor: '#000005', pathColor: '#ff0030',
     grassColor: '#020208', accentColor: '#0a000f',
     decorations: ['warning','tech','crack'],
