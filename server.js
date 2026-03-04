@@ -108,17 +108,25 @@ app.post('/owner/giveAllTowers', async (req, res) => {
   res.json({ ok: r.ok, msg: r.ok ? 'All towers granted' : r.msg });
 });
 
-// ── Unlock all perks ─────────────────────────────────────
+// ── Unlock all maps + perks ──────────────────────────────
 app.post('/owner/unlockAllPerks', async (req, res) => {
-  const { callerSession, targetPlayerId } = req.body;
+  const { callerSession, targetPlayerId, mapIds } = req.body;
   const auth = await verifyOwner(callerSession);
   if (!auth.ok) return res.json({ ok: false, msg: auth.msg });
 
+  const allMaps = mapIds || [
+    'graveyard','city_ruins','volcano','arctic','inferno',
+    'nuclear_wasteland','shadow_realm','omega_facility'
+  ];
+
   const r = await pfServer('/Server/UpdateUserData', {
     PlayFabId: targetPlayerId,
-    Data: { AllPerksUnlocked: 'true', UnlockedMaps: JSON.stringify(['graveyard','city_ruins','volcano','arctic','inferno']) },
+    Data: {
+      AllPerksUnlocked: 'true',
+      UnlockedMaps: JSON.stringify(allMaps),
+    },
   });
-  res.json({ ok: r.ok, msg: r.ok ? 'All perks unlocked' : r.msg });
+  res.json({ ok: r.ok, msg: r.ok ? `All ${allMaps.length} maps unlocked` : r.msg });
 });
 
 // ── Give coins ────────────────────────────────────────────
