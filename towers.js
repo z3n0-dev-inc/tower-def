@@ -21,12 +21,12 @@ const TOWER_DAMAGE_CONFIG = {
   venom:           { damage: 20,   fireRate: 1.5,  range: 140 },
   omega:           { damage: 400,  fireRate: 0.25, range: 200 },
   phantom:         { damage: 250,  fireRate: 0.8,  range: 300 },
-  temporal:        { damage: 30,   fireRate: 0.15, range: 999 },
+  temporal:        { damage: 1000,   fireRate: 9.0, range: 400 },
   reaper:          { damage: 180,  fireRate: 0.9,  range: 200 },
   // ── OWNER TOWERS — deliberately broken OP ─────────────
-  shadow_commander:{ damage: 9999, fireRate: 3.0,  range: 999 },
-  neon_warden:     { damage: 9999, fireRate: 8.0,  range: 999 },
-  void_hunter:     { damage: 99999,fireRate: 4.0,  range: 999 },
+  shadow_commander:{ damage: 9999, fireRate: 9.0,  range: 1050 },
+  neon_warden:     { damage: 9999, fireRate: 8.0,  range: 1050 },
+  void_hunter:     { damage: 99999,fireRate: 9.0,  range: 1050 },
 };
 
 /* ── DAMAGE TYPES ──────────────────────────────────────────
