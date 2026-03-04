@@ -210,37 +210,332 @@ function drawMapPreview(canvas, map) {
   }
   ctx.globalAlpha = 1;
 
-  // Path
+  // Theme colors
+  const themeColors = {
+    graveyard:{ path1:'#4f3e22', path2:'#6b5530', edge:'rgba(0,0,0,0.4)' },
+    urban:    { path1:'#505050', path2:'#707070', edge:'rgba(0,0,0,0.5)' },
+    volcanic: { path1:'#3d1500', path2:'#552000', edge:'rgba(180,60,0,0.5)' },
+    arctic:   { path1:'#8ab4d4', path2:'#c0d8f0', edge:'rgba(200,235,255,0.3)' },
+    hell:     { path1:'#600000', path2:'#880000', edge:'rgba(200,0,0,0.5)' },
+    nuclear:  { path1:'#506800', path2:'#708000', edge:'rgba(160,200,0,0.3)' },
+    shadow:   { path1:'#2a0060', path2:'#400090', edge:'rgba(120,0,255,0.4)' },
+    omega:    { path1:'#400000', path2:'#660000', edge:'rgba(220,0,30,0.5)' },
+  };
+  const tc = themeColors[map.theme] || themeColors.graveyard;
+
   ctx.save();
-  ctx.strokeStyle = map.pathColor || '#4a3820';
-  ctx.lineWidth = Math.max(tW, tH) * 0.85;
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  // Shadow
+  ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+  ctx.lineWidth = Math.max(tW,tH)*.9+4;
   ctx.beginPath();
-  map.path.forEach(([c,r], i) => {
-    const px = c*tW + tW/2, py = r*tH + tH/2;
-    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
-  });
+  map.path.forEach(([c,r],i)=>{const px=c*tW+tW/2,py=r*tH+tH/2; i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);});
   ctx.stroke();
-  ctx.strokeStyle = 'rgba(255,255,255,0.07)';
-  ctx.lineWidth = Math.max(tW,tH)*0.5;
+  // Edge
+  ctx.strokeStyle = tc.edge;
+  ctx.lineWidth = Math.max(tW,tH)*.88+2;
+  ctx.globalAlpha=0.7;
+  ctx.beginPath();
+  map.path.forEach(([c,r],i)=>{const px=c*tW+tW/2,py=r*tH+tH/2; i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);});
+  ctx.stroke(); ctx.globalAlpha=1;
+  // Main fill
+  ctx.strokeStyle = tc.path1;
+  ctx.lineWidth = Math.max(tW,tH)*.84;
+  ctx.beginPath();
+  map.path.forEach(([c,r],i)=>{const px=c*tW+tW/2,py=r*tH+tH/2; i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);});
   ctx.stroke();
+  // Center highlight
+  ctx.strokeStyle = tc.path2;
+  ctx.lineWidth = Math.max(tW,tH)*.3;
+  ctx.globalAlpha=0.5;
+  ctx.beginPath();
+  map.path.forEach(([c,r],i)=>{const px=c*tW+tW/2,py=r*tH+tH/2; i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);});
+  ctx.stroke(); ctx.globalAlpha=1;
   ctx.restore();
 
-  // Start marker
+  // Start portal
   const [sc,sr] = map.path[0];
-  ctx.fillStyle = 'rgba(34,197,94,0.9)';
-  ctx.fillRect(sc*tW+1, sr*tH+1, tW-2, tH-2);
-  ctx.fillStyle = '#fff';
-  ctx.font = `bold ${Math.floor(tH*0.55)}px monospace`;
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('S', sc*tW+tW/2, sr*tH+tH/2);
+  const scx=sc*tW+tW/2, scy=sr*tH+tH/2, sr2=Math.min(tW,tH)*.42;
+  const sg=ctx.createRadialGradient(scx,scy,sr2*.2,scx,scy,sr2*1.3);
+  sg.addColorStop(0,'rgba(46,204,113,0.5)'); sg.addColorStop(1,'rgba(39,174,96,0)');
+  ctx.fillStyle=sg; ctx.fillRect(sc*tW-tW,sr*tH-tH,tW*3,tH*3);
+  ctx.strokeStyle='#2ecc71'; ctx.lineWidth=Math.min(tW,tH)*.08;
+  ctx.beginPath(); ctx.arc(scx,scy,sr2,0,Math.PI*2); ctx.stroke();
+  ctx.fillStyle='rgba(46,204,113,0.4)'; ctx.beginPath(); ctx.arc(scx,scy,sr2*.7,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.font=`bold ${Math.floor(Math.min(tH,tW)*.45)}px monospace`;
+  ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('S',scx,scy);
 
-  // End marker
+  // End portal
   const [ec,er] = map.path[map.path.length-1];
-  ctx.fillStyle = 'rgba(220,38,38,0.9)';
-  ctx.fillRect(ec*tW+1, er*tH+1, tW-2, tH-2);
-  ctx.fillStyle = '#fff';
-  ctx.fillText('E', ec*tW+tW/2, er*tH+tH/2);
+  const ecx=ec*tW+tW/2, ecy=er*tH+tH/2;
+  const eg2=ctx.createRadialGradient(ecx,ecy,sr2*.2,ecx,ecy,sr2*1.3);
+  eg2.addColorStop(0,'rgba(231,76,60,0.5)'); eg2.addColorStop(1,'rgba(192,57,43,0)');
+  ctx.fillStyle=eg2; ctx.fillRect(ec*tW-tW,er*tH-tH,tW*3,tH*3);
+  ctx.strokeStyle='#e74c3c'; ctx.lineWidth=Math.min(tW,tH)*.08;
+  ctx.beginPath(); ctx.arc(ecx,ecy,sr2,0,Math.PI*2); ctx.stroke();
+  ctx.fillStyle='rgba(192,57,43,0.4)'; ctx.beginPath(); ctx.arc(ecx,ecy,sr2*.7,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.fillText('E',ecx,ecy);
+}
+
+
+// ── Map decoration canvas drawing — theme based, no emojis ──
+function _drawMapDeco(c, theme, x, y, s, rng) {
+  const pick = rng();
+  c.save();
+  c.translate(x, y);
+  c.scale(s/14, s/14);
+
+  switch(theme) {
+    case 'graveyard': {
+      if (pick < 0.4) {
+        // Gravestone
+        c.fillStyle = '#7f8c8d';
+        c.beginPath(); c.roundRect(-5, -10, 10, 14, 2); c.fill();
+        c.fillStyle = '#95a5a6';
+        c.beginPath(); c.arc(0, -10, 5, Math.PI, 0); c.fill();
+        c.fillStyle = '#555';
+        c.fillRect(-3, -8, 6, 1.5);
+        c.fillRect(-1.5, -9.5, 3, 4);
+      } else if (pick < 0.75) {
+        // Dead tree
+        c.strokeStyle = '#4a3728'; c.lineWidth = 2.5; c.lineCap = 'round';
+        c.beginPath(); c.moveTo(0, 12); c.lineTo(0, -4); c.stroke();
+        c.beginPath(); c.moveTo(0, 2); c.lineTo(-7, -5); c.stroke();
+        c.beginPath(); c.moveTo(0, -1); c.lineTo(7, -7); c.stroke();
+        c.beginPath(); c.moveTo(0, -4); c.lineTo(-4, -10); c.stroke();
+        c.beginPath(); c.moveTo(0, -4); c.lineTo(5, -11); c.stroke();
+      } else {
+        // Fog wisps
+        c.fillStyle = 'rgba(200,220,200,0.5)';
+        c.beginPath(); c.ellipse(0, 0, 10, 4, 0, 0, Math.PI*2); c.fill();
+        c.beginPath(); c.ellipse(-5, 3, 7, 3, 0, 0, Math.PI*2); c.fill();
+      }
+      break;
+    }
+    case 'urban': {
+      if (pick < 0.35) {
+        // Ruined wall stub
+        c.fillStyle = '#555';
+        c.fillRect(-8, -4, 6, 14);
+        c.fillStyle = '#444';
+        c.fillRect(-8, -4, 6, 3);
+        c.fillRect(-8, 2, 6, 3);
+        c.fillStyle = '#666';
+        c.fillRect(2, 2, 7, 8);
+        c.fillStyle = '#4a4a4a';
+        c.fillRect(2, 2, 7, 2.5);
+      } else if (pick < 0.65) {
+        // Wrecked car chassis
+        c.fillStyle = '#7f8c8d';
+        c.beginPath(); c.roundRect(-10, -4, 20, 8, 2); c.fill();
+        c.fillStyle = '#555';
+        c.beginPath(); c.roundRect(-8, -7, 16, 6, 2); c.fill();
+        c.fillStyle = '#222';
+        c.beginPath(); c.arc(-6, 5, 4, 0, Math.PI*2); c.fill();
+        c.beginPath(); c.arc(6, 5, 4, 0, Math.PI*2); c.fill();
+      } else {
+        // Lamppost
+        c.strokeStyle = '#888'; c.lineWidth = 2; c.lineCap = 'round';
+        c.beginPath(); c.moveTo(0, 12); c.lineTo(0, -8); c.stroke();
+        c.beginPath(); c.moveTo(0, -8); c.quadraticCurveTo(0, -13, 6, -13); c.stroke();
+        c.fillStyle = '#ffe082';
+        c.beginPath(); c.arc(6, -13, 2.5, 0, Math.PI*2); c.fill();
+      }
+      break;
+    }
+    case 'volcanic': {
+      if (pick < 0.4) {
+        // Rock formation
+        c.fillStyle = '#4a2c0a';
+        c.beginPath(); c.moveTo(-10,12); c.lineTo(-12,-4); c.lineTo(-4,-12); c.lineTo(4,-10); c.lineTo(12,-2); c.lineTo(10,12); c.fill();
+        c.fillStyle = '#5a3812';
+        c.beginPath(); c.moveTo(-4,-12); c.lineTo(4,-10); c.lineTo(2,-6); c.lineTo(-2,-8); c.fill();
+      } else if (pick < 0.7) {
+        // Lava crack
+        c.strokeStyle = '#e64a19'; c.lineWidth = 2.5;
+        c.beginPath(); c.moveTo(-10,-3); c.lineTo(-4,2); c.lineTo(0,-1); c.lineTo(6,4); c.lineTo(10,1); c.stroke();
+        c.strokeStyle = '#ff6d00'; c.lineWidth = 1;
+        c.beginPath(); c.moveTo(-10,-3); c.lineTo(-4,2); c.lineTo(0,-1); c.lineTo(6,4); c.lineTo(10,1); c.stroke();
+      } else {
+        // Crystal shard
+        c.fillStyle = '#880e4f';
+        c.beginPath(); c.moveTo(0,-13); c.lineTo(5,-2); c.lineTo(3,12); c.lineTo(-3,12); c.lineTo(-5,-2); c.closePath(); c.fill();
+        c.fillStyle = '#ad1457';
+        c.beginPath(); c.moveTo(0,-13); c.lineTo(5,-2); c.lineTo(0,0); c.lineTo(-5,-2); c.fill();
+      }
+      break;
+    }
+    case 'arctic': {
+      if (pick < 0.4) {
+        // Ice spike cluster
+        c.fillStyle = '#b3e5fc';
+        for(let i=-1;i<=1;i++){
+          c.save(); c.translate(i*5,0); c.rotate(i*.2);
+          c.beginPath(); c.moveTo(-2.5,10); c.lineTo(0,-12+Math.abs(i)*3); c.lineTo(2.5,10); c.fill();
+          c.restore();
+        }
+      } else if (pick < 0.7) {
+        // Snow mound
+        c.fillStyle = '#e1f5fe';
+        c.beginPath(); c.ellipse(0, 4, 11, 6, 0, 0, Math.PI*2); c.fill();
+        c.fillStyle = '#fff';
+        c.beginPath(); c.ellipse(0, 0, 8, 5, 0, 0, Math.PI*2); c.fill();
+      } else {
+        // Penguin silhouette
+        c.fillStyle = '#212121';
+        c.beginPath(); c.ellipse(0, 2, 5, 8, 0, 0, Math.PI*2); c.fill();
+        c.beginPath(); c.arc(0, -8, 5, 0, Math.PI*2); c.fill();
+        c.fillStyle = '#fff';
+        c.beginPath(); c.ellipse(0, 3, 3, 5, 0, 0, Math.PI*2); c.fill();
+        c.fillStyle = '#f57f17';
+        c.beginPath(); c.moveTo(-2,-6); c.lineTo(2,-6); c.lineTo(0,-4); c.fill();
+      }
+      break;
+    }
+    case 'hell': {
+      if (pick < 0.35) {
+        // Bone pile
+        c.fillStyle = '#bcaaa4';
+        c.beginPath(); c.ellipse(0, 8, 9, 4, 0, 0, Math.PI*2); c.fill();
+        c.strokeStyle = '#d7ccc8'; c.lineWidth = 2.5; c.lineCap = 'round';
+        c.beginPath(); c.moveTo(-8, 4); c.lineTo(8, 4); c.stroke();
+        c.beginPath(); c.moveTo(-6, 0); c.lineTo(6, 8); c.stroke();
+        c.fillStyle = '#bcaaa4';
+        c.beginPath(); c.arc(0, -4, 5, 0, Math.PI*2); c.fill();
+        c.fillStyle = '#d7ccc8';
+        c.beginPath(); c.arc(-2.5, -6, 2, 0, Math.PI*2); c.fill();
+        c.beginPath(); c.arc(2.5, -6, 2, 0, Math.PI*2); c.fill();
+      } else if (pick < 0.65) {
+        // Fire pillar
+        c.fillStyle = '#b71c1c';
+        c.beginPath(); c.moveTo(-5,12); c.quadraticCurveTo(-7,-2,0,-14); c.quadraticCurveTo(7,-2,5,12); c.fill();
+        c.fillStyle = '#e53935';
+        c.beginPath(); c.moveTo(-3,12); c.quadraticCurveTo(-4,0,0,-9); c.quadraticCurveTo(4,0,3,12); c.fill();
+        c.fillStyle = '#ff8f00';
+        c.beginPath(); c.moveTo(-1.5,12); c.quadraticCurveTo(-2,4,0,-3); c.quadraticCurveTo(2,4,1.5,12); c.fill();
+      } else {
+        // Demon skull
+        c.fillStyle = '#5d4037';
+        c.beginPath(); c.arc(0,-2,8,0,Math.PI*2); c.fill();
+        c.fillRect(-5,3,10,8);
+        c.fillStyle = '#b71c1c';
+        c.beginPath(); c.arc(-3,-3,2.5,0,Math.PI*2); c.fill();
+        c.beginPath(); c.arc(3,-3,2.5,0,Math.PI*2); c.fill();
+        c.fillStyle = '#5d4037';
+        for(let i=0;i<4;i++) c.fillRect(-4+i*2.5,4,1.8,5);
+      }
+      break;
+    }
+    case 'nuclear': {
+      if (pick < 0.35) {
+        // Radiation sign
+        c.strokeStyle = '#f9a825'; c.lineWidth = 1.5;
+        c.beginPath(); c.arc(0,0,12,0,Math.PI*2); c.stroke();
+        c.beginPath(); c.arc(0,0,4,0,Math.PI*2); c.fillStyle='#f9a825'; c.fill();
+        for(let i=0;i<3;i++){
+          const a=i/3*Math.PI*2-Math.PI/2;
+          c.fillStyle='#f9a825';
+          c.beginPath();
+          c.moveTo(Math.cos(a)*5,Math.sin(a)*5);
+          c.arc(0,0,11,a+.3,a+Math.PI/1.5-0.3);
+          c.closePath(); c.fill();
+        }
+      } else if (pick < 0.7) {
+        // Mutant plant
+        c.strokeStyle = '#558b2f'; c.lineWidth = 2; c.lineCap = 'round';
+        c.beginPath(); c.moveTo(0,12); c.lineTo(0,-2); c.stroke();
+        c.fillStyle = '#33691e';
+        c.beginPath(); c.ellipse(-6,-6,7,4,-0.5,0,Math.PI*2); c.fill();
+        c.beginPath(); c.ellipse(6,-8,7,4,0.5,0,Math.PI*2); c.fill();
+        c.beginPath(); c.ellipse(0,-11,5,3,0,0,Math.PI*2); c.fill();
+        c.fillStyle = '#8bc34a';
+        c.beginPath(); c.arc(0,-11,2,0,Math.PI*2); c.fill();
+      } else {
+        // Barrel
+        c.fillStyle = '#33691e';
+        c.beginPath(); c.roundRect(-6,-10,12,20,2); c.fill();
+        c.fillStyle = '#1b5e20';
+        c.fillRect(-6,-2,12,3); c.fillRect(-6,4,12,3);
+        c.fillStyle = '#f9a825';
+        c.fillRect(-3,-7,6,5);
+        // Biohazard mini
+        c.fillStyle = '#558b2f';
+        c.beginPath(); c.arc(-1,-4,1.5,0,Math.PI*2); c.fill();
+      }
+      break;
+    }
+    case 'shadow': {
+      if (pick < 0.4) {
+        // Candle
+        c.fillStyle = '#795548';
+        c.beginPath(); c.roundRect(-3, -2, 6, 14, 1); c.fill();
+        c.fillStyle = '#fff8e1';
+        c.beginPath(); c.ellipse(0,-2,3,2,0,0,Math.PI*2); c.fill();
+        // Flame
+        c.fillStyle = '#ff6d00';
+        c.beginPath(); c.moveTo(0,-13); c.quadraticCurveTo(4,-8,0,-3); c.quadraticCurveTo(-4,-8,0,-13); c.fill();
+        c.fillStyle = '#ffe082';
+        c.beginPath(); c.moveTo(0,-11); c.quadraticCurveTo(2,-8,0,-5); c.quadraticCurveTo(-2,-8,0,-11); c.fill();
+      } else if (pick < 0.7) {
+        // Floating eye
+        c.fillStyle = 'rgba(30,0,60,0.8)';
+        c.beginPath(); c.ellipse(0,0,11,7,0,0,Math.PI*2); c.fill();
+        c.fillStyle = '#7b1fa2';
+        c.beginPath(); c.arc(0,0,5,0,Math.PI*2); c.fill();
+        c.fillStyle = '#e040fb';
+        c.beginPath(); c.arc(0,0,3,0,Math.PI*2); c.fill();
+        c.fillStyle = '#000';
+        c.beginPath(); c.arc(0,0,1.5,0,Math.PI*2); c.fill();
+        c.fillStyle = '#fff';
+        c.beginPath(); c.arc(-1,-1,0.8,0,Math.PI*2); c.fill();
+      } else {
+        // Shadow void rift
+        c.fillStyle = 'rgba(20,0,40,0.9)';
+        c.beginPath(); c.ellipse(0,0,10,6,0,0,Math.PI*2); c.fill();
+        c.strokeStyle = '#7c4dff'; c.lineWidth=1.5;
+        c.beginPath(); c.ellipse(0,0,10,6,0,0,Math.PI*2); c.stroke();
+        c.fillStyle='#ea80fc';
+        c.beginPath(); c.arc(0,0,2,0,Math.PI*2); c.fill();
+      }
+      break;
+    }
+    case 'omega': {
+      if (pick < 0.35) {
+        // Red warning light
+        c.fillStyle = '#1a0000';
+        c.beginPath(); c.roundRect(-4,-10,8,20,2); c.fill();
+        c.fillStyle = '#e53935';
+        c.beginPath(); c.arc(0,-7,4,0,Math.PI*2); c.fill();
+        c.fillStyle='#ff8a80';
+        c.beginPath(); c.arc(-1,-8,1.5,0,Math.PI*2); c.fill();
+        c.fillStyle='#e53935'; c.globalAlpha=0.3;
+        c.beginPath(); c.arc(0,-7,8,0,Math.PI*2); c.fill();
+      } else if (pick < 0.65) {
+        // Tech pillar
+        c.fillStyle = '#0a0a1a';
+        c.beginPath(); c.roundRect(-5,-12,10,24,1); c.fill();
+        c.fillStyle = '#1a237e';
+        c.fillRect(-4,-8,8,4); c.fillRect(-4,0,8,4);
+        c.fillStyle = '#304ffe';
+        c.fillRect(-3,-7,6,2); c.fillRect(-3,1,6,2);
+        c.fillStyle = '#e53935';
+        c.beginPath(); c.arc(0,8,2,0,Math.PI*2); c.fill();
+      } else {
+        // Cracked floor mark
+        c.strokeStyle = '#b71c1c'; c.lineWidth = 1.5; c.lineCap = 'round';
+        c.beginPath(); c.moveTo(0,-12); c.lineTo(-3,-4); c.lineTo(5,0); c.lineTo(-2,6); c.lineTo(3,12); c.stroke();
+        c.strokeStyle = '#ff1744'; c.lineWidth = 0.8;
+        c.globalAlpha *= 0.5;
+        c.beginPath(); c.moveTo(0,-12); c.lineTo(-3,-4); c.lineTo(5,0); c.lineTo(-2,6); c.lineTo(3,12); c.stroke();
+      }
+      break;
+    }
+    default: {
+      c.fillStyle = '#444';
+      c.beginPath(); c.arc(0,0,s,0,Math.PI*2); c.fill();
+    }
+  }
+  c.restore();
 }
 
 function mulberry32Preview(seed) {
