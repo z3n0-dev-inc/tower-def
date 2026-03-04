@@ -20,6 +20,7 @@ const Owner = (() => {
   let isOpen       = false;
   let godActive    = false;
   let speedHackIdx = 0;
+  let _justOpened  = false; // prevents mousedown close on same click that opened
   const SPEED_CYCLE = [1, 2, 4, 8];
 
   /* ─────────────────────────────────────────────
@@ -33,9 +34,7 @@ const Owner = (() => {
     });
 
     // Close panel when clicking outside it
-    // justOpened flag prevents the same click that opens the panel from closing it
-    let _justOpened = false;
-    document.addEventListener('mousedown', e => {
+    document.addEventListener('pointerup', e => {
       if (_justOpened) { _justOpened = false; return; }
       const panel   = document.getElementById('ownerPanel');
       const trigger = document.getElementById('ownerTrigger');
