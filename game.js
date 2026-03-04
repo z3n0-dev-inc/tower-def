@@ -84,65 +84,242 @@ const Game = (() => {
 
   function _renderMap(c) {
     const w = map.cols * tileSize, h = map.rows * tileSize;
-    c.fillStyle = map.grassColor;
+    const theme = map.theme || 'graveyard';
+    const rng  = mulberry32(42);
+    const rng2 = mulberry32(99);
+    const rng3 = mulberry32(17);
+
+    // ── 1. Base ground fill ──────────────────────────────────────────────────
+    const themes = {
+      graveyard: { bg1:'#162011', bg2:'#1e2d16', accent:'#243d1a', path1:'#3a2c18', path2:'#4f3e22', pathEdge:'#2a1e0e', fog:'rgba(160,200,140,0.04)' },
+      urban:     { bg1:'#161616', bg2:'#1e1e1e', accent:'#252525', path1:'#4a4a4a', path2:'#606060', pathEdge:'#1a1a1a', fog:null },
+      volcanic:  { bg1:'#140600', bg2:'#1e0800', accent:'#2a0e00', path1:'#2e1000', path2:'#3d1500', pathEdge:'#8b1a00', fog:'rgba(255,80,0,0.03)' },
+      arctic:    { bg1:'#0a1522', bg2:'#0e1d30', accent:'#162540', path1:'#8ab4d4', path2:'#aacde8', pathEdge:'#d0e8f8', fog:'rgba(200,230,255,0.05)' },
+      hell:      { bg1:'#0d0000', bg2:'#150000', accent:'#200000', path1:'#4a0000', path2:'#600000', pathEdge:'#c00000', fog:'rgba(255,30,0,0.04)' },
+      nuclear:   { bg1:'#0a1200', bg2:'#111a00', accent:'#182400', path1:'#3a5000', path2:'#506800', pathEdge:'#7a9a00', fog:'rgba(120,200,0,0.03)' },
+      shadow:    { bg1:'#020208', bg2:'#04040f', accent:'#08081a', path1:'#1e0040', path2:'#2a0060', pathEdge:'#5500aa', fog:'rgba(100,0,255,0.04)' },
+      omega:     { bg1:'#000002', bg2:'#000008', accent:'#05000f', path1:'#280000', path2:'#400000', pathEdge:'#cc0020', fog:'rgba(255,0,30,0.05)' },
+    };
+    const th = themes[theme] || themes.graveyard;
+
+    // Background gradient
+    const grad = c.createLinearGradient(0, 0, w, h);
+    grad.addColorStop(0, th.bg1);
+    grad.addColorStop(0.5, th.bg2);
+    grad.addColorStop(1, th.bg1);
+    c.fillStyle = grad;
     c.fillRect(0, 0, w, h);
 
-    // Grass texture dots
-    c.fillStyle = map.accentColor;
-    const rng = mulberry32(42);
-    for (let i = 0; i < 400; i++) {
-      const gx = rng() * w, gy = rng() * h;
-      c.fillRect(gx, gy, rng() < 0.3 ? 3 : 2, rng() < 0.3 ? 3 : 2);
+    // ── 2. Ground texture: varied tile-like patches ──────────────────────────
+    for (let row = 0; row < map.rows; row++) {
+      for (let col = 0; col < map.cols; col++) {
+        if (map.pathSet.has(`${col},${row}`)) continue;
+        const v = rng();
+        if (v < 0.25) {
+          c.fillStyle = th.accent;
+          c.globalAlpha = 0.4 + rng() * 0.3;
+          const ox = rng() * tileSize * 0.3, oy = rng() * tileSize * 0.3;
+          c.fillRect(col*tileSize + ox, row*tileSize + oy,
+            tileSize * (0.4 + rng()*0.5), tileSize * (0.3 + rng()*0.4));
+        }
+      }
+    }
+    c.globalAlpha = 1;
+
+    // Fine noise dots
+    c.fillStyle = th.accent;
+    for (let i = 0; i < 600; i++) {
+      c.globalAlpha = 0.2 + rng2() * 0.35;
+      const gx = rng2() * w, gy = rng2() * h;
+      c.fillRect(gx, gy, rng2() < 0.25 ? 3 : 1.5, rng2() < 0.25 ? 3 : 1.5);
+    }
+    c.globalAlpha = 1;
+
+    // ── 3. Theme-specific ground details ────────────────────────────────────
+    if (theme === 'volcanic' || theme === 'hell') {
+      // Lava cracks in ground
+      c.strokeStyle = theme === 'hell' ? '#8b0000' : '#bf3600';
+      c.lineWidth = 1.5;
+      for (let i = 0; i < 12; i++) {
+        const sx = rng3()*w, sy = rng3()*h;
+        const col = Math.floor(sx/tileSize), row = Math.floor(sy/tileSize);
+        if (map.pathSet.has(`${col},${row}`)) continue;
+        c.globalAlpha = 0.3 + rng3()*0.4;
+        c.beginPath(); c.moveTo(sx,sy);
+        let cx2=sx, cy2=sy;
+        for(let j=0;j<4;j++){cx2+=(rng3()-0.5)*tileSize*1.2; cy2+=(rng3()-0.5)*tileSize*1.2; c.lineTo(cx2,cy2);}
+        c.stroke();
+      }
+      c.globalAlpha = 1;
+    }
+    if (theme === 'arctic') {
+      // Ice sheen patches
+      for (let i = 0; i < 18; i++) {
+        const ix = rng3()*w, iy = rng3()*h;
+        const col = Math.floor(ix/tileSize), row = Math.floor(iy/tileSize);
+        if (map.pathSet.has(`${col},${row}`)) continue;
+        c.globalAlpha = 0.07 + rng3()*0.1;
+        c.fillStyle = '#d0efff';
+        c.beginPath(); c.ellipse(ix, iy, tileSize*(0.5+rng3()*0.7), tileSize*(0.3+rng3()*0.4), rng3()*Math.PI, 0, Math.PI*2); c.fill();
+      }
+      c.globalAlpha = 1;
+    }
+    if (theme === 'nuclear') {
+      // Radioactive puddles
+      for (let i = 0; i < 10; i++) {
+        const px = rng3()*w, py = rng3()*h;
+        const col = Math.floor(px/tileSize), row = Math.floor(py/tileSize);
+        if (map.pathSet.has(`${col},${row}`)) continue;
+        c.globalAlpha = 0.15 + rng3()*0.2;
+        c.fillStyle = '#a4c400';
+        c.beginPath(); c.ellipse(px, py, tileSize*(0.4+rng3()*0.5), tileSize*(0.2+rng3()*0.3), rng3()*Math.PI, 0, Math.PI*2); c.fill();
+      }
+      c.globalAlpha = 1;
+    }
+    if (theme === 'shadow' || theme === 'omega') {
+      // Void cracks
+      c.strokeStyle = theme === 'omega' ? '#440010' : '#1a0040';
+      c.lineWidth = 2;
+      for (let i = 0; i < 8; i++) {
+        const sx = rng3()*w, sy = rng3()*h;
+        c.globalAlpha = 0.5 + rng3()*0.4;
+        c.beginPath(); c.moveTo(sx,sy);
+        let cx2=sx,cy2=sy;
+        for(let j=0;j<5;j++){cx2+=(rng3()-0.5)*tileSize*1.5; cy2+=(rng3()-0.5)*tileSize*1.5; c.lineTo(cx2,cy2);}
+        c.stroke();
+      }
+      c.globalAlpha = 1;
     }
 
-    // Grid lines (faint)
-    c.strokeStyle = 'rgba(0,0,0,0.07)';
-    c.lineWidth = 0.5;
-    for (let col = 0; col <= map.cols; col++) {
-      c.beginPath(); c.moveTo(col*tileSize,0); c.lineTo(col*tileSize,h); c.stroke();
-    }
-    for (let row = 0; row <= map.rows; row++) {
-      c.beginPath(); c.moveTo(0,row*tileSize); c.lineTo(w,row*tileSize); c.stroke();
-    }
-
-    // Draw path with width
+    // ── 4. PATH ─────────────────────────────────────────────────────────────
     c.save();
-    // Outer edge glow
-    c.strokeStyle = 'rgba(0,0,0,0.3)';
-    c.lineWidth = tileSize * 0.92 + 6;
     c.lineCap = 'round'; c.lineJoin = 'round';
-    for (let i = 0; i < map.path.length - 1; i++) {
-      const [c1,r1] = map.path[i], [c2,r2] = map.path[i+1];
-      c.beginPath();
-      c.moveTo(c1*tileSize+tileSize/2, r1*tileSize+tileSize/2);
-      c.lineTo(c2*tileSize+tileSize/2, r2*tileSize+tileSize/2);
-      c.stroke();
+
+    // Deep shadow under path
+    c.strokeStyle = 'rgba(0,0,0,0.55)';
+    c.lineWidth = tileSize * 0.94 + 8;
+    c.beginPath();
+    map.path.forEach(([pc,pr], i) => {
+      const px = pc*tileSize+tileSize/2, py = pr*tileSize+tileSize/2;
+      i === 0 ? c.moveTo(px,py) : c.lineTo(px,py);
+    });
+    c.stroke();
+
+    // Path edge highlight (theme-colored glow)
+    c.strokeStyle = th.pathEdge;
+    c.lineWidth = tileSize * 0.90 + 2;
+    c.globalAlpha = 0.6;
+    c.beginPath();
+    map.path.forEach(([pc,pr], i) => {
+      const px = pc*tileSize+tileSize/2, py = pr*tileSize+tileSize/2;
+      i === 0 ? c.moveTo(px,py) : c.lineTo(px,py);
+    });
+    c.stroke();
+    c.globalAlpha = 1;
+
+    // Main path fill
+    c.strokeStyle = th.path1;
+    c.lineWidth = tileSize * 0.86;
+    c.beginPath();
+    map.path.forEach(([pc,pr], i) => {
+      const px = pc*tileSize+tileSize/2, py = pr*tileSize+tileSize/2;
+      i === 0 ? c.moveTo(px,py) : c.lineTo(px,py);
+    });
+    c.stroke();
+
+    // Path center highlight (lighter stripe)
+    c.strokeStyle = th.path2;
+    c.lineWidth = tileSize * 0.38;
+    c.globalAlpha = 0.5;
+    c.beginPath();
+    map.path.forEach(([pc,pr], i) => {
+      const px = pc*tileSize+tileSize/2, py = pr*tileSize+tileSize/2;
+      i === 0 ? c.moveTo(px,py) : c.lineTo(px,py);
+    });
+    c.stroke();
+    c.globalAlpha = 1;
+
+    // Specular sheen down center
+    c.strokeStyle = 'rgba(255,255,255,0.06)';
+    c.lineWidth = tileSize * 0.18;
+    c.beginPath();
+    map.path.forEach(([pc,pr], i) => {
+      const px = pc*tileSize+tileSize/2, py = pr*tileSize+tileSize/2;
+      i === 0 ? c.moveTo(px,py) : c.lineTo(px,py);
+    });
+    c.stroke();
+    c.globalAlpha = 1;
+
+    // Theme path overlays
+    if (theme === 'arctic') {
+      // Snow / ice cracks on path
+      c.strokeStyle = 'rgba(200,235,255,0.12)';
+      c.lineWidth = 1.5;
+      for (let i = 1; i < map.path.length - 1; i++) {
+        const [pc,pr] = map.path[i];
+        const px = pc*tileSize+tileSize/2, py = pr*tileSize+tileSize/2;
+        if (rng2() < 0.3) {
+          c.beginPath();
+          c.moveTo(px-(rng2()-0.5)*tileSize*.4, py-(rng2()-0.5)*tileSize*.4);
+          c.lineTo(px+(rng2()-0.5)*tileSize*.4, py+(rng2()-0.5)*tileSize*.4);
+          c.stroke();
+        }
+      }
     }
-    // Path fill
-    c.strokeStyle = map.pathColor;
-    c.lineWidth = tileSize * 0.88;
-    for (let i = 0; i < map.path.length - 1; i++) {
-      const [c1,r1] = map.path[i], [c2,r2] = map.path[i+1];
-      c.beginPath();
-      c.moveTo(c1*tileSize+tileSize/2, r1*tileSize+tileSize/2);
-      c.lineTo(c2*tileSize+tileSize/2, r2*tileSize+tileSize/2);
-      c.stroke();
+    if (theme === 'volcanic' || theme === 'hell') {
+      // Embers / cracks on path
+      c.fillStyle = theme === 'hell' ? 'rgba(200,0,0,0.2)' : 'rgba(255,80,0,0.15)';
+      map.path.forEach(([pc,pr]) => {
+        if (rng2() < 0.2) {
+          c.beginPath();
+          c.arc(pc*tileSize+tileSize/2, pr*tileSize+tileSize/2, tileSize*0.12, 0, Math.PI*2);
+          c.fill();
+        }
+      });
     }
+    if (theme === 'omega') {
+      // Red circuit lines on path
+      c.strokeStyle = 'rgba(200,0,30,0.25)';
+      c.lineWidth = 1;
+      for (let i = 1; i < map.path.length - 1; i+=2) {
+        const [pc,pr] = map.path[i];
+        const px = pc*tileSize+tileSize/2, py = pr*tileSize+tileSize/2;
+        c.beginPath();
+        c.moveTo(px-tileSize*0.35, py); c.lineTo(px+tileSize*0.35, py);
+        c.stroke();
+      }
+    }
+
     c.restore();
 
-    // Decorations on grass tiles
-    const decRng = mulberry32(99);
-    const decos = map.decorations || [];
-    if (decos.length > 0) {
-      c.font = `${Math.floor(tileSize * 0.52)}px serif`;
-      c.textAlign = 'center'; c.textBaseline = 'middle';
+    // ── 5. Path edge shading (darkens the border of each path tile) ──────────
+    c.save();
+    map.path.forEach(([pc,pr]) => {
+      const px = pc*tileSize, py = pr*tileSize;
+      const eg = c.createRadialGradient(
+        px+tileSize/2, py+tileSize/2, tileSize*0.2,
+        px+tileSize/2, py+tileSize/2, tileSize*0.72
+      );
+      eg.addColorStop(0,   'rgba(0,0,0,0)');
+      eg.addColorStop(1,   'rgba(0,0,0,0.28)');
+      c.fillStyle = eg;
+      c.fillRect(px, py, tileSize, tileSize);
+    });
+    c.restore();
+
+    // ── 6. Decorations on non-path tiles ────────────────────────────────────
+    {
       let placed = 0;
+      const decRng = mulberry32(99);
       for (let row = 0; row < map.rows && placed < 28; row++) {
         for (let col = 0; col < map.cols && placed < 28; col++) {
-          if (!map.pathSet.has(`${col},${row}`) && decRng() < 0.07) {
-            c.globalAlpha = 0.5;
-            c.fillText(decos[Math.floor(decRng() * decos.length)],
-              col*tileSize+tileSize/2, row*tileSize+tileSize/2);
+          if (map.pathSet.has(`${col},${row}`)) continue;
+          if (decRng() < 0.07) {
+            const dx = col*tileSize+tileSize/2, dy = row*tileSize+tileSize/2;
+            c.globalAlpha = 0.45 + decRng()*0.3;
+            if (typeof _drawMapDeco === 'function') {
+              _drawMapDeco(c, theme, dx, dy, tileSize*0.32, decRng);
+            }
             c.globalAlpha = 1;
             placed++;
           }
@@ -150,26 +327,64 @@ const Game = (() => {
       }
     }
 
-    // Start / End markers
+    // ── 7. Fog / atmosphere overlay ─────────────────────────────────────────
+    if (th.fog) {
+      c.fillStyle = th.fog;
+      c.fillRect(0, 0, w, h);
+      // Edge vignette
+      const vg = c.createRadialGradient(w/2, h/2, h*0.2, w/2, h/2, h*0.8);
+      vg.addColorStop(0, 'rgba(0,0,0,0)');
+      vg.addColorStop(1, 'rgba(0,0,0,0.35)');
+      c.fillStyle = vg;
+      c.fillRect(0, 0, w, h);
+    }
+
+    // ── 8. Grid lines (very subtle) ─────────────────────────────────────────
+    c.strokeStyle = 'rgba(255,255,255,0.025)';
+    c.lineWidth = 0.5;
+    for (let col = 0; col <= map.cols; col++) {
+      c.beginPath(); c.moveTo(col*tileSize, 0); c.lineTo(col*tileSize, h); c.stroke();
+    }
+    for (let row = 0; row <= map.rows; row++) {
+      c.beginPath(); c.moveTo(0, row*tileSize); c.lineTo(w, row*tileSize); c.stroke();
+    }
+
+    // ── 9. START / END portals ──────────────────────────────────────────────
     const [sc, sr] = map.path[0];
     const [ec, er] = map.path[map.path.length-1];
+    _drawPortal(c, sc*tileSize, sr*tileSize, tileSize, '#27ae60', '#2ecc71', 'START');
+    _drawPortal(c, ec*tileSize, er*tileSize, tileSize, '#c0392b', '#e74c3c', 'END');
+  }
 
-    c.font = `bold ${Math.floor(tileSize*0.45)}px sans-serif`;
+  function _drawPortal(c, x, y, s, col1, col2, label) {
+    const cx = x + s/2, cy = y + s/2, r = s * 0.44;
+    // Glow
+    c.save();
+    const glow = c.createRadialGradient(cx, cy, r*0.3, cx, cy, r*1.4);
+    glow.addColorStop(0, col2 + '55');
+    glow.addColorStop(1, col1 + '00');
+    c.fillStyle = glow;
+    c.fillRect(x - s*0.4, y - s*0.4, s*1.8, s*1.8);
+    // Ring
+    c.strokeStyle = col2;
+    c.lineWidth = s * 0.07;
+    c.beginPath(); c.arc(cx, cy, r, 0, Math.PI*2); c.stroke();
+    c.strokeStyle = col1;
+    c.lineWidth = s * 0.04;
+    c.beginPath(); c.arc(cx, cy, r * 0.75, 0, Math.PI*2); c.stroke();
+    // Fill
+    c.fillStyle = col1 + 'aa';
+    c.beginPath(); c.arc(cx, cy, r * 0.68, 0, Math.PI*2); c.fill();
+    c.fillStyle = col2 + '55';
+    c.beginPath(); c.arc(cx, cy, r * 0.5, 0, Math.PI*2); c.fill();
+    // Label
+    c.font = `bold ${Math.floor(s*0.28)}px monospace`;
     c.textAlign = 'center'; c.textBaseline = 'middle';
-
-    c.fillStyle = '#27ae60';
-    c.beginPath();
-    c.roundRect(sc*tileSize+2, sr*tileSize+2, tileSize-4, tileSize-4, 4);
-    c.fill();
     c.fillStyle = '#fff';
-    c.fillText('START', sc*tileSize+tileSize/2, sr*tileSize+tileSize/2);
-
-    c.fillStyle = '#c0392b';
-    c.beginPath();
-    c.roundRect(ec*tileSize+2, er*tileSize+2, tileSize-4, tileSize-4, 4);
-    c.fill();
-    c.fillStyle = '#fff';
-    c.fillText('END', ec*tileSize+tileSize/2, er*tileSize+tileSize/2);
+    c.shadowBlur = 6; c.shadowColor = '#000';
+    c.fillText(label, cx, cy);
+    c.shadowBlur = 0;
+    c.restore();
   }
 
   // ── Game Loop ──────────────────────────────────
@@ -201,7 +416,7 @@ const Game = (() => {
         const e = waveSpawnQueue.shift();
         if (e) {
           enemies.push(new Enemy(e.type, map.path, tileSize, wave, map.waveModifier));
-          spawnTimer = e.interval || 0.5;
+          spawnTimer = Math.max(0.18, (e.interval || 0.5) * 0.88);
         } else {
           spawnTimer = 0.5;
         }
@@ -213,10 +428,10 @@ const Game = (() => {
       waveActive = false;
 
       // Interest income between waves (5% of current gold, min 10)
-      const interest = Math.max(10, Math.floor(money * 0.05));
+      const interest = Math.max(15, Math.floor(money * 0.06));
       money += interest;
       _updateHUD();
-      _floatText(`+${interest} interest 📈`, 'gold');
+      _floatText(`+${interest} INTEREST`, 'gold');
 
       if (currentWaveIndex >= waves.length) {
         _triggerVictory();
@@ -246,7 +461,7 @@ const Game = (() => {
       if (e.stompTrigger) {
         e.stompTrigger = false;
         shakeAmount = 12;
-        _floatText('💥 STOMP!', 'red');
+        _floatText('STOMP!', 'red');
         // All player's bullets get cleared (shockwave knocks them away)
         bullets = bullets.filter(b => Math.hypot(b.x - e.x, b.y - e.y) > 80);
       }
@@ -275,13 +490,13 @@ const Game = (() => {
         score += e.reward * (e.isBoss ? 10 : 1);
         kills++;
         totalCoinsEarned += e.reward;
-        _spawnDmgNum(e.x, e.y, `+${e.reward}💰`, false);
+        _spawnDmgNum(e.x, e.y, `+${e.reward}`, false);
         if (e.isBoss) {
           shakeAmount = 18;
-          killFeed.unshift({ text:`💀 ${e.name}`, age:0, boss:true });
-          _floatText(`🎉 ${e.name} defeated! +${e.reward}`, 'gold');
+          killFeed.unshift({ text:`${e.name} KILLED`, age:0, boss:true });
+          _floatText(`${e.name} DEFEATED! +${e.reward}`, 'gold');
         } else if (kills % 10 === 0) {
-          killFeed.unshift({ text:`⚡ ${kills} kills!`, age:0, boss:false });
+          killFeed.unshift({ text:`${kills} KILLS`, age:0, boss:false });
         }
         _updateHUD();
       }
@@ -342,14 +557,16 @@ const Game = (() => {
       ctx.fill();
       ctx.stroke();
 
-      ctx.font = `${Math.floor(tileSize*0.55)}px serif`;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText(placingTower.icon, col*tileSize+tileSize/2, row*tileSize+tileSize/2);
-
+      // Draw tower preview using canvas art
+      ctx.globalAlpha = 0.7;
+      const previewFn = (typeof TowerArt !== 'undefined' && TowerArt[placingTower.id]) || null;
+      if (previewFn) previewFn(ctx, col*tileSize+tileSize/2, row*tileSize+tileSize/2, tileSize, placingTower.color);
+      ctx.globalAlpha = 1;
       // Cost label
       ctx.font = `bold ${Math.floor(tileSize*0.28)}px sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillStyle = money >= placingTower.cost ? '#2ecc71' : '#e74c3c';
-      ctx.fillText(`💰${placingTower.cost}`, col*tileSize+tileSize/2, row*tileSize+tileSize*0.82);
+      ctx.fillText(`$${placingTower.cost}`, col*tileSize+tileSize/2, row*tileSize+tileSize*0.82);
     }
 
     // Hover: show range for tower under cursor
@@ -393,7 +610,7 @@ const Game = (() => {
     const boss  = enemies.find(e => e.isBoss && !e.dead);
     if (boss) {
       bar.classList.add('visible');
-      document.getElementById('bossBarLabel').textContent = `${boss.icon} ${boss.name}`;
+      document.getElementById('bossBarLabel').textContent = boss.name;
       document.getElementById('bossBarHp').textContent    = `${Math.ceil(boss.hp)} / ${boss.maxHp}`;
       document.getElementById('bossBarFill').style.width  = `${(boss.hp / boss.maxHp) * 100}%`;
     } else {
@@ -404,16 +621,28 @@ const Game = (() => {
   function _drawKillFeed(c) {
     if (killFeed.length === 0) return;
     const W = canvas.width;
-    killFeed.slice(0, 5).forEach((k, i) => {
+    killFeed.slice(0, 6).forEach((k, i) => {
       const alpha = Math.max(0, 1 - k.age / 3.5);
+      c.save();
       c.globalAlpha = alpha;
-      c.font = `bold ${k.boss ? 14 : 12}px var(--f-hdr)`;
-      c.textAlign = 'right';
+      const fs = k.boss ? 13 : 11;
+      c.font = `bold ${fs}px monospace`;
+      const tw = c.measureText(k.text).width;
+      const px = W - 14, py = 16 + i * 20;
+      // Pill bg
+      c.fillStyle = k.boss ? 'rgba(80,60,0,0.7)' : 'rgba(60,0,0,0.6)';
+      c.beginPath();
+      c.roundRect(px - tw - 14, py - fs*0.7, tw + 18, fs*1.5, 4);
+      c.fill();
+      // Dot
       c.fillStyle = k.boss ? '#f1c40f' : '#e74c3c';
-      c.fillText(k.text, W - 12, 18 + i * 22);
+      c.beginPath(); c.arc(px - tw - 6, py + fs*0.05, 3.5, 0, Math.PI*2); c.fill();
+      // Text
+      c.fillStyle = k.boss ? '#f1c40f' : '#ff8080';
+      c.textAlign = 'right';
+      c.fillText(k.text, px, py + fs*0.35);
+      c.restore();
     });
-    c.globalAlpha = 1;
-    c.textAlign = 'left';
   }
 
   // ── Events ─────────────────────────────────────
@@ -504,7 +733,7 @@ const Game = (() => {
         lastPlaced = t;
         money -= placingTower.cost;
         _updateHUD();
-        UI.toast(`${placingTower.icon} ${placingTower.name} placed!`, 'green');
+        UI.toast(`${placingTower.name} PLACED!`, 'green');
       } else {
         UI.toast("Can't place there!", 'red');
       }
@@ -558,7 +787,7 @@ const Game = (() => {
     selectedTower.upgrade();
     UI.showTowerInfo(selectedTower);
     _updateHUD();
-    UI.toast(`⬆ ${selectedTower.def.upgrades[selectedTower.level - 1].name}!`, 'green');
+    UI.toast(`UP: ${selectedTower.def.upgrades[selectedTower.level - 1].name}!`, 'green');
   }
 
   function sellTower() {
@@ -569,7 +798,7 @@ const Game = (() => {
     if (lastPlaced === selectedTower) lastPlaced = null;
     deselectTower();
     _updateHUD();
-    UI.toast(`💰 Sold for ${val}`, 'gold');
+    UI.toast(`SOLD FOR $${val}`, 'gold');
   }
 
   function deselectTower() {
@@ -712,10 +941,12 @@ const Game = (() => {
     const next = waves[currentWaveIndex];
     const counts = {};
     next.enemies.forEach(g => { counts[g.type] = (counts[g.type] || 0) + g.count; });
-    let html = `<div class="wp-row"><span>WAVE ${next.number}/${waves.length}</span>${next.isBossWave ? '<strong style="color:#f1c40f">⚠ BOSS</strong>' : ''}</div>`;
+    const bossTag = next.isBossWave ? '<strong style="color:#f1c40f;letter-spacing:2px">!! BOSS WAVE</strong>' : '';
+    let html = `<div class="wp-row"><span>WAVE ${next.number}/${waves.length}</span>${bossTag}</div>`;
     Object.entries(counts).forEach(([type, count]) => {
       const def = ENEMY_TYPES[type];
-      html += `<div class="wp-row"><span>${def.icon} ${def.name}</span><strong>×${count}</strong></div>`;
+      const imm = def.immunities?.length ? ` <span style="color:#888;font-size:10px">[${def.immunities.join(',')}]</span>` : '';
+      html += `<div class="wp-row"><span style="color:${def.color||'#ccc'}">${def.name}${imm}</span><strong>×${count}</strong></div>`;
     });
     panel.innerHTML = html;
   }
@@ -724,13 +955,13 @@ const Game = (() => {
   function ownerAddMoney(amount) {
     money += amount;
     _updateHUD();
-    _floatText(`+$${amount} OWNER CASH 💰`, 'gold');
+    _floatText(`+$${amount} OWNER CASH`, 'gold');
   }
 
   function ownerSkipWave() {
     enemies = []; bullets = [];
     waveActive = false; waveSpawnQueue = [];
-    _floatText('⏭ WAVE SKIPPED', 'green');
+    _floatText('WAVE SKIPPED', 'green');
   }
 
   function ownerNukeEnemies() {
@@ -738,7 +969,7 @@ const Game = (() => {
     shakeAmount = 30;
     enemies.forEach(e => { e.hp = 0; e.dead = true; });
     bullets = [];
-    _floatText('☢️ NUKE ACTIVATED', 'red');
+    _floatText('NUKE ACTIVATED', 'red');
     setTimeout(() => {
       enemies = []; waveActive = false; waveSpawnQueue = [];
     }, 100);
@@ -746,7 +977,7 @@ const Game = (() => {
 
   function ownerGodMode() {
     godMode = !godMode;
-    _floatText(godMode ? '🛡 GOD MODE ON' : '🛡 GOD MODE OFF', godMode?'green':'red');
+    _floatText(godMode ? 'GOD MODE ON' : 'GOD MODE OFF', godMode?'green':'red');
     return godMode;
   }
 
