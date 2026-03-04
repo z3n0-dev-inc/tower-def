@@ -180,6 +180,15 @@ const PF = {
         instanceId: i.ItemInstanceId, itemId: i.ItemId
       }));
     }
+    // After inventory loads, tell Owner module whether to show or hide.
+    // owner_panel item must exist in PlayFab inventory — no item = no panel, ever.
+    if (typeof Owner !== 'undefined') {
+      if (this.hasOwnerPanel()) {
+        Owner.show();
+      } else {
+        Owner.hide();
+      }
+    }
   },
 
   getOwnedCosmeticDetails() {
@@ -190,6 +199,10 @@ const PF = {
   },
 
   hasCosmetic(itemId) { return this.inventory.some(i => i.itemId === itemId); },
+
+  // Owner panel: ONLY true if PlayFab inventory contains "owner_panel" item.
+  // Nothing in the code shows the panel unless this returns true.
+  hasOwnerPanel() { return this.inventory.some(i => i.itemId === "owner_panel"); },
 
   ownersTowers() {
     const t = [...(this.playerData.OwnedTowers||[])];
