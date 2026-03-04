@@ -21,12 +21,12 @@ const TOWER_DAMAGE_CONFIG = {
   venom:           { damage: 20,   fireRate: 1.5,  range: 140 },
   omega:           { damage: 400,  fireRate: 0.25, range: 200 },
   phantom:         { damage: 250,  fireRate: 0.8,  range: 300 },
-  temporal:        { damage: 1000,   fireRate: 9.0, range: 400 },
+  temporal:        { damage: 30,   fireRate: 0.15, range: 999 },
   reaper:          { damage: 180,  fireRate: 0.9,  range: 200 },
   // ── OWNER TOWERS — deliberately broken OP ─────────────
-  shadow_commander:{ damage: 9999, fireRate: 9.0,  range: 1050 },
-  neon_warden:     { damage: 9999, fireRate: 8.0,  range: 1050 },
-  void_hunter:     { damage: 99999,fireRate: 9.0,  range: 1050 },
+  shadow_commander:{ damage: 9999, fireRate: 3.0,  range: 999 },
+  neon_warden:     { damage: 9999, fireRate: 8.0,  range: 999 },
+  void_hunter:     { damage: 99999,fireRate: 4.0,  range: 999 },
 };
 
 /* ── DAMAGE TYPES ──────────────────────────────────────────
@@ -43,7 +43,7 @@ const TOWER_DEFS = (() => {
   return [
     // ── BASIC ──────────────────────────────────────────────
     {
-      id:'gunner' icon:'[GUN]',, name:'GUNNER', rarity:'basic',
+      id:'gunner', icon:'[GUN]', name:'GUNNER', rarity:'basic',
       cost:75, shopCost:0,
       desc:'Standard soldier. Weak vs armored enemies.',
       damageType:'bullet', bypasses:false,
@@ -58,7 +58,7 @@ const TOWER_DEFS = (() => {
       ],
     },
     {
-      id:'archer' icon:'[BOW]',, name:'ARCHER', rarity:'basic',
+      id:'archer', icon:'[BOW]', name:'ARCHER', rarity:'basic',
       cost:60, shopCost:0,
       desc:'Long range. Pierces. Weak vs armored.',
       damageType:'bullet', bypasses:false,
@@ -73,7 +73,7 @@ const TOWER_DEFS = (() => {
       ],
     },
     {
-      id:'sniper' icon:'[SNP]',, name:'SNIPER', rarity:'basic',
+      id:'sniper', icon:'[SNP]', name:'SNIPER', rarity:'basic',
       cost:120, shopCost:250,
       desc:'Long range, high damage. Weak vs fast enemies.',
       damageType:'bullet', bypasses:false,
@@ -89,7 +89,7 @@ const TOWER_DEFS = (() => {
     },
     // ── ADVANCED ───────────────────────────────────────────
     {
-      id:'rocketeer' icon:'[RKT]',, name:'ROCKETEER', rarity:'advanced',
+      id:'rocketeer', icon:'[RKT]', name:'ROCKETEER', rarity:'advanced',
       cost:200, shopCost:500,
       desc:'Explosive splash. Weak vs fast enemies.',
       damageType:'explosive', bypasses:false,
@@ -104,7 +104,7 @@ const TOWER_DEFS = (() => {
       ],
     },
     {
-      id:'freezer' icon:'[ICE]',, name:'FREEZER', rarity:'advanced',
+      id:'freezer', icon:'[ICE]', name:'FREEZER', rarity:'advanced',
       cost:160, shopCost:450,
       desc:'Slows enemies. Weak vs armored.',
       damageType:'ice', bypasses:false,
@@ -119,7 +119,7 @@ const TOWER_DEFS = (() => {
       ],
     },
     {
-      id:'flamer' icon:'[FIR]',, name:'FLAMETHROWER', rarity:'advanced',
+      id:'flamer', icon:'[FIR]', name:'FLAMETHROWER', rarity:'advanced',
       cost:180, shopCost:500,
       desc:'Burns over time. Weak vs ghost and armored.',
       damageType:'fire', bypasses:false,
@@ -135,7 +135,7 @@ const TOWER_DEFS = (() => {
     },
     // ── SPECIAL ────────────────────────────────────────────
     {
-      id:'tesla' icon:'[ELC]',, name:'TESLA COIL', rarity:'special',
+      id:'tesla', icon:'[ELC]', name:'TESLA COIL', rarity:'special',
       cost:350, shopCost:1200,
       desc:'Chains lightning. Weak vs armored.',
       damageType:'electric', bypasses:false,
@@ -150,7 +150,7 @@ const TOWER_DEFS = (() => {
       ],
     },
     {
-      id:'laser' icon:'[LZR]',, name:'LASER TOWER', rarity:'special',
+      id:'laser', icon:'[LZR]', name:'LASER TOWER', rarity:'special',
       cost:400, shopCost:1500,
       desc:'Pierces armor. Deals no damage to ghost.',
       damageType:'laser', bypasses:false,
@@ -165,7 +165,7 @@ const TOWER_DEFS = (() => {
       ],
     },
     {
-      id:'mortar' icon:'[MTR]',, name:'MORTAR', rarity:'special',
+      id:'mortar', icon:'[MTR]', name:'MORTAR', rarity:'special',
       cost:320, shopCost:1100,
       desc:'Massive splash. Too slow for fast enemies.',
       damageType:'explosive', bypasses:false,
@@ -180,7 +180,7 @@ const TOWER_DEFS = (() => {
       ],
     },
     {
-      id:'venom' icon:'[PSN]',, name:'VENOM TOWER', rarity:'special',
+      id:'venom', icon:'[PSN]', name:'VENOM TOWER', rarity:'special',
       cost:280, shopCost:900,
       desc:'Poisons groups. Weak vs boss types.',
       damageType:'poison', bypasses:false,
@@ -197,7 +197,7 @@ const TOWER_DEFS = (() => {
     },
     // ── LEGENDARY — bypasses all immunities ────────────────
     {
-      id:'omega' icon:'[OMG]',, name:'OMEGA CANNON', rarity:'legendary',
+      id:'omega', icon:'[OMG]', name:'OMEGA CANNON', rarity:'legendary',
       cost:800, shopCost:4000,
       desc:'Kills ANY monster type. Expensive but unstoppable.',
       damageType:'void', bypasses:true,
@@ -212,7 +212,7 @@ const TOWER_DEFS = (() => {
       ],
     },
     {
-      id:'phantom' icon:'[PHT]',, name:'PHANTOM SNIPER', rarity:'legendary',
+      id:'phantom', icon:'[PHT]', name:'PHANTOM SNIPER', rarity:'legendary',
       cost:700, shopCost:3500,
       desc:'Sees invisible. Insta-kills weak foes. Kills ANY type.',
       damageType:'void', bypasses:true,
@@ -227,7 +227,7 @@ const TOWER_DEFS = (() => {
       ],
     },
     {
-      id:'temporal' icon:'[TMP]',, name:'TIME DISTORTER', rarity:'legendary',
+      id:'temporal', icon:'[TMP]', name:'TIME DISTORTER', rarity:'legendary',
       cost:900, shopCost:5000,
       desc:'Slows ALL enemies on screen. Kills ANY type.',
       damageType:'void', bypasses:true,
@@ -242,7 +242,7 @@ const TOWER_DEFS = (() => {
       ],
     },
     {
-      id:'reaper' icon:'[RPR]',, name:'SOUL REAPER', rarity:'legendary',
+      id:'reaper', icon:'[RPR]', name:'SOUL REAPER', rarity:'legendary',
       cost:1000, shopCost:6000,
       desc:'Executes below 20% HP. Kills ANY type.',
       damageType:'void', bypasses:true,
@@ -258,7 +258,7 @@ const TOWER_DEFS = (() => {
     },
     // ── OWNER ONLY — void damage, bypasses everything ──────
     {
-      id:'shadow_commander' icon:'[SCM]',, name:'SHADOW COMMANDER', rarity:'legendary',
+      id:'shadow_commander', icon:'[SCM]', name:'SHADOW COMMANDER', rarity:'legendary',
       cost:0, shopCost:0, ownerOnly:true,
       desc:'OWNER ONLY. Void damage. Kills every monster type. Buffs nearby towers.',
       damageType:'void', bypasses:true,
@@ -270,7 +270,7 @@ const TOWER_DEFS = (() => {
       strongVs:['ALL'],
     },
     {
-      id:'neon_warden' icon:'[NWD]',, name:'NEON WARDEN', rarity:'legendary',
+      id:'neon_warden', icon:'[NWD]', name:'NEON WARDEN', rarity:'legendary',
       cost:0, shopCost:0, ownerOnly:true,
       desc:'OWNER ONLY. Void damage. 99-chain lightning. Nothing survives.',
       damageType:'void', bypasses:true,
@@ -282,7 +282,7 @@ const TOWER_DEFS = (() => {
       strongVs:['ALL'],
     },
     {
-      id:'void_hunter' icon:'[VHT]',, name:'VOID HUNTER', rarity:'legendary',
+      id:'void_hunter', icon:'[VHT]', name:'VOID HUNTER', rarity:'legendary',
       cost:0, shopCost:0, ownerOnly:true,
       desc:'OWNER ONLY. Void damage. Insta-kills everything. Reality shredder.',
       damageType:'void', bypasses:true,
