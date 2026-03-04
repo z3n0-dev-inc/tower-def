@@ -33,7 +33,10 @@ const Owner = (() => {
     });
 
     // Close panel when clicking outside it
+    // justOpened flag prevents the same click that opens the panel from closing it
+    let _justOpened = false;
     document.addEventListener('mousedown', e => {
+      if (_justOpened) { _justOpened = false; return; }
       const panel   = document.getElementById('ownerPanel');
       const trigger = document.getElementById('ownerTrigger');
       if (isOpen && panel && trigger
@@ -86,6 +89,7 @@ const Owner = (() => {
   function open() {
     const panel = document.getElementById('ownerPanel');
     if (!panel) return;
+    _justOpened = true;
     panel.classList.remove('hidden', 'op-closing');
     panel.classList.add('op-opening');
     isOpen = true;
