@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Zombie Tower Defence</title>
+  <title>Zombie Tower Defence BY daddy z3n0</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=JetBrains+Mono:wght@300;400;700&family=Inter+Tight:wght@300;400;500;600&display=swap" rel="stylesheet"/>
@@ -19,7 +19,7 @@
   <div class="menu-header">
     <div class="skull-icon">💀</div>
     <h1 class="game-title"><span class="t1">ZOMBIE</span><br><span class="t2">TOWER DEFENCE</span></h1>
-    <p class="game-sub">SURVIVE · BUILD · DOMINATE</p>
+    <p class="game-sub">SURVIVE FROM THE BLUDS! · BUILD · GOON</p>
   </div>
 
   <nav class="menu-tabs">
@@ -79,7 +79,7 @@
             <div class="pstat">💰 Coins <strong id="pCoins">0</strong></div>
             <div class="pstat">🌊 Best Wave <strong id="pBestWave">0</strong></div>
             <div class="pstat">💀 Total Kills <strong id="pTotalKills">0</strong></div>
-            <div class="pstat">🗼 Towers Owned <strong id="pTowersOwned">0</strong></div>
+            <div class="pstat">🗼 Towers Owned, like 6 or 7! <strong id="pTowersOwned">0</strong></div>
           </div>
         </div>
         <div class="cosmetic-section">
@@ -188,7 +188,7 @@
   <div id="gameOverScreen" class="fullscreen-overlay hidden">
     <div class="overlay-box go-box">
       <div class="go-skull">💀</div>
-      <h2>GAME OVER</h2>
+      <h2>GAME OVER gooner</h2>
       <div class="result-grid">
         <div class="rg-item"><span>Wave</span><strong id="goWave">1</strong></div>
         <div class="rg-item"><span>Score</span><strong id="goScore">0</strong></div>
@@ -219,87 +219,111 @@
 
 <!-- ═══════════════════ OWNER PANEL ═══════════════════ -->
 
-<!-- Trigger button — bottom right corner, green text label -->
+<!-- Trigger button — bottom right, proximity glow animation -->
 <div id="ownerTrigger" class="owner-trigger hidden">
-  <div class="ot-bg-glow"></div>
+  <div class="ot-pulse-ring"></div>
+  <div class="ot-pulse-ring ot-ring-2"></div>
   <div class="ot-content">
-    <span class="ot-crown-icon">👑</span>
-    <span class="ot-label">OWNER PANEL</span>
-    <span class="ot-arrow" id="otArrow">▲</span>
+    <span class="ot-crown">👑</span>
+    <span class="ot-label">OWNER</span>
+    <span id="otArrow">▲</span>
   </div>
-  <div class="ot-scanline"></div>
 </div>
 
-<!-- Panel — floats up from trigger -->
+<!-- Owner Panel -->
 <div id="ownerPanel" class="owner-panel hidden">
-  <!-- Decorative corner accents -->
-  <div class="op-corner op-corner-tl"></div>
-  <div class="op-corner op-corner-tr"></div>
-  <div class="op-corner op-corner-bl"></div>
-  <div class="op-corner op-corner-br"></div>
+  <div class="op-corner op-tl"></div>
+  <div class="op-corner op-tr"></div>
+  <div class="op-corner op-bl"></div>
+  <div class="op-corner op-br"></div>
 
   <div class="op-hdr">
     <div class="op-hdr-left">
       <span class="op-hdr-crown">👑</span>
       <div>
-        <h3>OWNER CONSOLE</h3>
-        <span class="op-hdr-sub">Zombie Tower Defence</span>
+        <div class="op-hdr-title">OWNER CONSOLE</div>
+        <div class="op-hdr-sub">Zombie Tower Defence</div>
       </div>
     </div>
-    <button id="btnCloseOwner" class="op-x">✕</button>
+    <button id="btnCloseOwner" class="op-close">✕</button>
   </div>
 
-  <div class="op-body">
+  <div class="op-scroll">
 
-    <div class="op-block">
-      <label>🎯 TARGET PLAYER</label>
-      <input type="text" id="ownerTarget" class="td-input" placeholder="PlayFab Player ID"/>
-      <span class="op-hint">Find ID in PlayFab dashboard → Players</span>
+    <!-- Target player -->
+    <div class="op-section">
+      <div class="op-section-label">🎯 TARGET PLAYER ID</div>
+      <input type="text" id="ownerTarget" class="td-input" placeholder="PlayFab Player ID (find in dashboard)"/>
+      <div class="op-hint">Go to PlayFab → Players to find any Player ID</div>
     </div>
 
-    <!-- Cosmetics from catalog — populated dynamically -->
-    <div class="op-block">
-      <label>🎁 GRANT CATALOG COSMETICS</label>
-      <div id="opCosmeticBtns">
-        <span style="color:var(--text2);font-size:12px">Loading catalog…</span>
+    <!-- Owner Characters (PlayFab catalog) -->
+    <div class="op-section">
+      <div class="op-section-label">🦇 OWNER CHARACTERS</div>
+      <div class="op-hint">Granted via PlayFab inventory — appear in-game instantly</div>
+      <div id="opCosmeticBtns" class="op-cosmetic-list">
+        <div class="op-catalog-loading">📡 Loading PlayFab catalog…</div>
       </div>
+      <button class="op-btn neon" data-oa="giveOwnerTowers">👑 Give ALL 3 Owner Characters at Once</button>
     </div>
 
-    <div class="op-block">
-      <label>🗼 INVENTORY</label>
-      <button class="op-btn green" data-oa="giveAllTowers">🗼 Give All Towers</button>
-      <button class="op-btn green" data-oa="unlockAllPerks">🔓 Unlock All Perks</button>
+    <!-- Inventory controls -->
+    <div class="op-section">
+      <div class="op-section-label">🗼 PLAYER INVENTORY</div>
+      <button class="op-btn green" data-oa="giveAllTowers">🗼 Give All Towers (14 towers)</button>
+      <button class="op-btn green" data-oa="unlockAllMaps">🗺 Unlock All 8 Maps</button>
       <div class="op-row">
-        <input type="number" id="ownerCoinAmt" class="td-input sm" value="5000"/>
-        <button class="op-btn blue" data-oa="giveCoins">💰 Give Coins</button>
+        <input type="number" id="ownerCoinAmt" class="td-input sm" value="10000" min="1"/>
+        <button class="op-btn amber" data-oa="giveCoins">💰 Give Coins</button>
       </div>
     </div>
 
-    <div class="op-block" id="opIngame">
-      <label>⚡ LIVE ROUND COMMANDS</label>
+    <!-- In-game live commands -->
+    <div class="op-section" id="opIngame">
+      <div class="op-section-label">⚡ LIVE ROUND COMMANDS</div>
       <div class="op-row">
-        <input type="number" id="ownerIngameMoney" class="td-input sm" value="500"/>
-        <button class="op-btn blue" data-oa="addIngameMoney">+ Money</button>
+        <input type="number" id="ownerIngameMoney" class="td-input sm" value="9999" min="1"/>
+        <button class="op-btn amber" data-oa="addIngameMoney">💰 Add Money</button>
       </div>
-      <button class="op-btn purple" data-oa="skipWave">⏭ Skip Current Wave</button>
-      <button class="op-btn purple" data-oa="godMode">🛡 Toggle God Mode</button>
-      <button class="op-btn red"    data-oa="nukeEnemies">💥 Nuke All Enemies</button>
+      <div class="op-row">
+        <input type="number" id="ownerLivesAmt" class="td-input sm" value="99" min="1"/>
+        <button class="op-btn green" data-oa="setLives">❤️ Set Lives</button>
+      </div>
+      <div class="op-cmd-grid">
+        <button class="op-btn blue"   data-oa="skipWave">⏭ Skip Wave</button>
+        <button class="op-btn blue"   data-oa="godMode">🛡 God Mode</button>
+        <button class="op-btn red"    data-oa="nukeEnemies">☢️ Nuke All</button>
+        <button class="op-btn purple" data-oa="freezeAll">❄️ Freeze All</button>
+        <button class="op-btn purple" data-oa="speedHack">⚡ Speed Hack</button>
+        <button class="op-btn gold"   data-oa="maxAllTowers">⬆ Max All Towers</button>
+      </div>
+      <div class="op-section-label" style="margin-top:8px">👹 SPAWN BOSS</div>
+      <div class="op-row">
+        <select id="ownerBossType" class="td-input sm">
+          <option value="boss_zombie_king">👑 Zombie King</option>
+          <option value="boss_undead_titan">🗿 Undead Titan</option>
+          <option value="boss_shadow_lord">🌑 Shadow Lord</option>
+        </select>
+        <button class="op-btn red" data-oa="spawnBoss">👹 Spawn</button>
+      </div>
     </div>
 
-    <div class="op-block">
-      <label>⚙ ADMIN</label>
-      <button class="op-btn red" data-oa="makeOwner">👑 Grant Owner Status</button>
-      <button class="op-btn red" data-oa="resetPlayer">⚠ Reset Player Data</button>
+    <!-- Admin -->
+    <div class="op-section">
+      <div class="op-section-label">⚙ ADMIN</div>
+      <button class="op-btn neon" data-oa="makeOwner">👑 Grant Owner Status</button>
+      <button class="op-btn red"  data-oa="resetPlayer">⚠ Reset Player Data</button>
     </div>
 
-    <div class="op-log-wrap">
-      <div class="op-log-title">ACTION LOG</div>
+    <!-- Log -->
+    <div class="op-section">
+      <div class="op-section-label">📋 ACTION LOG</div>
       <div class="op-log" id="ownerLog">
-        <p class="op-placeholder">— awaiting commands —</p>
+        <div class="op-placeholder">— awaiting commands —</div>
       </div>
     </div>
 
-  </div><!-- /op-body -->
+  </div><!-- /op-scroll -->
 </div><!-- /ownerPanel -->
 
 <script src="playfab.js"></script>
