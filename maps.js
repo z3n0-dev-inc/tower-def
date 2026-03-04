@@ -13,7 +13,7 @@ const MAPS = [
     description: 'A foggy cemetery. Good place to start, rookie.',
     bgColor: '#1a2a15', pathColor: '#4a3820',
     grassColor: '#1e3018', accentColor: '#2d4a28',
-    decorations: ['grave','tree','mist'],
+    decorations: ['🪦','🌲','🌫️'],
     unlocked: true,
     cols: 20, rows: 14,
     path: [
@@ -35,7 +35,7 @@ const MAPS = [
     description: 'Overrun streets. Longer routes, less room to breathe.',
     bgColor: '#1a1a1a', pathColor: '#555',
     grassColor: '#222', accentColor: '#333',
-    decorations: ['wall','car','lamp'],
+    decorations: ['🏚️','🚗','💡'],
     unlocked: false,
     cols: 22, rows: 14,
     path: [
@@ -57,7 +57,7 @@ const MAPS = [
     description: 'Molten rock and lava channels. Path is long and winding.',
     bgColor: '#1a0a00', pathColor: '#3a1500',
     grassColor: '#1f0d00', accentColor: '#5a1a00',
-    decorations: ['boulder','lava','crystal'],
+    decorations: ['🌋','🔥','💎'],
     unlocked: false,
     cols: 22, rows: 15,
     path: [
@@ -79,7 +79,7 @@ const MAPS = [
     description: 'Frozen tundra. Enemies fast. Path is very long through ice fields.',
     bgColor: '#0a1525', pathColor: '#a8c8e8',
     grassColor: '#0d1e33', accentColor: '#1a3050',
-    decorations: ['ice','snow','penguin'],
+    decorations: ['🏔️','❄️','🐧'],
     unlocked: false,
     cols: 26, rows: 15,
     path: [
@@ -101,7 +101,7 @@ const MAPS = [
     description: 'Hellfire everywhere. Very long path. Strong enemies from wave 1.',
     bgColor: '#0f0000', pathColor: '#5a0000',
     grassColor: '#1a0000', accentColor: '#3a0000',
-    decorations: ['bone','pillar','skull'],
+    decorations: ['👹','💀','🔥'],
     unlocked: false,
     cols: 24, rows: 15,
     path: [
@@ -126,7 +126,7 @@ const MAPS = [
     description: 'Mutant enemies, massive maze-like path. Brutal from wave 1.',
     bgColor: '#0d1a00', pathColor: '#4a6600',
     grassColor: '#0f1f00', accentColor: '#2a3d00',
-    decorations: ['radiation','mutant','barrel'],
+    decorations: ['☢️','💚','🌿'],
     unlocked: false,
     cols: 26, rows: 16,
     path: [
@@ -141,14 +141,14 @@ const MAPS = [
   },
   {
     id: 'shadow_realm',
-    name: 'SHADOW GOON REALM',
+    name: 'SHADOW REALM',
     theme: 'shadow',
     difficulty: 7,
     waves: 36,
     description: 'Invisible enemies. Impossible-length path. Elites from wave 5.',
     bgColor: '#05050f', pathColor: '#2a0060',
     grassColor: '#08080f', accentColor: '#150030',
-    decorations: ['candle','eye','void'],
+    decorations: ['🌑','👁️','🕯️'],
     unlocked: false,
     cols: 28, rows: 16,
     path: [
@@ -165,14 +165,14 @@ const MAPS = [
   },
   {
     id: 'omega_facility',
-    name: 'OMEGA GOON FACILITY',
+    name: 'OMEGA FACILITY',
     theme: 'omega',
     difficulty: 8,
     waves: 42,
-    description: 'ENDGAME. The longest path. The hardest enemies. Gooners only.',
+    description: 'ENDGAME. The longest path. The hardest enemies. Legends only.',
     bgColor: '#000005', pathColor: '#ff0030',
     grassColor: '#020208', accentColor: '#0a000f',
-    decorations: ['warning','tech','crack'],
+    decorations: ['💀','⚠️','🔴'],
     unlocked: false,
     cols: 30, rows: 16,
     path: [
