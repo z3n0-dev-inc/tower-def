@@ -151,30 +151,61 @@ function drawMapPreview(canvas, map) {
   const W = canvas.width, H = canvas.height;
   const tW = W / map.cols, tH = H / map.rows;
 
-  ctx.fillStyle = map.bgColor;
+  // Background
+  ctx.fillStyle = map.bgColor || '#1a2a15';
   ctx.fillRect(0, 0, W, H);
 
-  // Draw grass details
-  ctx.fillStyle = map.accentColor;
-  for (let i = 0; i < 30; i++) {
-    const x = Math.random() * W, y = Math.random() * H;
-    ctx.fillRect(x, y, 3, 3);
+  // Subtle texture dots
+  ctx.fillStyle = map.accentColor || '#2d4a28';
+  const rng = mulberry32Preview(7);
+  for (let i = 0; i < 80; i++) {
+    ctx.globalAlpha = 0.5;
+    ctx.fillRect(rng() * W, rng() * H, rng() < 0.3 ? 2 : 1, rng() < 0.3 ? 2 : 1);
   }
+  ctx.globalAlpha = 1;
 
-  // Draw path
+  // Path with thick stroke
+  ctx.save();
+  ctx.strokeStyle = map.pathColor || '#4a3820';
+  ctx.lineWidth = Math.max(tW, tH) * 0.85;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
   map.path.forEach(([c, r], i) => {
-    const alpha = 0.6 + 0.4 * (i / map.path.length);
-    ctx.fillStyle = map.pathColor;
-    ctx.fillRect(c * tW, r * tH, tW + 1, tH + 1);
+    const px = c * tW + tW / 2;
+    const py = r * tH + tH / 2;
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
   });
+  ctx.stroke();
 
-  // Draw start arrow
+  // Path highlight
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+  ctx.lineWidth = Math.max(tW, tH) * 0.5;
+  ctx.stroke();
+  ctx.restore();
+
+  // Start marker
   const [sc, sr] = map.path[0];
-  ctx.fillStyle = '#27ae60';
-  ctx.fillText('▶', sc * tW, sr * tH + tH);
+  ctx.fillStyle = 'rgba(34,197,94,0.9)';
+  ctx.fillRect(sc * tW + 1, sr * tH + 1, tW - 2, tH - 2);
+  ctx.fillStyle = '#fff';
+  ctx.font = `bold ${Math.floor(tH * 0.55)}px monospace`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('S', sc * tW + tW / 2, sr * tH + tH / 2);
 
-  // Draw end marker
+  // End marker
   const [ec, er] = map.path[map.path.length - 1];
-  ctx.fillStyle = '#e74c3c';
-  ctx.fillRect(ec * tW, er * tH, tW, tH);
+  ctx.fillStyle = 'rgba(220,38,38,0.9)';
+  ctx.fillRect(ec * tW + 1, er * tH + 1, tW - 2, tH - 2);
+  ctx.fillStyle = '#fff';
+  ctx.fillText('E', ec * tW + tW / 2, er * tH + tH / 2);
+}
+
+function mulberry32Preview(seed) {
+  return function() {
+    let t = seed += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 0xFFFFFFFF;
+  };
 }
