@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Zombie Tower Defence</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=JetBrains+Mono:wght@300;400;700&family=Inter+Tight:wght@300;400;500;600&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
@@ -22,10 +23,10 @@
   </div>
 
   <nav class="menu-tabs">
-    <button class="mtab active" data-tab="play">⚔ PLAY</button>
-    <button class="mtab" data-tab="shop">🏪 SHOP</button>
-    <button class="mtab" data-tab="leaderboard">🏆 LEADERBOARD</button>
-    <button class="mtab" data-tab="profile">👤 PROFILE</button>
+    <button class="mtab active" data-tab="play">▶ PLAY</button>
+    <button class="mtab" data-tab="shop">⬡ SHOP</button>
+    <button class="mtab" data-tab="leaderboard">◈ LEADERBOARD</button>
+    <button class="mtab" data-tab="profile">◉ PROFILE</button>
   </nav>
 
   <div class="menu-body">
@@ -35,9 +36,8 @@
       <div class="map-grid" id="mapGrid"></div>
     </div>
 
-    <!-- SHOP TAB -->
     <div class="tab" id="tab-shop">
-      <h2 class="tab-title">TOWER SHOP &nbsp;<span class="coins-badge">💰 <span id="shopCoins">0</span></span></h2>
+      <h2 class="tab-title">TOWER SHOP <span class="coins-badge">💰 <span id="shopCoins">0</span></span></h2>
       <div class="shop-filters">
         <button class="sf active" data-sf="all">ALL</button>
         <button class="sf" data-sf="basic">BASIC</button>
@@ -152,15 +152,36 @@
           <button class="tgt-btn" data-tgt="close">CLOSEST</button>
         </div>
       </div>
+
+      <div class="sp-block hotkey-block">
+        <div class="sp-title">SHORTCUTS</div>
+        <div class="hotkey-list">
+          <div class="hk"><kbd>Space</kbd> Send wave</div>
+          <div class="hk"><kbd>G</kbd> Upgrade</div>
+          <div class="hk"><kbd>S</kbd> Sell</div>
+          <div class="hk"><kbd>U</kbd> Undo place</div>
+          <div class="hk"><kbd>Esc</kbd> Cancel / Deselect</div>
+          <div class="hk"><kbd>1-4</kbd> Target modes</div>
+        </div>
+      </div>
     </aside>
   </div>
 
   <!-- WAVE ANNOUNCE -->
   <div id="waveAnnounce" class="wave-announce hidden">
     <div class="wa-content">
-      <div class="wa-wave">WAVE <span id="waNum">1</span></div>
+      <div class="wa-wave" id="waWave">WAVE <span id="waNum">1</span></div>
       <div class="wa-sub" id="waSub">INCOMING!</div>
     </div>
+  </div>
+
+  <!-- BOSS BAR -->
+  <div id="bossBar">
+    <div id="bossBarName">
+      <span id="bossBarLabel">👑 ZOMBIE KING</span>
+      <span id="bossBarHp">2000 / 2000</span>
+    </div>
+    <div id="bossBarTrack"><div id="bossBarFill"></div></div>
   </div>
 
   <!-- GAME OVER -->
