@@ -99,6 +99,67 @@ const ENEMY_TYPES = {
     immunities: ['poison','ice','bullet'],  // use laser/explosive only
     specialMove:'stomp',
   },
+  // ── NEW LATE-GAME ENEMIES (wave 15+) ──────────────────────
+  colossus: {
+    name:'COLOSSUS', color:'#607d8b',
+    hp:4500, speed:22, reward:55, armor:0.7, size:20, isBoss:false,
+    immunities: ['bullet','ice','poison'],  // explosive, laser, electric only
+    specialMove:'stomp',
+  },
+  wraith: {
+    name:'WRAITH', color:'#aa00ff',
+    hp:800, speed:110, reward:45, armor:0.2, size:9, isBoss:false,
+    invisible:true,
+    immunities: ['bullet','poison','explosive'],
+    specialMove:null,
+  },
+  bloodhound: {
+    name:'BLOODHOUND', color:'#b71c1c',
+    hp:1200, speed:90, reward:50, armor:0.3, size:11, isBoss:false,
+    immunities: ['ice'],
+    rageOnDamage:true,
+    specialMove:null,
+  },
+  plague_carrier: {
+    name:'PLAGUE CARRIER', color:'#1b5e20',
+    hp:2200, speed:35, reward:60, armor:0.4, size:16, isBoss:false,
+    immunities: ['poison','fire'],
+    specialMove:'explode',
+  },
+  titan_guardian: {
+    name:'TITAN GUARDIAN', color:'#37474f',
+    hp:8000, speed:18, reward:90, armor:0.8, size:22, isBoss:false,
+    immunities: ['bullet','ice','poison','fire'],
+    specialMove:'stomp',
+  },
+  void_rift: {
+    name:'VOID RIFT', color:'#4a148c',
+    hp:3500, speed:50, reward:80, armor:0.5, size:18, isBoss:false,
+    invisible:true,
+    immunities: ['bullet','fire','ice'],
+    specialMove:'phase',
+  },
+  // ── NEW BOSSES (wave 25, 30, 35+) ──────────────────────────
+  boss_colossus_prime: {
+    name:'COLOSSUS PRIME', color:'#455a64',
+    hp:30000, speed:20, reward:1000, armor:0.75, size:40, isBoss:true,
+    immunities: ['bullet','poison','ice'],
+    specialMove:'stomp',
+  },
+  boss_void_emperor: {
+    name:'VOID EMPEROR', color:'#1a0030',
+    hp:55000, speed:35, reward:2000, armor:0.7, size:44, isBoss:true,
+    invisible:true,
+    immunities: ['bullet','fire','poison','ice','explosive'],
+    specialMove:'phase',
+  },
+  boss_omega_destroyer: {
+    name:'OMEGA DESTROYER', color:'#b71c1c',
+    hp:120000, speed:28, reward:5000, armor:0.85, size:48, isBoss:true,
+    immunities: ['bullet','ice','poison','fire'],
+    specialMove:'stomp',
+  },
+
   boss_shadow_lord: {
     name:'SHADOW LORD', color:'#0d0d0d',
     hp:12000, speed:40, reward:600, armor:0.6, size:32, isBoss:true,
@@ -361,6 +422,158 @@ const EnemyArt = {
     ctx.beginPath(); ctx.arc(x,y,s*1.12,0,Math.PI*2); ctx.stroke();
     ctx.globalAlpha=1;
   },
+  colossus(ctx, x, y, s) {
+    // Giant armored hulk — slate blue
+    ctx.fillStyle='#546e7a';
+    ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fill();
+    // Armor plates
+    ctx.fillStyle='#37474f';
+    ctx.beginPath(); ctx.ellipse(x,y-s*.15,s*.7,s*.45,0,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#78909c'; ctx.lineWidth=s*.1;
+    ctx.beginPath(); ctx.moveTo(x-s*.5,y); ctx.lineTo(x+s*.5,y); ctx.stroke();
+    // Glowing eyes — red
+    ctx.fillStyle='#ef5350';
+    ctx.beginPath(); ctx.arc(x-s*.28,y-s*.15,s*.14,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+s*.28,y-s*.15,s*.14,0,Math.PI*2); ctx.fill();
+  },
+  wraith(ctx, x, y, s) {
+    // Ghostly purple wisp — semi-transparent
+    ctx.globalAlpha=0.55;
+    ctx.fillStyle='#9c27b0';
+    ctx.beginPath(); ctx.ellipse(x,y,s*.85,s,0,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=0.85;
+    // Dark void core
+    ctx.fillStyle='#1a0030';
+    ctx.beginPath(); ctx.arc(x,y,s*.4,0,Math.PI*2); ctx.fill();
+    // Eye slits
+    ctx.fillStyle='#ea80fc';
+    ctx.fillRect(x-s*.35,y-s*.1,s*.22,s*.1);
+    ctx.fillRect(x+s*.12,y-s*.1,s*.22,s*.1);
+    ctx.globalAlpha=1;
+  },
+  bloodhound(ctx, x, y, s) {
+    // Fast red beast
+    ctx.fillStyle='#c62828';
+    ctx.beginPath(); ctx.ellipse(x,y,s*.9,s*.75,0,0,Math.PI*2); ctx.fill();
+    // Snout
+    ctx.fillStyle='#b71c1c';
+    ctx.beginPath(); ctx.ellipse(x+s*.3,y,s*.35,s*.25,0,0,Math.PI*2); ctx.fill();
+    // Eyes — yellow rage
+    ctx.fillStyle='#ffee58';
+    ctx.beginPath(); ctx.arc(x-s*.1,y-s*.3,s*.16,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+s*.25,y-s*.25,s*.16,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#000';
+    ctx.beginPath(); ctx.arc(x-s*.1,y-s*.3,s*.07,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+s*.25,y-s*.25,s*.07,0,Math.PI*2); ctx.fill();
+  },
+  plague_carrier(ctx, x, y, s) {
+    // Bloated toxic green
+    ctx.fillStyle='#388e3c';
+    ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fill();
+    // Toxic bubbles
+    ctx.fillStyle='#a5d6a7';
+    for(let i=0;i<5;i++){
+      const bx=x+(Math.cos(i*1.26))*s*.55, by=y+(Math.sin(i*1.26))*s*.55;
+      ctx.beginPath(); ctx.arc(bx,by,s*.18,0,Math.PI*2); ctx.fill();
+    }
+    // Eyes
+    ctx.fillStyle='#1b5e20';
+    ctx.beginPath(); ctx.arc(x-s*.28,y-s*.15,s*.16,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+s*.28,y-s*.15,s*.16,0,Math.PI*2); ctx.fill();
+  },
+  titan_guardian(ctx, x, y, s) {
+    // Massive grey fortress
+    ctx.fillStyle='#263238';
+    ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fill();
+    // Layered armor rings
+    ctx.strokeStyle='#455a64'; ctx.lineWidth=s*.15;
+    ctx.beginPath(); ctx.arc(x,y,s*.75,0,Math.PI*2); ctx.stroke();
+    ctx.strokeStyle='#37474f'; ctx.lineWidth=s*.1;
+    ctx.beginPath(); ctx.arc(x,y,s*.5,0,Math.PI*2); ctx.stroke();
+    // Face plate
+    ctx.fillStyle='#37474f';
+    ctx.beginPath(); ctx.ellipse(x,y-s*.1,s*.45,s*.35,0,0,Math.PI*2); ctx.fill();
+    // Visor glow
+    ctx.fillStyle='#ff1744';
+    ctx.fillRect(x-s*.35,y-s*.18,s*.7,s*.12);
+  },
+  void_rift(ctx, x, y, s) {
+    // Swirling void portal
+    ctx.globalAlpha=0.7;
+    ctx.fillStyle='#200040';
+    ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fill();
+    // Rift rings
+    ctx.globalAlpha=0.9;
+    ctx.strokeStyle='#7b1fa2'; ctx.lineWidth=s*.12;
+    ctx.beginPath(); ctx.arc(x,y,s*.75,0,Math.PI*2); ctx.stroke();
+    ctx.strokeStyle='#ce93d8'; ctx.lineWidth=s*.06;
+    ctx.beginPath(); ctx.arc(x,y,s*.45,0,Math.PI*2); ctx.stroke();
+    // Core
+    ctx.fillStyle='#ea80fc';
+    ctx.beginPath(); ctx.arc(x,y,s*.2,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+  },
+  boss_colossus_prime(ctx, x, y, s) {
+    // Titan boss
+    ctx.fillStyle='#455a64';
+    ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fill();
+    // Huge armor
+    ctx.fillStyle='#37474f';
+    ctx.beginPath(); ctx.ellipse(x,y-s*.2,s*.8,s*.55,0,0,Math.PI*2); ctx.fill();
+    // Gold ring
+    ctx.strokeStyle='#ffd700'; ctx.lineWidth=s*.12;
+    ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.stroke();
+    ctx.strokeStyle='#78909c'; ctx.lineWidth=s*.06;
+    ctx.beginPath(); ctx.moveTo(x-s*.6,y); ctx.lineTo(x+s*.6,y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x,y-s*.6); ctx.lineTo(x,y+s*.6); ctx.stroke();
+    // Eyes
+    ctx.fillStyle='#ff1744';
+    ctx.beginPath(); ctx.arc(x-s*.3,y-s*.2,s*.16,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+s*.3,y-s*.2,s*.16,0,Math.PI*2); ctx.fill();
+  },
+  boss_void_emperor(ctx, x, y, s) {
+    // Void boss — dark with purple corona
+    ctx.fillStyle='#1a0030';
+    ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fill();
+    // Corona rings
+    ctx.strokeStyle='#aa00ff'; ctx.lineWidth=s*.14;
+    ctx.globalAlpha=0.7;
+    ctx.beginPath(); ctx.arc(x,y,s*.95,0,Math.PI*2); ctx.stroke();
+    ctx.strokeStyle='#e040fb'; ctx.lineWidth=s*.07;
+    ctx.beginPath(); ctx.arc(x,y,s*.65,0,Math.PI*2); ctx.stroke();
+    ctx.globalAlpha=1;
+    // Gold boss ring
+    ctx.strokeStyle='#ffd700'; ctx.lineWidth=s*.1;
+    ctx.beginPath(); ctx.arc(x,y,s*1.05,0,Math.PI*2); ctx.stroke();
+    // Eyes — three
+    ctx.fillStyle='#ea80fc';
+    ctx.beginPath(); ctx.arc(x,y-s*.35,s*.17,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x-s*.35,y+s*.1,s*.13,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+s*.35,y+s*.1,s*.13,0,Math.PI*2); ctx.fill();
+  },
+  boss_omega_destroyer(ctx, x, y, s) {
+    // Final boss — crimson juggernaut
+    ctx.fillStyle='#7f0000';
+    ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fill();
+    // Dark red layered armor
+    ctx.fillStyle='#b71c1c';
+    ctx.beginPath(); ctx.ellipse(x,y-s*.15,s*.85,s*.6,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#c62828';
+    ctx.beginPath(); ctx.ellipse(x,y-s*.25,s*.6,s*.4,0,0,Math.PI*2); ctx.fill();
+    // Gold boss ring
+    ctx.strokeStyle='#ffd700'; ctx.lineWidth=s*.15;
+    ctx.beginPath(); ctx.arc(x,y,s*1.08,0,Math.PI*2); ctx.stroke();
+    // Second ring
+    ctx.strokeStyle='#ff6d00'; ctx.lineWidth=s*.08;
+    ctx.beginPath(); ctx.arc(x,y,s*.75,0,Math.PI*2); ctx.stroke();
+    // Three glowing eyes
+    ctx.fillStyle='#ff6e40';
+    ctx.shadowBlur=12; ctx.shadowColor='#ff1744';
+    ctx.beginPath(); ctx.arc(x-s*.3,y-s*.2,s*.17,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+s*.3,y-s*.2,s*.17,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x,y+s*.15,s*.14,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur=0;
+  },
   _default(ctx, x, y, s) {
     ctx.fillStyle='#555'; ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fill();
   }
@@ -371,25 +584,33 @@ function generateWaves(mapId, totalWaves, waveModifier) {
   const waves = [];
   for (let w = 1; w <= totalWaves; w++) {
     const wave = { number: w, enemies: [], delay: 0.8 };
-    const budget = Math.floor((20 + w * 12) * waveModifier);
+    const budget = Math.floor((20 + w * 14) * waveModifier);
+
+    // Every 5 waves = boss wave
     if (w % 5 === 0) {
       let boss = 'boss_zombie_king';
       if (w >= 10) boss = 'boss_undead_titan';
       if (w >= 20) boss = 'boss_shadow_lord';
+      if (w >= 25) boss = 'boss_colossus_prime';
+      if (w >= 30) boss = 'boss_void_emperor';
+      if (w >= 35) boss = 'boss_omega_destroyer';
       wave.enemies.push({ type: boss, count: 1, interval: 0 });
       wave.isBossWave = true;
-      wave.enemies.push({ type: 'runner', count: Math.floor(w/2), interval: 0.4 });
+      // Escort pack scales with wave
+      const escort = w >= 30 ? 'void_rift' : w >= 20 ? 'wraith' : 'runner';
+      wave.enemies.push({ type: escort, count: Math.floor(w/3), interval: 0.3 });
     } else {
       const available = getAvailableEnemyTypes(w);
       let remaining = budget;
-      while (remaining > 0) {
+      let safetyLimit = 40;
+      while (remaining > 0 && safetyLimit-- > 0) {
         const type = available[Math.floor(Math.random() * available.length)];
         const typeDef = ENEMY_TYPES[type];
         const cost = Math.ceil(typeDef.hp / 30);
         if (remaining < cost && wave.enemies.length > 0) break;
-        const maxCount = Math.min(Math.floor(remaining / cost), 12);
+        const maxCount = Math.min(Math.floor(remaining / Math.max(1,cost)), 15);
         const count = Math.max(1, Math.floor(Math.random() * maxCount) + 1);
-        wave.enemies.push({ type, count, interval: 0.3 + Math.random() * 0.4 });
+        wave.enemies.push({ type, count, interval: 0.25 + Math.random() * 0.35 });
         remaining -= cost * count;
       }
     }
@@ -400,18 +621,25 @@ function generateWaves(mapId, totalWaves, waveModifier) {
 
 function getAvailableEnemyTypes(wave) {
   return [
-    { type:'walker',    minWave:1  },
-    { type:'crawler',   minWave:1  },
-    { type:'runner',    minWave:2  },
-    { type:'bloated',   minWave:3  },
-    { type:'armored',   minWave:4  },
-    { type:'toxic',     minWave:5  },
-    { type:'ghost',     minWave:6  },
-    { type:'healer',    minWave:7  },
-    { type:'berserker', minWave:8  },
-    { type:'nightmare', minWave:9  },
-    { type:'leaper',    minWave:10 },
-    { type:'shielder',  minWave:12 },
+    { type:'walker',         minWave:1  },
+    { type:'crawler',        minWave:1  },
+    { type:'runner',         minWave:2  },
+    { type:'bloated',        minWave:3  },
+    { type:'armored',        minWave:4  },
+    { type:'toxic',          minWave:5  },
+    { type:'ghost',          minWave:6  },
+    { type:'healer',         minWave:7  },
+    { type:'berserker',      minWave:8  },
+    { type:'nightmare',      minWave:9  },
+    { type:'leaper',         minWave:10 },
+    { type:'shielder',       minWave:12 },
+    // ── NEW LATE-GAME ENEMIES ──────────
+    { type:'bloodhound',     minWave:15 },
+    { type:'wraith',         minWave:17 },
+    { type:'colossus',       minWave:18 },
+    { type:'plague_carrier', minWave:20 },
+    { type:'void_rift',      minWave:24 },
+    { type:'titan_guardian', minWave:28 },
   ].filter(e => e.minWave <= wave).map(e => e.type);
 }
 
