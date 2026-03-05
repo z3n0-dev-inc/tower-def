@@ -16,22 +16,36 @@
   <canvas id="menuParticles"></canvas>
   <div class="menu-bg-overlay"></div>
 
-  <div class="menu-header">
-    <div class="skull-icon">💀</div>
-    <h1 class="game-title"><span class="t1">ZOMBIE</span><br><span class="t2">TOWER DEFENCE</span></h1>
-    <p class="game-sub">BUILD · DEFEND · SURVIVE</p>
+  <!-- LEFT SIDEBAR -->
+  <div class="menu-sidebar">
+    <div class="menu-brand">
+      <div class="skull-icon">💀</div>
+      <h1 class="game-title">
+        <span class="t1">ZOMBIE</span>
+        <span class="t2">TOWER DEFENCE</span>
+      </h1>
+      <p class="game-sub">BUILD · DEFEND · SURVIVE</p>
+    </div>
+
+    <nav class="menu-tabs">
+      <button class="mtab active" data-tab="play">▶ PLAY</button>
+      <button class="mtab" data-tab="infinite">∞ INFINITE</button>
+      <button class="mtab" data-tab="editor">🗺 MAP EDITOR</button>
+      <button class="mtab" data-tab="shop">⬡ SHOP</button>
+      <button class="mtab" data-tab="leaderboard">◈ LEADERBOARD</button>
+      <button class="mtab" data-tab="profile">◉ PROFILE</button>
+    </nav>
+
+    <div class="menu-sidebar-footer">
+      <div class="msf-status">
+        <div class="msf-dot"></div>
+        <span id="tickerText">Connecting…</span>
+      </div>
+    </div>
   </div>
 
-  <nav class="menu-tabs">
-    <button class="mtab active" data-tab="play">▶ PLAY</button>
-    <button class="mtab" data-tab="infinite">∞ INFINITE</button>
-    <button class="mtab" data-tab="editor">🗺 MAP EDITOR</button>
-    <button class="mtab" data-tab="shop">⬡ SHOP</button>
-    <button class="mtab" data-tab="leaderboard">◈ LEADERBOARD</button>
-    <button class="mtab" data-tab="profile">◉ PROFILE</button>
-  </nav>
-
-  <div class="menu-body">
+  <!-- RIGHT CONTENT -->
+  <div class="menu-content" id="menuBody">
     <!-- PLAY TAB -->
     <div class="tab active" id="tab-play">
       <h2 class="tab-title">SELECT MAP</h2>
@@ -174,12 +188,8 @@
     </div>
   </div>
 
-  <!-- Live ticker -->
-  <div class="live-ticker">
-    <span class="ticker-dot">● LIVE</span>
-    <div class="ticker-inner"><span id="tickerText">Connecting to live server…</span></div>
-  </div>
-</div>
+  </div><!-- /menu-content -->
+</div><!-- /screen-menu -->
 
 <!-- ═══════════════════ GAME SCREEN ═══════════════════ -->
 <div id="screen-game" class="screen">

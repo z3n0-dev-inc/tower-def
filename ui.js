@@ -682,24 +682,20 @@ const UI = (() => {
   // ── TICKER ────────────────────────────────────
   function _startTicker() {
     const msgs = [
-      '🧟 ZOMBIE TOWER DEFENCE // BUILD · SURVIVE · DOMINATE',
-      '💡 TIP: Freezer + Rocketeer = maximum crowd control',
-      '💡 TIP: Sell towers for 60% of total investment (incl. upgrades)',
-      '⚡ TIP: Tesla Coil chains lightning to 4+ enemies simultaneously',
-      '🏆 Leaderboards refresh every 30s — every kill counts',
-      '👑 Owner cosmetics unlock exclusive characters and tower variants',
-      '💡 TIP: Phantom Sniper ignores all armour — great vs Shielders',
-      '🔒 Unlock advanced towers in the Shop with earned coins',
-      '💥 TIP: Omega Cannon deals the biggest AoE splash in the game',
-      '🧟 BOSS TIP: Stack freeze + burn for maximum boss damage',
-      '💡 TIP: Press [Space] to send wave, [G] to upgrade, [S] to sell',
-      '⭐ Complete all 5 maps to unlock the Inferno challenge',
+      'ZOMBIE TOWER DEFENCE // BUILD · SURVIVE · DOMINATE',
+      'TIP: Freezer + Rocketeer = maximum crowd control',
+      'TIP: Sell towers for 60% of total investment',
+      'TIP: Tesla Coil chains lightning to 4+ enemies',
+      'Leaderboards refresh every 30s — every kill counts',
+      'TIP: Phantom Sniper ignores all armour',
+      'TIP: Press Space to send wave, G to upgrade, S to sell',
     ];
     let i = 0;
+    // Sidebar ticker (new layout)
     const el = document.getElementById('tickerText');
     if (el) {
       el.textContent = msgs[0];
-      setInterval(() => { el.textContent = msgs[++i % msgs.length]; }, 7500);
+      setInterval(() => { el.textContent = msgs[++i % msgs.length]; }, 6000);
     }
   }
 
