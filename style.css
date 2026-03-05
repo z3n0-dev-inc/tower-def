@@ -979,3 +979,198 @@ kbd { font-size: 9px; min-width: 30px; }
 /* Scroll bars - thinner, less obtrusive */
 .menu-body::-webkit-scrollbar { width: 3px; }
 .menu-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 2px; }
+
+/* Speed hack extreme levels */
+#btnSpeed[data-spd="12"] { color: #f97316; border-color: rgba(249,115,22,0.5); animation: speedGlow 0.4s ease-in-out infinite alternate; }
+#btnSpeed[data-spd="16"] { color: #ff0040; border-color: rgba(255,0,64,0.6); animation: speedGlow 0.25s ease-in-out infinite alternate; font-weight: 900; }
+
+/* ═══════════════════════════════════════════════════════════
+   ACCOUNT LEVEL & AIR TOWER ADDITIONS
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── HUD XP Strip ─────────────────────────────────────────── */
+.hud-xp-strip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  border-right: 1px solid rgba(255,255,255,0.08);
+}
+.hud-xp-level {
+  font-family: 'Orbitron', 'Barlow Condensed', sans-serif;
+  font-size: 17px;
+  font-weight: 900;
+  color: #78909c;
+  min-width: 22px;
+  text-align: center;
+  text-shadow: 0 0 8px currentColor;
+  transition: color 0.4s;
+}
+.hud-xp-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 70px;
+}
+.hud-xp-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 9px;
+  letter-spacing: 2.5px;
+  color: rgba(255,255,255,0.4);
+  line-height: 1;
+}
+.hud-xp-track {
+  width: 70px;
+  height: 5px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.hud-xp-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 3px;
+  transition: width 0.6s cubic-bezier(0.4,0,0.2,1), background 0.4s;
+  box-shadow: 0 0 6px currentColor;
+}
+
+/* ── Level-Up Toast (special wide variant) ───────────────── */
+.levelup-toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.8);
+  background: rgba(8,8,16,0.97);
+  border: 2px solid #ffd700;
+  border-radius: 12px;
+  padding: 20px 40px;
+  text-align: center;
+  z-index: 9999;
+  pointer-events: none;
+  box-shadow: 0 0 40px rgba(255,215,0,0.3);
+  animation: luIn 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards,
+             luOut 0.3s ease-in 2.5s forwards;
+}
+.levelup-toast .lu-big { font-family:'Barlow Condensed',sans-serif; font-size:40px; font-weight:900; letter-spacing:4px; color:#ffd700; }
+.levelup-toast .lu-sub { font-family:'Barlow Condensed',sans-serif; font-size:14px; letter-spacing:3px; color:rgba(255,255,255,0.7); margin-top:4px; }
+.levelup-toast .lu-unlock { font-family:'Barlow Condensed',sans-serif; font-size:13px; letter-spacing:2px; color:#00e5ff; margin-top:8px; padding: 5px 12px; background:rgba(0,229,255,0.08); border-radius:4px; border:1px solid rgba(0,229,255,0.25); }
+@keyframes luIn  { from{opacity:0;transform:translate(-50%,-50%) scale(0.7)} to{opacity:1;transform:translate(-50%,-50%) scale(1)} }
+@keyframes luOut { from{opacity:1} to{opacity:0;transform:translate(-50%,-55%)} }
+
+/* ── Profile Level Card ───────────────────────────────────── */
+.profile-level-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.plc-badge {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  border: 2.5px solid #78909c;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 20px; font-weight: 900;
+  color: #78909c;
+  flex-shrink: 0;
+  transition: color 0.4s, border-color 0.4s, box-shadow 0.4s;
+  text-shadow: 0 0 10px currentColor;
+}
+.plc-info { flex: 1; min-width: 0; }
+.plc-name-row {
+  display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px;
+}
+.plc-name {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 20px; font-weight: 700;
+  color: var(--txt); letter-spacing: 1px;
+}
+.plc-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px; letter-spacing: 3px;
+  color: #ffd700; font-weight: 600;
+}
+.plc-xp-row {
+  display: flex; gap: 4px; margin-bottom: 5px;
+}
+.plc-xp-cur { font-family:'Barlow Condensed',sans-serif; font-size:12px; color:rgba(255,255,255,0.65); }
+.plc-xp-need { font-family:'Barlow Condensed',sans-serif; font-size:12px; color:rgba(255,255,255,0.3); }
+.plc-bar-wrap {
+  width: 100%; height: 8px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 4px; overflow: hidden;
+}
+.plc-bar-fill {
+  height: 100%; width: 0%;
+  border-radius: 4px;
+  transition: width 0.7s cubic-bezier(0.4,0,0.2,1), background 0.4s;
+  box-shadow: 0 0 8px currentColor;
+}
+.plc-next-unlock {
+  margin-top: 6px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px; letter-spacing: 2px;
+  color: rgba(255,255,255,0.35);
+}
+
+/* ── Profile Stats Grid ───────────────────────────────────── */
+.profile-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.psg-cell {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 8px;
+  padding: 10px 8px;
+  text-align: center;
+}
+.psg-val {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 22px; font-weight: 700;
+  color: var(--txt);
+}
+.psg-lbl {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 9px; letter-spacing: 2px;
+  color: rgba(255,255,255,0.35);
+  margin-top: 2px;
+}
+
+/* ── AIR Tower Palette ────────────────────────────────────── */
+.tp-sep-air {
+  color: #00bcd4 !important;
+  border-color: rgba(0,188,212,0.3) !important;
+  background: rgba(0,188,212,0.05) !important;
+}
+.tp-air-badge {
+  font-size: 7px;
+  font-family: 'Barlow Condensed', sans-serif;
+  letter-spacing: 1.5px;
+  background: #00bcd4;
+  color: #000;
+  border-radius: 2px;
+  padding: 1px 3px;
+  vertical-align: super;
+  font-weight: 700;
+  line-height: 1;
+}
+/* Air tower items get a subtle sky-blue tint */
+.tp-sep-air ~ .tp-item {
+  border-color: rgba(0,188,212,0.2);
+}
+.tp-sep-air ~ .tp-item:hover {
+  border-color: rgba(0,188,212,0.6);
+  box-shadow: 0 0 12px rgba(0,188,212,0.2);
+}
+
+/* Air tower drop shadow hint on canvas (handled in JS) */
+.placing-air-tower canvas {
+  cursor: crosshair;
+}

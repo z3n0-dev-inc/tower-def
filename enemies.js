@@ -169,415 +169,1118 @@ const ENEMY_TYPES = {
   },
 };
 
-/* ── Canvas Enemy Art (no emojis) ───────────────────────── */
+/* ── Canvas Enemy Art — hand-drawn sprites ───────────────── */
 const EnemyArt = {
+
+  // WALKER — shambling zombie: tattered clothes, lopsided jaw, outstretched arm
   walker(ctx, x, y, s) {
-    ctx.fillStyle='#8d6e63';
-    ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fill();
-    // Zombie stitches
-    ctx.strokeStyle='#3e2723'; ctx.lineWidth=s*.12;
-    ctx.beginPath(); ctx.moveTo(x-s*.3,y-s*.2); ctx.lineTo(x+s*.3,y-s*.2); ctx.stroke();
-    // Eyes
-    ctx.fillStyle='#c62828';
-    ctx.beginPath(); ctx.arc(x-s*.32,y-s*.1,s*.18,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x+s*.32,y-s*.1,s*.18,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#000';
-    ctx.beginPath(); ctx.arc(x-s*.32,y-s*.1,s*.08,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x+s*.32,y-s*.1,s*.08,0,Math.PI*2); ctx.fill();
-    // Mouth
-    ctx.strokeStyle='#3e2723'; ctx.lineWidth=s*.1; ctx.lineCap='round';
-    ctx.beginPath(); ctx.moveTo(x-s*.3,y+s*.3); ctx.quadraticCurveTo(x,y+s*.5,x+s*.3,y+s*.3); ctx.stroke();
+    const S = s;
+    // Body — hunched torso
+    ctx.fillStyle = '#5a3e2b';
+    ctx.beginPath();
+    ctx.ellipse(x, y+S*.1, S*.45, S*.55, 0.15, 0, Math.PI*2);
+    ctx.fill();
+    // Torn shirt details
+    ctx.fillStyle = '#4a6741';
+    ctx.beginPath();
+    ctx.ellipse(x-S*.05, y+S*.08, S*.3, S*.38, 0.1, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#3a5232';
+    ctx.fillRect(x-S*.18, y+S*.3, S*.36, S*.08); // tear line
+    // Head — misshapen
+    ctx.fillStyle = '#7a5c3e';
+    ctx.beginPath();
+    ctx.ellipse(x+S*.06, y-S*.5, S*.3, S*.32, 0.12, 0, Math.PI*2);
+    ctx.fill();
+    // Jaw — dropped open
+    ctx.fillStyle = '#6b4f35';
+    ctx.beginPath();
+    ctx.ellipse(x+S*.1, y-S*.3, S*.2, S*.14, 0.25, 0, Math.PI);
+    ctx.fill();
+    // Teeth
+    ctx.fillStyle = '#d4c89a';
+    for(let i=0;i<3;i++) {
+      ctx.fillRect(x+S*.0+i*S*.07, y-S*.38, S*.05, S*.1);
+    }
+    // Sunken eyes — one milky, one dark
+    ctx.fillStyle = '#c9c5b5';
+    ctx.beginPath(); ctx.ellipse(x-S*.04, y-S*.56, S*.1, S*.08, -0.1, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#1a0a00';
+    ctx.beginPath(); ctx.ellipse(x+S*.18, y-S*.54, S*.09, S*.08, 0.1, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#ddd';
+    ctx.beginPath(); ctx.arc(x+S*.18, y-S*.54, S*.04, 0, Math.PI*2); ctx.fill();
+    // Outstretched arm
+    ctx.strokeStyle = '#5a3e2b'; ctx.lineWidth = S*.16; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x+S*.38, y); ctx.lineTo(x+S*.75, y-S*.15); ctx.stroke();
+    // Dangling other arm
+    ctx.beginPath(); ctx.moveTo(x-S*.35, y+S*.1); ctx.lineTo(x-S*.55, y+S*.5); ctx.stroke();
+    // Wound mark
+    ctx.strokeStyle = '#8b1a1a'; ctx.lineWidth = S*.06;
+    ctx.beginPath(); ctx.moveTo(x+S*.08, y-S*.18); ctx.lineTo(x+S*.22, y-S*.1); ctx.stroke();
   },
+
+  // CRAWLER — low beast, reptilian, four limbs visible, spine ridges
   crawler(ctx, x, y, s) {
-    ctx.fillStyle='#388e3c';
-    ctx.beginPath(); ctx.ellipse(x,y,s*1.2,s*.7,0,0,Math.PI*2); ctx.fill();
-    // Scales
-    ctx.fillStyle='#2e7d32';
-    for(let i=-1;i<=1;i++) for(let j=-1;j<=1;j++){
-      ctx.beginPath(); ctx.arc(x+i*s*.35,y+j*s*.22,s*.12,0,Math.PI*2); ctx.fill();
-    }
-    // Eyes
-    ctx.fillStyle='#ffee58';
-    ctx.beginPath(); ctx.arc(x-s*.4,y-s*.1,s*.16,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x+s*.4,y-s*.1,s*.16,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#000';
-    ctx.beginPath(); ctx.arc(x-s*.4,y-s*.1,s*.07,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x+s*.4,y-s*.1,s*.07,0,Math.PI*2); ctx.fill();
-  },
-  bloated(ctx, x, y, s) {
-    ctx.fillStyle='#e64a19';
-    ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fill();
-    // Bloat lines
-    ctx.strokeStyle='#bf360c'; ctx.lineWidth=s*.08;
-    ctx.beginPath(); ctx.arc(x,y,s*.7,Math.PI*.2,Math.PI*.8); ctx.stroke();
-    ctx.beginPath(); ctx.arc(x,y,s*.5,-Math.PI*.1,Math.PI*.1+Math.PI); ctx.stroke();
-    // Eyes bulging
-    ctx.fillStyle='#ffcc02';
-    ctx.beginPath(); ctx.arc(x-s*.35,y-s*.25,s*.22,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x+s*.35,y-s*.25,s*.22,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#000';
-    ctx.beginPath(); ctx.arc(x-s*.35,y-s*.25,s*.1,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x+s*.35,y-s*.25,s*.1,0,Math.PI*2); ctx.fill();
-  },
-  runner(ctx, x, y, s) {
-    ctx.fillStyle='#1976d2';
-    ctx.beginPath(); ctx.ellipse(x,y,s*.7,s,0,0,Math.PI*2); ctx.fill();
-    // Speed lines
-    ctx.strokeStyle='#90caf9'; ctx.lineWidth=s*.07; ctx.lineCap='round';
-    for(let i=0;i<3;i++){
-      const oy=(i-1)*s*.3;
-      ctx.beginPath(); ctx.moveTo(x-s*.9,y+oy); ctx.lineTo(x-s*.5,y+oy); ctx.stroke();
-    }
-    // Eyes
-    ctx.fillStyle='#fff';
-    ctx.beginPath(); ctx.arc(x-s*.2,y-s*.2,s*.18,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x+s*.2,y-s*.2,s*.18,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#0d47a1';
-    ctx.beginPath(); ctx.arc(x-s*.18,y-s*.18,s*.1,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x+s*.22,y-s*.18,s*.1,0,Math.PI*2); ctx.fill();
-  },
-  armored(ctx, x, y, s) {
-    // Armor plates
-    ctx.fillStyle='#607d8b';
-    ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#455a64';
-    ctx.beginPath(); ctx.roundRect(x-s*.7,y-s*.8,s*1.4,s*.5,s*.1); ctx.fill();
-    ctx.beginPath(); ctx.roundRect(x-s*.7,y-s*.25,s*1.4,s*.5,s*.1); ctx.fill();
-    ctx.beginPath(); ctx.roundRect(x-s*.7,y+s*.3,s*1.4,s*.5,s*.1); ctx.fill();
-    // Visor
-    ctx.fillStyle='#b0bec5';
-    ctx.beginPath(); ctx.roundRect(x-s*.5,y-s*.75,s,s*.3,s*.08); ctx.fill();
-    ctx.fillStyle='rgba(100,180,255,0.3)';
-    ctx.beginPath(); ctx.roundRect(x-s*.5,y-s*.75,s,s*.3,s*.08); ctx.fill();
-  },
-  toxic(ctx, x, y, s) {
-    ctx.fillStyle='#689f38';
-    ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fill();
-    // Toxic bubbles
-    ctx.fillStyle='#8bc34a';
-    const t=Date.now()*.002;
-    for(let i=0;i<5;i++){
-      const a=i/5*Math.PI*2+t, r=s*.55;
-      ctx.beginPath(); ctx.arc(x+Math.cos(a)*r,y+Math.sin(a)*r,s*.18,0,Math.PI*2); ctx.fill();
-    }
-    // Skull face
-    ctx.fillStyle='#1b5e20';
-    ctx.beginPath(); ctx.arc(x,y-s*.1,s*.4,0,Math.PI*2); ctx.fill();
-    ctx.fillRect(x-s*.3,y+s*.1,s*.6,s*.35);
-    ctx.fillStyle='#8bc34a';
-    ctx.beginPath(); ctx.arc(x-s*.16,y-s*.18,s*.12,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x+s*.16,y-s*.18,s*.12,0,Math.PI*2); ctx.fill();
-    for(let i=0;i<3;i++) ctx.fillRect(x-s*.2+i*s*.2,y+s*.12,s*.12,s*.18);
-  },
-  ghost(ctx, x, y, s) {
-    ctx.fillStyle='rgba(159,168,218,0.6)';
+    const S = s;
+    // Low flat body
+    ctx.fillStyle = '#2d5a27';
     ctx.beginPath();
-    ctx.arc(x,y-s*.1,s*.7,Math.PI,0);
-    ctx.lineTo(x+s*.7,y+s*.6);
-    ctx.bezierCurveTo(x+s*.5,y+s*.3,x+s*.3,y+s*.7,x+s*.1,y+s*.5);
-    ctx.bezierCurveTo(x-s*.1,y+s*.7,x-s*.3,y+s*.3,x-s*.5,y+s*.6);
-    ctx.lineTo(x-s*.7,y+s*.6); ctx.closePath(); ctx.fill();
-    ctx.fillStyle='rgba(30,30,60,0.8)';
-    ctx.beginPath(); ctx.arc(x-s*.25,y,s*.18,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x+s*.25,y,s*.18,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x,y+s*.3,s*.12,0,Math.PI); ctx.fill();
-  },
-  healer(ctx, x, y, s) {
-    ctx.fillStyle='#e91e63';
-    ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fill();
-    // Cross
-    ctx.fillStyle='#fff';
-    ctx.fillRect(x-s*.15,y-s*.6,s*.3,s*1.2);
-    ctx.fillRect(x-s*.6,y-s*.15,s*1.2,s*.3);
-    // Halo
-    ctx.strokeStyle='#fff9c4'; ctx.lineWidth=s*.08;
-    ctx.beginPath(); ctx.arc(x,y-s*.8,s*.35,0,Math.PI*2); ctx.stroke();
-  },
-  berserker(ctx, x, y, s) {
-    ctx.fillStyle='#c62828';
-    ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fill();
-    // Horns
-    ctx.fillStyle='#4e342e';
-    ctx.beginPath(); ctx.moveTo(x-s*.5,y-s*.7); ctx.lineTo(x-s*.7,y-s*1.3); ctx.lineTo(x-s*.2,y-s*.8); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(x+s*.5,y-s*.7); ctx.lineTo(x+s*.7,y-s*1.3); ctx.lineTo(x+s*.2,y-s*.8); ctx.fill();
-    // Angry eyes
-    ctx.fillStyle='#ff6f00';
-    ctx.beginPath(); ctx.arc(x-s*.3,y-s*.15,s*.22,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x+s*.3,y-s*.15,s*.22,0,Math.PI*2); ctx.fill();
-    // Eyebrows angled inward
-    ctx.strokeStyle='#000'; ctx.lineWidth=s*.12; ctx.lineCap='round';
-    ctx.beginPath(); ctx.moveTo(x-s*.52,y-s*.42); ctx.lineTo(x-s*.1,y-s*.32); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(x+s*.52,y-s*.42); ctx.lineTo(x+s*.1,y-s*.32); ctx.stroke();
-    // Snarl
-    ctx.strokeStyle='#000'; ctx.lineWidth=s*.1;
-    ctx.beginPath(); ctx.moveTo(x-s*.4,y+s*.3); ctx.lineTo(x+s*.4,y+s*.3); ctx.stroke();
-    for(let i=0;i<4;i++){ctx.beginPath(); ctx.moveTo(x-s*.3+i*s*.2,y+s*.3); ctx.lineTo(x-s*.3+i*s*.2,y+s*.55); ctx.stroke();}
-  },
-  nightmare(ctx, x, y, s) {
-    ctx.fillStyle='#1a1a2e';
-    ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fill();
-    // Shadow tendrils
-    const t=Date.now()*.003;
-    ctx.strokeStyle='#212121'; ctx.lineWidth=s*.15; ctx.lineCap='round';
+    ctx.ellipse(x, y+S*.1, S*.7, S*.38, 0, 0, Math.PI*2);
+    ctx.fill();
+    // Spine ridges
+    ctx.fillStyle = '#1e3d1a';
     for(let i=0;i<5;i++){
-      const a=i/5*Math.PI*2+t;
-      ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+Math.cos(a)*s*1.1,y+Math.sin(a)*s*1.1); ctx.stroke();
+      const rx = x-S*.5+i*S*.25;
+      ctx.beginPath();
+      ctx.moveTo(rx, y+S*.05);
+      ctx.lineTo(rx+S*.08, y-S*.2);
+      ctx.lineTo(rx+S*.16, y+S*.05);
+      ctx.fill();
     }
-    ctx.fillStyle='#16213e'; ctx.beginPath(); ctx.arc(x,y,s*.8,0,Math.PI*2); ctx.fill();
-    // Glowing eyes
-    ctx.fillStyle='#e53935';
-    ctx.beginPath(); ctx.arc(x-s*.28,y-s*.1,s*.2,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x+s*.28,y-s*.1,s*.2,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#ff8f00';
-    ctx.beginPath(); ctx.arc(x-s*.28,y-s*.1,s*.1,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x+s*.28,y-s*.1,s*.1,0,Math.PI*2); ctx.fill();
-  },
-  leaper(ctx, x, y, s) {
-    ctx.fillStyle='#f57f17';
-    ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fill();
-    // Leg coils
-    ctx.strokeStyle='#e65100'; ctx.lineWidth=s*.12; ctx.lineCap='round';
-    ctx.beginPath(); ctx.moveTo(x-s*.7,y+s*.5); ctx.quadraticCurveTo(x-s*.4,y+s*1.1,x-s*.1,y+s*.6); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(x+s*.7,y+s*.5); ctx.quadraticCurveTo(x+s*.4,y+s*1.1,x+s*.1,y+s*.6); ctx.stroke();
-    // Eyes
-    ctx.fillStyle='#fff9c4';
-    ctx.beginPath(); ctx.arc(x-s*.3,y-s*.2,s*.2,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x+s*.3,y-s*.2,s*.2,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#000';
-    ctx.beginPath(); ctx.arc(x-s*.28,y-s*.18,s*.1,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x+s*.32,y-s*.18,s*.1,0,Math.PI*2); ctx.fill();
-  },
-  shielder(ctx, x, y, s) {
-    // Shield
-    ctx.fillStyle='#546e7a';
+    // Head — wedge shaped
+    ctx.fillStyle = '#2d5a27';
     ctx.beginPath();
-    ctx.moveTo(x,y-s*1.1); ctx.lineTo(x+s*.9,y-s*.6);
-    ctx.lineTo(x+s*.9,y+s*.4); ctx.quadraticCurveTo(x,y+s*1.2,x-s*.9,y+s*.4);
-    ctx.lineTo(x-s*.9,y-s*.6); ctx.closePath(); ctx.fill();
-    ctx.strokeStyle='#78909c'; ctx.lineWidth=s*.06; ctx.stroke();
-    // Shield emblem
-    ctx.fillStyle='#b0bec5';
-    ctx.beginPath(); ctx.moveTo(x,y-s*.7); ctx.lineTo(x+s*.4,y-s*.45); ctx.lineTo(x+s*.4,y+s*.2); ctx.quadraticCurveTo(x,y+s*.7,x-s*.4,y+s*.2); ctx.lineTo(x-s*.4,y-s*.45); ctx.closePath(); ctx.fill();
-    // Eyes peeking over
-    ctx.fillStyle='#37474f';
-    ctx.beginPath(); ctx.arc(x-s*.22,y-s*.4,s*.16,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x+s*.22,y-s*.4,s*.16,0,Math.PI*2); ctx.fill();
-  },
-  boss_zombie_king(ctx, x, y, s) {
-    ctx.fillStyle='#4a148c';
-    ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fill();
-    // Crown
-    ctx.fillStyle='#f1c40f';
-    ctx.beginPath(); ctx.moveTo(x-s*.7,y-s*.8); ctx.lineTo(x-s*.7,y-s*1.3); ctx.lineTo(x-s*.3,y-s*.9); ctx.lineTo(x,y-s*1.4); ctx.lineTo(x+s*.3,y-s*.9); ctx.lineTo(x+s*.7,y-s*1.3); ctx.lineTo(x+s*.7,y-s*.8); ctx.closePath(); ctx.fill();
-    ctx.fillStyle='#e74c3c'; for(let i=-1;i<=1;i++){ctx.beginPath(); ctx.arc(x+i*s*.35,y-s*.95,s*.12,0,Math.PI*2); ctx.fill();}
-    // Eyes
-    ctx.fillStyle='#ff6f00';
-    ctx.beginPath(); ctx.arc(x-s*.3,y-s*.1,s*.25,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x+s*.3,y-s*.1,s*.25,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#000';
-    ctx.beginPath(); ctx.arc(x-s*.3,y-s*.1,s*.12,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x+s*.3,y-s*.1,s*.12,0,Math.PI*2); ctx.fill();
-    // Boss ring
-    ctx.strokeStyle='#f1c40f'; ctx.lineWidth=s*.06;
-    ctx.beginPath(); ctx.arc(x,y,s*1.08,0,Math.PI*2); ctx.stroke();
-  },
-  boss_undead_titan(ctx, x, y, s) {
-    ctx.fillStyle='#212121';
-    ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fill();
-    // Stone texture
-    ctx.fillStyle='#2c2c2c';
-    ctx.beginPath(); ctx.roundRect(x-s*.7,y-s*.9,s*.45,s*.4,s*.05); ctx.fill();
-    ctx.beginPath(); ctx.roundRect(x+s*.25,y-s*.9,s*.45,s*.4,s*.05); ctx.fill();
-    ctx.beginPath(); ctx.roundRect(x-s*.8,y-s*.3,s*.5,s*.5,s*.05); ctx.fill();
-    ctx.beginPath(); ctx.roundRect(x+s*.3,y-s*.3,s*.5,s*.5,s*.05); ctx.fill();
-    // Eyes
-    ctx.fillStyle='#b71c1c';
-    ctx.beginPath(); ctx.arc(x-s*.28,y-s*.18,s*.22,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x+s*.28,y-s*.18,s*.22,0,Math.PI*2); ctx.fill();
-    // Boss ring
-    ctx.strokeStyle='#e74c3c'; ctx.lineWidth=s*.08;
-    ctx.beginPath(); ctx.arc(x,y,s*1.1,0,Math.PI*2); ctx.stroke();
-  },
-  boss_shadow_lord(ctx, x, y, s) {
-    const t=Date.now()*.003;
-    ctx.fillStyle='rgba(13,13,30,0.9)';
-    ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fill();
-    // Phase tendrils
-    ctx.strokeStyle='#311b92'; ctx.lineWidth=s*.12; ctx.lineCap='round';
-    for(let i=0;i<8;i++){
-      const a=i/8*Math.PI*2+t, len=s*(0.8+Math.sin(t+i)*0.3);
-      ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+Math.cos(a)*len,y+Math.sin(a)*len); ctx.stroke();
-    }
-    ctx.fillStyle='#1a0050'; ctx.beginPath(); ctx.arc(x,y,s*.75,0,Math.PI*2); ctx.fill();
-    // Void eyes
-    ctx.fillStyle='#ea80fc';
-    ctx.beginPath(); ctx.arc(x-s*.28,y-s*.1,s*.22+Math.sin(t)*.05,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x+s*.28,y-s*.1,s*.22+Math.sin(t)*.05,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#fff';
-    ctx.beginPath(); ctx.arc(x-s*.28,y-s*.1,s*.08,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x+s*.28,y-s*.1,s*.08,0,Math.PI*2); ctx.fill();
-    // Boss ring
-    ctx.strokeStyle='#7c4dff'; ctx.lineWidth=s*.07;
-    ctx.globalAlpha=0.7+Math.sin(t)*.3;
-    ctx.beginPath(); ctx.arc(x,y,s*1.12,0,Math.PI*2); ctx.stroke();
-    ctx.globalAlpha=1;
-  },
-  colossus(ctx, x, y, s) {
-    // Giant armored hulk — slate blue
-    ctx.fillStyle='#546e7a';
-    ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fill();
-    // Armor plates
-    ctx.fillStyle='#37474f';
-    ctx.beginPath(); ctx.ellipse(x,y-s*.15,s*.7,s*.45,0,0,Math.PI*2); ctx.fill();
-    ctx.strokeStyle='#78909c'; ctx.lineWidth=s*.1;
-    ctx.beginPath(); ctx.moveTo(x-s*.5,y); ctx.lineTo(x+s*.5,y); ctx.stroke();
-    // Glowing eyes — red
-    ctx.fillStyle='#ef5350';
-    ctx.beginPath(); ctx.arc(x-s*.28,y-s*.15,s*.14,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x+s*.28,y-s*.15,s*.14,0,Math.PI*2); ctx.fill();
-  },
-  wraith(ctx, x, y, s) {
-    // Ghostly purple wisp — semi-transparent
-    ctx.globalAlpha=0.55;
-    ctx.fillStyle='#9c27b0';
-    ctx.beginPath(); ctx.ellipse(x,y,s*.85,s,0,0,Math.PI*2); ctx.fill();
-    ctx.globalAlpha=0.85;
-    // Dark void core
-    ctx.fillStyle='#1a0030';
-    ctx.beginPath(); ctx.arc(x,y,s*.4,0,Math.PI*2); ctx.fill();
-    // Eye slits
-    ctx.fillStyle='#ea80fc';
-    ctx.fillRect(x-s*.35,y-s*.1,s*.22,s*.1);
-    ctx.fillRect(x+s*.12,y-s*.1,s*.22,s*.1);
-    ctx.globalAlpha=1;
-  },
-  bloodhound(ctx, x, y, s) {
-    // Fast red beast
-    ctx.fillStyle='#c62828';
-    ctx.beginPath(); ctx.ellipse(x,y,s*.9,s*.75,0,0,Math.PI*2); ctx.fill();
+    ctx.moveTo(x+S*.55, y);
+    ctx.lineTo(x+S*.85, y-S*.08);
+    ctx.lineTo(x+S*.9, y+S*.1);
+    ctx.lineTo(x+S*.55, y+S*.18);
+    ctx.closePath(); ctx.fill();
     // Snout
-    ctx.fillStyle='#b71c1c';
-    ctx.beginPath(); ctx.ellipse(x+s*.3,y,s*.35,s*.25,0,0,Math.PI*2); ctx.fill();
-    // Eyes — yellow rage
-    ctx.fillStyle='#ffee58';
-    ctx.beginPath(); ctx.arc(x-s*.1,y-s*.3,s*.16,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x+s*.25,y-s*.25,s*.16,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#000';
-    ctx.beginPath(); ctx.arc(x-s*.1,y-s*.3,s*.07,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x+s*.25,y-s*.25,s*.07,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#1e3d1a';
+    ctx.beginPath();
+    ctx.ellipse(x+S*.85, y+S*.02, S*.12, S*.07, 0, 0, Math.PI*2);
+    ctx.fill();
+    // Slit eyes — yellow
+    ctx.fillStyle = '#d4c400';
+    ctx.beginPath(); ctx.ellipse(x+S*.68, y-S*.05, S*.1, S*.06, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#1a0a00';
+    ctx.beginPath(); ctx.ellipse(x+S*.68, y-S*.05, S*.03, S*.06, 0, 0, Math.PI*2); ctx.fill();
+    // Four stubby legs
+    ctx.strokeStyle = '#1e3d1a'; ctx.lineWidth = S*.14; ctx.lineCap = 'round';
+    [[-S*.45,S*.28],[- S*.18,S*.32],[S*.12,S*.32],[S*.38,S*.28]].forEach(([lx,ly])=>{
+      ctx.beginPath(); ctx.moveTo(x+lx, y+S*.2); ctx.lineTo(x+lx*1.2, y+ly); ctx.stroke();
+    });
+    // Tail
+    ctx.strokeStyle = '#2d5a27'; ctx.lineWidth = S*.12;
+    ctx.beginPath(); ctx.moveTo(x-S*.65, y+S*.12); ctx.quadraticCurveTo(x-S*.9, y+S*.28, x-S*.8, y+S*.45); ctx.stroke();
   },
-  plague_carrier(ctx, x, y, s) {
-    // Bloated toxic green
-    ctx.fillStyle='#388e3c';
-    ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fill();
-    // Toxic bubbles
-    ctx.fillStyle='#a5d6a7';
-    for(let i=0;i<5;i++){
-      const bx=x+(Math.cos(i*1.26))*s*.55, by=y+(Math.sin(i*1.26))*s*.55;
-      ctx.beginPath(); ctx.arc(bx,by,s*.18,0,Math.PI*2); ctx.fill();
+
+  // BLOATED — swollen pustule-covered horror
+  bloated(ctx, x, y, s) {
+    const S = s;
+    // Main body — fat irregular mass
+    ctx.fillStyle = '#c04f0e';
+    ctx.beginPath();
+    ctx.ellipse(x, y, S*.85, S*.9, 0, 0, Math.PI*2);
+    ctx.fill();
+    // Mottled skin texture — dark patches
+    ctx.fillStyle = '#9a3a08';
+    ctx.beginPath(); ctx.ellipse(x-S*.3, y-S*.2, S*.28, S*.2, -0.4, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x+S*.25, y+S*.3, S*.24, S*.18, 0.3, 0, Math.PI*2); ctx.fill();
+    // Pustules
+    ctx.fillStyle = '#f5c842';
+    [[x-S*.2,y+S*.35,S*.12],[x+S*.45,y+S*.1,S*.1],[x-S*.5,y+S*.1,S*.09],[x+S*.1,y-S*.55,S*.11],[x+S*.38,y-S*.3,S*.08]].forEach(([px,py,pr])=>{
+      ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#c8a020';
+      ctx.beginPath(); ctx.arc(px, py, pr*.45, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#f5c842';
+    });
+    // Tiny buried eyes — barely visible
+    ctx.fillStyle = '#1a0000';
+    ctx.beginPath(); ctx.ellipse(x-S*.22, y-S*.25, S*.14, S*.1, -0.2, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x+S*.22, y-S*.25, S*.14, S*.1, 0.2, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#ff4400';
+    ctx.beginPath(); ctx.arc(x-S*.22, y-S*.25, S*.06, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+S*.22, y-S*.25, S*.06, 0, Math.PI*2); ctx.fill();
+    // Gaping mouth — teeth
+    ctx.fillStyle = '#6a1a00';
+    ctx.beginPath(); ctx.ellipse(x, y+S*.25, S*.3, S*.18, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#ddd8b8';
+    for(let i=-2;i<=2;i++) {
+      ctx.beginPath(); ctx.moveTo(x+i*S*.11, y+S*.1); ctx.lineTo(x+i*S*.11+S*.05, y+S*.28); ctx.lineTo(x+i*S*.11-S*.04, y+S*.28); ctx.closePath(); ctx.fill();
     }
-    // Eyes
-    ctx.fillStyle='#1b5e20';
-    ctx.beginPath(); ctx.arc(x-s*.28,y-s*.15,s*.16,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x+s*.28,y-s*.15,s*.16,0,Math.PI*2); ctx.fill();
   },
-  titan_guardian(ctx, x, y, s) {
-    // Massive grey fortress
-    ctx.fillStyle='#263238';
-    ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fill();
-    // Layered armor rings
-    ctx.strokeStyle='#455a64'; ctx.lineWidth=s*.15;
-    ctx.beginPath(); ctx.arc(x,y,s*.75,0,Math.PI*2); ctx.stroke();
-    ctx.strokeStyle='#37474f'; ctx.lineWidth=s*.1;
-    ctx.beginPath(); ctx.arc(x,y,s*.5,0,Math.PI*2); ctx.stroke();
+
+  // RUNNER — lithe fast ghoul, long legs, leaning forward
+  runner(ctx, x, y, s) {
+    const S = s;
+    // Lean body — angled forward
+    ctx.fillStyle = '#1e4a8a';
+    ctx.beginPath();
+    ctx.ellipse(x, y, S*.28, S*.55, -0.3, 0, Math.PI*2);
+    ctx.fill();
+    // Speed-stripe jacket detail
+    ctx.fillStyle = '#2d6bcc';
+    ctx.beginPath(); ctx.ellipse(x, y-S*.12, S*.2, S*.3, -0.3, 0, Math.PI*2); ctx.fill();
+    // White speed stripe
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = S*.06; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x-S*.18, y-S*.45); ctx.lineTo(x+S*.22, y+S*.42); ctx.stroke();
+    // Head — elongated
+    ctx.fillStyle = '#8a7060';
+    ctx.beginPath(); ctx.ellipse(x-S*.12, y-S*.62, S*.22, S*.26, -0.25, 0, Math.PI*2); ctx.fill();
+    // Wild eyes — glowing blue
+    ctx.fillStyle = '#60b8ff';
+    ctx.beginPath(); ctx.arc(x-S*.2, y-S*.65, S*.1, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x-S*.04, y-S*.62, S*.1, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#001a33';
+    ctx.beginPath(); ctx.arc(x-S*.2, y-S*.65, S*.05, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x-S*.04, y-S*.62, S*.05, 0, Math.PI*2); ctx.fill();
+    // Long pumping legs
+    ctx.strokeStyle = '#1a3a70'; ctx.lineWidth = S*.16; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x-S*.08, y+S*.45); ctx.lineTo(x+S*.15, y+S*.8); ctx.lineTo(x+S*.3, y+S*.7); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+S*.08, y+S*.42); ctx.lineTo(x-S*.1, y+S*.75); ctx.lineTo(x-S*.25, y+S*.65); ctx.stroke();
+    // Arms pumping
+    ctx.strokeStyle = '#1a3a70'; ctx.lineWidth = S*.12;
+    ctx.beginPath(); ctx.moveTo(x+S*.18, y-S*.1); ctx.lineTo(x+S*.45, y-S*.35); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x-S*.2, y); ctx.lineTo(x-S*.48, y+S*.2); ctx.stroke();
+    // Motion lines behind
+    ctx.strokeStyle = 'rgba(96,184,255,0.35)'; ctx.lineWidth = S*.04;
+    for(let i=0;i<3;i++){
+      ctx.beginPath(); ctx.moveTo(x+S*.3+i*S*.12, y-S*.1+i*S*.15); ctx.lineTo(x+S*.55+i*S*.12, y-S*.1+i*S*.15); ctx.stroke();
+    }
+  },
+
+  // ARMORED — medieval knight-zombie, full plate armor, dented visor
+  armored(ctx, x, y, s) {
+    const S = s;
+    // Plate torso — wide, rounded
+    ctx.fillStyle = '#4a5568';
+    ctx.beginPath(); ctx.ellipse(x, y+S*.1, S*.52, S*.6, 0, 0, Math.PI*2); ctx.fill();
+    // Plate sections — horizontal divisions
+    ctx.fillStyle = '#38404f';
+    ctx.fillRect(x-S*.48, y-S*.02, S*.96, S*.1);
+    ctx.fillRect(x-S*.44, y+S*.18, S*.88, S*.08);
+    ctx.fillRect(x-S*.4, y+S*.34, S*.8, S*.07);
+    // Center line
+    ctx.strokeStyle = '#2d3445'; ctx.lineWidth = S*.05;
+    ctx.beginPath(); ctx.moveTo(x, y-S*.28); ctx.lineTo(x, y+S*.6); ctx.stroke();
+    // Pauldrons — shoulder guards
+    ctx.fillStyle = '#5a6478';
+    ctx.beginPath(); ctx.ellipse(x-S*.58, y-S*.12, S*.24, S*.18, -0.3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x+S*.58, y-S*.12, S*.24, S*.18, 0.3, 0, Math.PI*2); ctx.fill();
+    // Helmet — bucket with visor slit
+    ctx.fillStyle = '#4a5568';
+    ctx.beginPath(); ctx.arc(x, y-S*.55, S*.3, 0, Math.PI*2); ctx.fill();
+    ctx.fillRect(x-S*.28, y-S*.55, S*.56, S*.28);
+    ctx.fillStyle = '#38404f';
+    ctx.beginPath(); ctx.arc(x, y-S*.55, S*.3, -Math.PI, 0); ctx.fill(); // top dome darker
+    // Visor slit — glowing red within
+    ctx.fillStyle = '#1a0000';
+    ctx.beginPath(); ctx.roundRect(x-S*.22, y-S*.52, S*.44, S*.12, S*.04); ctx.fill();
+    ctx.fillStyle = '#cc1111';
+    ctx.shadowBlur = 8; ctx.shadowColor = '#ff0000';
+    ctx.beginPath(); ctx.roundRect(x-S*.2, y-S*.5, S*.4, S*.08, S*.03); ctx.fill();
+    ctx.shadowBlur = 0;
+    // Dents and scratches on armor
+    ctx.strokeStyle = '#2d3445'; ctx.lineWidth = S*.04;
+    ctx.beginPath(); ctx.moveTo(x-S*.2, y); ctx.lineTo(x-S*.08, y+S*.18); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+S*.15, y+S*.08); ctx.lineTo(x+S*.28, y+S*.22); ctx.stroke();
+    // Shield arm hint
+    ctx.fillStyle = '#4a5568';
+    ctx.beginPath(); ctx.ellipse(x-S*.65, y+S*.15, S*.2, S*.35, 0.2, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#38404f'; ctx.lineWidth = S*.06;
+    ctx.beginPath(); ctx.moveTo(x-S*.65, y-S*.18); ctx.lineTo(x-S*.65, y+S*.45); ctx.stroke();
+  },
+
+  // TOXIC — dripping mutant, melting flesh, acid puddle below
+  toxic(ctx, x, y, s) {
+    const S = s;
+    const t = Date.now() * 0.0015;
+    // Acid drip puddle
+    ctx.fillStyle = 'rgba(110,175,0,0.35)';
+    ctx.beginPath(); ctx.ellipse(x, y+S*.75, S*.55, S*.18, 0, 0, Math.PI*2); ctx.fill();
+    // Oozing body
+    ctx.fillStyle = '#4a7a18';
+    ctx.beginPath();
+    for(let i=0;i<=16;i++){
+      const a = (i/16)*Math.PI*2;
+      const r = S*(0.72 + 0.16*Math.sin(a*3+t));
+      const px = x + Math.cos(a)*r;
+      const py = y + Math.sin(a)*r*0.9;
+      i===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
+    }
+    ctx.closePath(); ctx.fill();
+    // Inner glow — brighter green
+    const g = ctx.createRadialGradient(x, y-S*.15, S*.08, x, y, S*.6);
+    g.addColorStop(0,'rgba(140,230,0,0.4)'); g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, S*.72, 0, Math.PI*2); ctx.fill();
+    // Skull face embedded in slime
+    ctx.fillStyle = '#1a3a00';
+    ctx.beginPath(); ctx.ellipse(x, y-S*.15, S*.3, S*.28, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = 'rgba(80,180,0,0.6)';
+    ctx.beginPath(); ctx.arc(x-S*.14, y-S*.2, S*.1, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+S*.14, y-S*.2, S*.1, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#00ff00';
+    ctx.shadowBlur = 6; ctx.shadowColor = '#00ff00';
+    ctx.beginPath(); ctx.arc(x-S*.14, y-S*.2, S*.05, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+S*.14, y-S*.2, S*.05, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+    // Teeth
+    ctx.fillStyle = '#c8d4a0';
+    for(let i=-2;i<=2;i++) ctx.fillRect(x+i*S*.1-S*.03, y, S*.06, S*.12);
+    // Drip tentacles
+    ctx.strokeStyle = '#5a9020'; ctx.lineWidth = S*.09; ctx.lineCap = 'round';
+    for(let i=0;i<4;i++){
+      const ax = x + (i-1.5)*S*.32;
+      ctx.beginPath();
+      ctx.moveTo(ax, y+S*.55);
+      ctx.quadraticCurveTo(ax+(Math.sin(t+i))*S*.2, y+S*.75, ax+(Math.sin(t+i))*S*.15, y+S*.92);
+      ctx.stroke();
+    }
+  },
+
+  // GHOST — translucent specter, trailing wisps, hollow mask face
+  ghost(ctx, x, y, s) {
+    const S = s;
+    const t = Date.now() * 0.002;
+    const bob = Math.sin(t) * S * 0.06;
+    // Trailing wisps below
+    ctx.globalAlpha *= 0.4;
+    ctx.fillStyle = '#9fa8da';
+    for(let i=0;i<3;i++){
+      const wx = x + (i-1)*S*.32;
+      ctx.beginPath();
+      ctx.moveTo(wx-S*.12, y+S*.4+bob);
+      ctx.quadraticCurveTo(wx+S*.04*Math.sin(t+i), y+S*.75+bob, wx, y+S*.95+bob);
+      ctx.lineTo(wx+S*.1, y+S*.95+bob);
+      ctx.quadraticCurveTo(wx+S*.15, y+S*.65+bob, wx+S*.12, y+S*.4+bob);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.globalAlpha /= 0.4;
+    // Main form — hooded shroud shape
+    ctx.globalAlpha *= 0.72;
+    ctx.fillStyle = '#b0b8e8';
+    ctx.beginPath();
+    ctx.arc(x, y-S*.28+bob, S*.45, Math.PI, 0);
+    ctx.quadraticCurveTo(x+S*.55, y+S*.4+bob, x+S*.38, y+S*.68+bob);
+    ctx.quadraticCurveTo(x+S*.22, y+S*.52+bob, x+S*.06, y+S*.72+bob);
+    ctx.quadraticCurveTo(x-S*.06, y+S*.52+bob, x-S*.28, y+S*.68+bob);
+    ctx.quadraticCurveTo(x-S*.48, y+S*.42+bob, x-S*.55, y+S*.1+bob);
+    ctx.closePath(); ctx.fill();
+    // Inner shadow
+    ctx.fillStyle = 'rgba(60,70,140,0.4)';
+    ctx.beginPath(); ctx.ellipse(x, y+S*.15+bob, S*.3, S*.4, 0, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha /= 0.72;
+    // Hollow eye sockets — dark voids
+    ctx.fillStyle = 'rgba(10,10,30,0.95)';
+    ctx.beginPath(); ctx.ellipse(x-S*.2, y-S*.32+bob, S*.14, S*.18, -0.15, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x+S*.2, y-S*.32+bob, S*.14, S*.18, 0.15, 0, Math.PI*2); ctx.fill();
+    // Faint glow in sockets
+    ctx.fillStyle = 'rgba(150,160,255,0.5)';
+    ctx.beginPath(); ctx.arc(x-S*.2, y-S*.32+bob, S*.06, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+S*.2, y-S*.32+bob, S*.06, 0, Math.PI*2); ctx.fill();
+    // Screaming mouth — jagged
+    ctx.fillStyle = 'rgba(10,10,30,0.9)';
+    ctx.beginPath(); ctx.ellipse(x, y+bob, S*.16, S*.22, 0, 0, Math.PI*2); ctx.fill();
+  },
+
+  // HEALER — corrupted medic, syringe backpack, cross markings, tending to others
+  healer(ctx, x, y, s) {
+    const S = s;
+    // Robes — white with red stains
+    ctx.fillStyle = '#e8e4d8';
+    ctx.beginPath(); ctx.ellipse(x, y+S*.2, S*.42, S*.6, 0, 0, Math.PI*2); ctx.fill();
+    // Red cross on robe
+    ctx.fillStyle = '#cc1111';
+    ctx.fillRect(x-S*.08, y-S*.1, S*.16, S*.45);
+    ctx.fillRect(x-S*.22, y+S*.08, S*.44, S*.15);
+    // Blood stains
+    ctx.fillStyle = 'rgba(140,0,0,0.45)';
+    ctx.beginPath(); ctx.ellipse(x-S*.25, y+S*.4, S*.15, S*.1, -0.4, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x+S*.18, y+S*.2, S*.12, S*.08, 0.3, 0, Math.PI*2); ctx.fill();
+    // Head — pale, sunken
+    ctx.fillStyle = '#c4b090';
+    ctx.beginPath(); ctx.ellipse(x, y-S*.52, S*.28, S*.3, 0, 0, Math.PI*2); ctx.fill();
+    // White hood/headband
+    ctx.fillStyle = '#f0ece0';
+    ctx.beginPath(); ctx.arc(x, y-S*.52, S*.28, -Math.PI, 0); ctx.fill();
+    ctx.fillRect(x-S*.28, y-S*.58, S*.56, S*.12);
+    // Red cross on headband
+    ctx.fillStyle = '#cc1111';
+    ctx.fillRect(x-S*.04, y-S*.62, S*.08, S*.18);
+    ctx.fillRect(x-S*.1, y-S*.56, S*.2, S*.07);
+    // Sunken yellow eyes
+    ctx.fillStyle = '#f5d020';
+    ctx.beginPath(); ctx.arc(x-S*.12, y-S*.54, S*.08, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+S*.12, y-S*.54, S*.08, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#1a0a00';
+    ctx.beginPath(); ctx.arc(x-S*.12, y-S*.54, S*.04, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+S*.12, y-S*.54, S*.04, 0, Math.PI*2); ctx.fill();
+    // Syringe in hand
+    ctx.fillStyle = '#888';
+    ctx.beginPath(); ctx.roundRect(x+S*.42, y-S*.2, S*.08, S*.32, S*.02); ctx.fill();
+    ctx.fillStyle = '#ff4444';
+    ctx.beginPath(); ctx.roundRect(x+S*.44, y-S*.18, S*.04, S*.2, S*.02); ctx.fill();
+    ctx.fillStyle = '#ccc';
+    ctx.beginPath(); ctx.moveTo(x+S*.46, y+S*.12); ctx.lineTo(x+S*.46, y+S*.28); ctx.lineWidth=S*.03; ctx.strokeStyle='#aaa'; ctx.stroke();
+    // Healing aura pulse
+    ctx.strokeStyle = 'rgba(255,255,200,0.3)'; ctx.lineWidth = S*.06;
+    ctx.beginPath(); ctx.arc(x, y, S*1.1, 0, Math.PI*2); ctx.stroke();
+  },
+
+  // BERSERKER — raging muscled brute, exposed chest, battle scars, axe
+  berserker(ctx, x, y, s) {
+    const S = s;
+    // Massive body
+    ctx.fillStyle = '#8b2500';
+    ctx.beginPath(); ctx.ellipse(x, y+S*.05, S*.58, S*.62, 0, 0, Math.PI*2); ctx.fill();
+    // Chest muscles — pec definition
+    ctx.fillStyle = '#7a1f00';
+    ctx.beginPath(); ctx.ellipse(x-S*.2, y-S*.1, S*.22, S*.2, -0.15, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x+S*.2, y-S*.1, S*.22, S*.2, 0.15, 0, Math.PI*2); ctx.fill();
+    // Scars on chest
+    ctx.strokeStyle = '#5a1000'; ctx.lineWidth = S*.05; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x-S*.12, y-S*.2); ctx.lineTo(x+S*.05, y+S*.02); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+S*.22, y-S*.05); ctx.lineTo(x+S*.32, y+S*.14); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x-S*.3, y+S*.12); ctx.lineTo(x-S*.1, y+S*.28); ctx.stroke();
+    // Tribal band on arm
+    ctx.strokeStyle = '#3a0800'; ctx.lineWidth = S*.08;
+    ctx.beginPath(); ctx.arc(x+S*.55, y-S*.08, S*.1, 0, Math.PI*2); ctx.stroke();
+    // Head — thick brow, war paint
+    ctx.fillStyle = '#8b2500';
+    ctx.beginPath(); ctx.ellipse(x, y-S*.62, S*.3, S*.32, 0, 0, Math.PI*2); ctx.fill();
+    // War paint — black slashes
+    ctx.fillStyle = '#1a0000';
+    ctx.beginPath(); ctx.moveTo(x-S*.28, y-S*.62); ctx.lineTo(x-S*.08, y-S*.52); ctx.lineWidth=S*.08; ctx.strokeStyle='#000'; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+S*.28, y-S*.62); ctx.lineTo(x+S*.08, y-S*.52); ctx.stroke();
+    // EYES — burning orange-white rage
+    ctx.fillStyle = '#fff3c0';
+    ctx.beginPath(); ctx.ellipse(x-S*.14, y-S*.65, S*.12, S*.09, -0.2, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x+S*.14, y-S*.65, S*.12, S*.09, 0.2, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#ff5500';
+    ctx.beginPath(); ctx.arc(x-S*.14, y-S*.65, S*.06, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+S*.14, y-S*.65, S*.06, 0, Math.PI*2); ctx.fill();
+    // Axe
+    ctx.fillStyle = '#5a5060';
+    ctx.beginPath(); ctx.roundRect(x+S*.6, y-S*.8, S*.1, S*.8, S*.02); ctx.fill();
+    ctx.fillStyle = '#7a7888';
+    ctx.beginPath();
+    ctx.moveTo(x+S*.55, y-S*.8);
+    ctx.lineTo(x+S*.88, y-S*.72);
+    ctx.lineTo(x+S*.82, y-S*.52);
+    ctx.lineTo(x+S*.55, y-S*.48);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#9a9aaa'; ctx.lineWidth = S*.03;
+    ctx.beginPath(); ctx.moveTo(x+S*.58, y-S*.78); ctx.lineTo(x+S*.84, y-S*.72); ctx.stroke();
+  },
+
+  // NIGHTMARE — shadow entity, tendrils of darkness, multiple glowing eyes
+  nightmare(ctx, x, y, s) {
+    const S = s;
+    const t = Date.now() * 0.003;
+    // Outer shadow mass — pulsing, irregular
+    ctx.fillStyle = 'rgba(8,6,22,0.85)';
+    ctx.beginPath();
+    for(let i=0;i<=20;i++){
+      const a = (i/20)*Math.PI*2;
+      const r = S*(0.88 + 0.2*Math.sin(a*4+t) + 0.12*Math.sin(a*7-t*1.5));
+      const px = x + Math.cos(a)*r;
+      const py = y + Math.sin(a)*r;
+      i===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
+    }
+    ctx.closePath(); ctx.fill();
+    // Tendrils
+    ctx.strokeStyle = 'rgba(20,10,50,0.9)'; ctx.lineWidth = S*.12; ctx.lineCap = 'round';
+    for(let i=0;i<7;i++){
+      const a = (i/7)*Math.PI*2 + t*0.5;
+      const len = S*(1.0 + 0.35*Math.sin(t*2+i));
+      ctx.beginPath();
+      ctx.moveTo(x + Math.cos(a)*S*.4, y + Math.sin(a)*S*.4);
+      ctx.quadraticCurveTo(
+        x + Math.cos(a+0.4)*S*.85, y + Math.sin(a+0.4)*S*.85,
+        x + Math.cos(a)*len, y + Math.sin(a)*len
+      );
+      ctx.stroke();
+    }
+    // Dark core
+    ctx.fillStyle = '#0c0820';
+    ctx.beginPath(); ctx.arc(x, y, S*.52, 0, Math.PI*2); ctx.fill();
+    // Void center
+    const vg = ctx.createRadialGradient(x,y,0, x,y,S*.5);
+    vg.addColorStop(0,'rgba(40,0,80,0.9)'); vg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle = vg; ctx.beginPath(); ctx.arc(x, y, S*.5, 0, Math.PI*2); ctx.fill();
+    // Three main eyes
+    [[x-S*.24, y-S*.14], [x+S*.24, y-S*.14], [x, y+S*.18]].forEach(([ex,ey],i)=>{
+      ctx.fillStyle = '#cc0060';
+      ctx.shadowBlur = 10; ctx.shadowColor = '#ff0080';
+      ctx.beginPath(); ctx.ellipse(ex, ey, S*.14, S*.1, i*.3, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#ff88cc';
+      ctx.beginPath(); ctx.arc(ex, ey, S*.06, 0, Math.PI*2); ctx.fill();
+      ctx.shadowBlur = 0;
+    });
+    // Smaller scattered eyes
+    [[x-S*.5,y+S*.1],[x+S*.5,y],[x,y-S*.55],[x-S*.35,y+S*.42]].forEach(([ex,ey])=>{
+      ctx.fillStyle = '#ff0060';
+      ctx.beginPath(); ctx.arc(ex, ey, S*.06, 0, Math.PI*2); ctx.fill();
+    });
+  },
+
+  // LEAPER — coiled spring-legs, bulbous head, tongue
+  leaper(ctx, x, y, s) {
+    const S = s;
+    // Coiled spring legs
+    ctx.strokeStyle = '#c45a00'; ctx.lineWidth = S*.1; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x-S*.3, y+S*.35); ctx.quadraticCurveTo(x-S*.55, y+S*.65, x-S*.45, y+S*.85); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+S*.3, y+S*.35); ctx.quadraticCurveTo(x+S*.55, y+S*.65, x+S*.45, y+S*.85); ctx.stroke();
+    // Toe pads
+    ctx.fillStyle = '#c45a00';
+    ctx.beginPath(); ctx.ellipse(x-S*.45, y+S*.88, S*.12, S*.06, 0.3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x+S*.45, y+S*.88, S*.12, S*.06, -0.3, 0, Math.PI*2); ctx.fill();
+    // Body — squat and muscular
+    ctx.fillStyle = '#e07820';
+    ctx.beginPath(); ctx.ellipse(x, y+S*.15, S*.42, S*.52, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#c45a00';
+    ctx.beginPath(); ctx.ellipse(x, y+S*.28, S*.3, S*.28, 0, 0, Math.PI*2); ctx.fill();
+    // Spot pattern
+    ctx.fillStyle = '#a04000';
+    [[x-S*.18,y+S*.05,S*.09],[x+S*.2,y+S*.22,S*.08],[x-S*.08,y+S*.38,S*.1]].forEach(([px,py,pr])=>{
+      ctx.beginPath(); ctx.arc(px, py, pr, 0, Math.PI*2); ctx.fill();
+    });
+    // Huge head
+    ctx.fillStyle = '#e07820';
+    ctx.beginPath(); ctx.ellipse(x, y-S*.42, S*.38, S*.36, 0, 0, Math.PI*2); ctx.fill();
+    // Bulging compound eyes
+    ctx.fillStyle = '#d4e800';
+    ctx.beginPath(); ctx.arc(x-S*.22, y-S*.52, S*.18, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+S*.22, y-S*.52, S*.18, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#5a6000';
+    ctx.beginPath(); ctx.arc(x-S*.22, y-S*.52, S*.1, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+S*.22, y-S*.52, S*.1, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.arc(x-S*.22, y-S*.52, S*.05, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+S*.22, y-S*.52, S*.05, 0, Math.PI*2); ctx.fill();
+    // Tongue flick
+    ctx.strokeStyle = '#ff2222'; ctx.lineWidth = S*.07; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x, y-S*.22); ctx.quadraticCurveTo(x+S*.2, y-S*.1, x+S*.38, y-S*.18); ctx.stroke();
+    // Tongue fork
+    ctx.beginPath(); ctx.moveTo(x+S*.38, y-S*.18); ctx.lineTo(x+S*.48, y-S*.12); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+S*.38, y-S*.18); ctx.lineTo(x+S*.46, y-S*.25); ctx.stroke();
+  },
+
+  // SHIELDER — tortoise-like, huge shell, peeking eyes, clawed feet
+  shielder(ctx, x, y, s) {
+    const S = s;
+    // Shell — domed hexagonal carapace
+    ctx.fillStyle = '#5a7a30';
+    ctx.beginPath(); ctx.ellipse(x, y-S*.1, S*.7, S*.55, 0, 0, Math.PI*2); ctx.fill();
+    // Shell plates — hexagonal pattern
+    ctx.strokeStyle = '#3a5218'; ctx.lineWidth = S*.04;
+    // Center hex
+    ctx.beginPath(); ctx.arc(x, y-S*.15, S*.22, 0, Math.PI*2); ctx.stroke();
+    // Surrounding pattern
+    for(let i=0;i<6;i++){
+      const a = i/6*Math.PI*2;
+      ctx.beginPath(); ctx.moveTo(x+Math.cos(a)*S*.22, y-S*.15+Math.sin(a)*S*.22);
+      ctx.lineTo(x+Math.cos(a)*S*.55, y-S*.15+Math.sin(a)*S*.5); ctx.stroke();
+    }
+    // Shell highlight
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.beginPath(); ctx.ellipse(x-S*.15, y-S*.32, S*.3, S*.2, -0.4, 0, Math.PI*2); ctx.fill();
+    // Shell rim — darker edge
+    ctx.strokeStyle = '#3a5218'; ctx.lineWidth = S*.08;
+    ctx.beginPath(); ctx.ellipse(x, y-S*.1, S*.7, S*.55, 0, 0, Math.PI*2); ctx.stroke();
+    // Head peeking from front
+    ctx.fillStyle = '#7a9a48';
+    ctx.beginPath(); ctx.ellipse(x, y+S*.32, S*.22, S*.18, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x, y+S*.22, S*.18, S*.2, 0, 0, Math.PI*2); ctx.fill();
+    // Beady suspicious eyes
+    ctx.fillStyle = '#ffd020';
+    ctx.beginPath(); ctx.arc(x-S*.1, y+S*.26, S*.08, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+S*.1, y+S*.26, S*.08, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#1a0800';
+    ctx.beginPath(); ctx.arc(x-S*.1, y+S*.26, S*.04, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+S*.1, y+S*.26, S*.04, 0, Math.PI*2); ctx.fill();
+    // Scaly legs
+    ctx.fillStyle = '#6a8a38';
+    ctx.beginPath(); ctx.ellipse(x-S*.55, y+S*.28, S*.14, S*.22, 0.3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x+S*.55, y+S*.28, S*.14, S*.22, -0.3, 0, Math.PI*2); ctx.fill();
+  },
+
+  // COLOSSUS — stone-plated giant, cracked exterior, glowing core
+  colossus(ctx, x, y, s) {
+    const S = s;
+    // Body — massive stone form
+    ctx.fillStyle = '#4a5a64';
+    ctx.beginPath(); ctx.ellipse(x, y, S*.78, S*.88, 0, 0, Math.PI*2); ctx.fill();
+    // Stone plate textures
+    ctx.fillStyle = '#38484e';
+    ctx.beginPath(); ctx.roundRect(x-S*.65, y-S*.55, S*.38, S*.3, S*.04); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(x+S*.28, y-S*.55, S*.38, S*.3, S*.04); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(x-S*.6, y-S*.18, S*.32, S*.28, S*.04); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(x+S*.28, y-S*.18, S*.32, S*.28, S*.04); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(x-S*.32, y-S*.62, S*.64, S*.28, S*.04); ctx.fill();
+    // Cracks — glowing magma inside
+    ctx.strokeStyle = '#ff4400'; ctx.lineWidth = S*.04;
+    ctx.shadowBlur = 6; ctx.shadowColor = '#ff6600';
+    ctx.beginPath(); ctx.moveTo(x-S*.1, y-S*.4); ctx.lineTo(x+S*.18, y-S*.1); ctx.lineTo(x+S*.05, y+S*.25); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x-S*.4, y+S*.1); ctx.lineTo(x-S*.2, y+S*.35); ctx.stroke();
+    ctx.shadowBlur = 0;
+    // Glowing chest core
+    const cg = ctx.createRadialGradient(x, y+S*.1, 0, x, y+S*.1, S*.28);
+    cg.addColorStop(0,'rgba(255,120,0,0.8)'); cg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle = cg; ctx.beginPath(); ctx.arc(x, y+S*.1, S*.28, 0, Math.PI*2); ctx.fill();
     // Face plate
-    ctx.fillStyle='#37474f';
-    ctx.beginPath(); ctx.ellipse(x,y-s*.1,s*.45,s*.35,0,0,Math.PI*2); ctx.fill();
-    // Visor glow
-    ctx.fillStyle='#ff1744';
-    ctx.fillRect(x-s*.35,y-s*.18,s*.7,s*.12);
+    ctx.fillStyle = '#2e3a40';
+    ctx.beginPath(); ctx.ellipse(x, y-S*.55, S*.35, S*.28, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#1a2228';
+    ctx.beginPath(); ctx.roundRect(x-S*.28, y-S*.65, S*.56, S*.14, S*.04); ctx.fill();
+    // Eye scanners — red
+    ctx.fillStyle = '#ff1111';
+    ctx.shadowBlur = 10; ctx.shadowColor = '#ff0000';
+    ctx.beginPath(); ctx.arc(x-S*.18, y-S*.56, S*.1, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+S*.18, y-S*.56, S*.1, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
   },
+
+  // WRAITH — ink-dark shade, smoky edges, single vertical eye
+  wraith(ctx, x, y, s) {
+    const S = s;
+    const t = Date.now() * 0.002;
+    const bob = Math.sin(t*1.3) * S * 0.05;
+    // Smoke wisps
+    for(let i=0;i<5;i++){
+      const a = (i/5)*Math.PI*2 + t;
+      const r = S*(0.7 + 0.2*Math.sin(t+i));
+      ctx.globalAlpha *= 0.25;
+      ctx.fillStyle = '#4a0070';
+      ctx.beginPath(); ctx.arc(x+Math.cos(a)*r, y+bob+Math.sin(a)*r*.7, S*.22, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha /= 0.25;
+    }
+    // Body — elongated shadow
+    ctx.fillStyle = '#1a0030';
+    ctx.beginPath(); ctx.ellipse(x, y+bob, S*.38, S*.72, 0, 0, Math.PI*2); ctx.fill();
+    // Purple sheen
+    const wg = ctx.createRadialGradient(x, y-S*.2+bob, 0, x, y+bob, S*.65);
+    wg.addColorStop(0,'rgba(120,0,180,0.5)'); wg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle = wg; ctx.beginPath(); ctx.arc(x, y+bob, S*.65, 0, Math.PI*2); ctx.fill();
+    // Flowing hood-like top
+    ctx.fillStyle = '#220040';
+    ctx.beginPath();
+    ctx.arc(x, y-S*.28+bob, S*.35, -Math.PI, 0);
+    ctx.lineTo(x+S*.5, y+bob);
+    ctx.bezierCurveTo(x+S*.6, y+S*.35+bob, x+S*.35, y+S*.7+bob, x, y+S*.82+bob);
+    ctx.bezierCurveTo(x-S*.35, y+S*.7+bob, x-S*.6, y+S*.35+bob, x-S*.5, y+bob);
+    ctx.closePath(); ctx.fill();
+    // Single vertical slit eye — glowing
+    ctx.fillStyle = '#cc00ff';
+    ctx.shadowBlur = 12; ctx.shadowColor = '#aa00ff';
+    ctx.beginPath(); ctx.ellipse(x, y-S*.2+bob, S*.08, S*.22, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#ee88ff';
+    ctx.beginPath(); ctx.ellipse(x, y-S*.2+bob, S*.04, S*.14, 0, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+    // Clawed hands emerging
+    ctx.strokeStyle = '#3a0058'; ctx.lineWidth = S*.08; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x-S*.4, y+S*.08+bob); ctx.lineTo(x-S*.62, y+bob); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x-S*.42, y+S*.08+bob); ctx.lineTo(x-S*.66, y+S*.12+bob); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+S*.4, y+S*.08+bob); ctx.lineTo(x+S*.62, y+bob); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+S*.42, y+S*.08+bob); ctx.lineTo(x+S*.66, y+S*.12+bob); ctx.stroke();
+  },
+
+  // BLOODHOUND — hunched feral beast, visible spine, glowing red eyes, bared teeth
+  bloodhound(ctx, x, y, s) {
+    const S = s;
+    // Low slung body
+    ctx.fillStyle = '#8a1818';
+    ctx.beginPath(); ctx.ellipse(x, y+S*.1, S*.72, S*.42, 0, 0, Math.PI*2); ctx.fill();
+    // Spine ridges
+    ctx.fillStyle = '#5c0a0a';
+    for(let i=0;i<5;i++){
+      ctx.beginPath();
+      ctx.moveTo(x-S*.5+i*S*.25, y-S*.1);
+      ctx.lineTo(x-S*.44+i*S*.25, y-S*.3);
+      ctx.lineTo(x-S*.38+i*S*.25, y-S*.1);
+      ctx.fill();
+    }
+    // Legs — four stumpy ones
+    ctx.strokeStyle = '#6a1010'; ctx.lineWidth = S*.16; ctx.lineCap = 'round';
+    [[-S*.52,S*.35],[-S*.24,S*.4],[S*.18,S*.4],[S*.48,S*.35]].forEach(([lx,ly])=>{
+      ctx.beginPath(); ctx.moveTo(x+lx, y+S*.22); ctx.lineTo(x+lx*1.1, y+ly); ctx.stroke();
+    });
+    // Wedge head
+    ctx.fillStyle = '#7a1010';
+    ctx.beginPath();
+    ctx.moveTo(x+S*.48, y-S*.02);
+    ctx.lineTo(x+S*.88, y-S*.12);
+    ctx.lineTo(x+S*.95, y+S*.08);
+    ctx.lineTo(x+S*.82, y+S*.22);
+    ctx.lineTo(x+S*.48, y+S*.2);
+    ctx.closePath(); ctx.fill();
+    // Muzzle
+    ctx.fillStyle = '#5c0a0a';
+    ctx.beginPath(); ctx.ellipse(x+S*.88, y+S*.05, S*.1, S*.07, 0, 0, Math.PI*2); ctx.fill();
+    // Snout teeth
+    ctx.fillStyle = '#e8e0c0';
+    for(let i=0;i<3;i++) {
+      ctx.beginPath();
+      ctx.moveTo(x+S*.78+i*S*.06, y+S*.06);
+      ctx.lineTo(x+S*.82+i*S*.06, y+S*.18);
+      ctx.lineTo(x+S*.76+i*S*.06, y+S*.18);
+      ctx.closePath(); ctx.fill();
+    }
+    // Burning eyes — yellow with red rim
+    ctx.fillStyle = '#ff6600';
+    ctx.shadowBlur = 8; ctx.shadowColor = '#ff2200';
+    ctx.beginPath(); ctx.arc(x+S*.6, y-S*.08, S*.1, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#ffcc00';
+    ctx.beginPath(); ctx.arc(x+S*.6, y-S*.08, S*.05, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+    // Tail raised
+    ctx.strokeStyle = '#7a1010'; ctx.lineWidth = S*.1;
+    ctx.beginPath(); ctx.moveTo(x-S*.65, y+S*.05); ctx.quadraticCurveTo(x-S*.95, y-S*.2, x-S*.88, y-S*.45); ctx.stroke();
+  },
+
+  // PLAGUE CARRIER — swollen tumor body, buboes, leaking dark fluid
+  plague_carrier(ctx, x, y, s) {
+    const S = s;
+    // Dark fluid pool
+    ctx.fillStyle = 'rgba(0,40,0,0.4)';
+    ctx.beginPath(); ctx.ellipse(x, y+S*.8, S*.6, S*.18, 0, 0, Math.PI*2); ctx.fill();
+    // Main body — grotesquely swollen
+    ctx.fillStyle = '#2a5a18';
+    ctx.beginPath(); ctx.ellipse(x, y, S*.82, S*.88, 0, 0, Math.PI*2); ctx.fill();
+    // Tumors / buboes — dark lumps
+    ctx.fillStyle = '#1a3a0a';
+    [[x-S*.55,y-S*.3,S*.22],[x+S*.5,y-S*.1,S*.2],[x-S*.4,y+S*.45,S*.18],[x+S*.45,y+S*.38,S*.22],[x,y-S*.65,S*.19]].forEach(([bx,by,br])=>{
+      ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI*2); ctx.fill();
+    });
+    // Pustule tops
+    ctx.fillStyle = '#8aba30';
+    [[x-S*.55,y-S*.38,S*.08],[x+S*.5,y-S*.18,S*.07],[x,y-S*.72,S*.07]].forEach(([bx,by,br])=>{
+      ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI*2); ctx.fill();
+    });
+    // Sunken skull face
+    ctx.fillStyle = '#1a3a0a';
+    ctx.beginPath(); ctx.ellipse(x, y-S*.1, S*.28, S*.26, 0, 0, Math.PI*2); ctx.fill();
+    // Hollow eye sockets
+    ctx.fillStyle = '#aad030';
+    ctx.shadowBlur = 8; ctx.shadowColor = '#88cc00';
+    ctx.beginPath(); ctx.arc(x-S*.14, y-S*.16, S*.1, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+S*.14, y-S*.16, S*.1, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#223800';
+    ctx.beginPath(); ctx.arc(x-S*.14, y-S*.16, S*.05, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+S*.14, y-S*.16, S*.05, 0, Math.PI*2); ctx.fill();
+    // Mouth — dripping
+    ctx.fillStyle = '#0a1e00';
+    ctx.beginPath(); ctx.ellipse(x, y+S*.08, S*.2, S*.12, 0, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#4a8a10'; ctx.lineWidth = S*.05; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x-S*.08, y+S*.2); ctx.lineTo(x-S*.06, y+S*.42); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+S*.08, y+S*.2); ctx.lineTo(x+S*.1, y+S*.38); ctx.stroke();
+  },
+
+  // TITAN GUARDIAN — massive suit of mechanical armor, gatling cannon shoulder mount
+  titan_guardian(ctx, x, y, s) {
+    const S = s;
+    // Base body — thick hexagonal torso
+    ctx.fillStyle = '#1e2a30';
+    ctx.beginPath(); ctx.arc(x, y, S*.88, 0, Math.PI*2); ctx.fill();
+    // Chest armor layers
+    ctx.fillStyle = '#263840';
+    ctx.beginPath(); ctx.ellipse(x, y-S*.1, S*.65, S*.55, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#1a2830';
+    ctx.fillRect(x-S*.55, y-S*.18, S*1.1, S*.1);
+    ctx.fillRect(x-S*.5, y+S*.05, S*1.0, S*.08);
+    // Shoulder cannon — right side
+    ctx.fillStyle = '#2e3e48';
+    ctx.beginPath(); ctx.roundRect(x+S*.55, y-S*.6, S*.38, S*.28, S*.05); ctx.fill();
+    ctx.fillStyle = '#1a2830';
+    for(let i=0;i<3;i++) {
+      ctx.beginPath(); ctx.roundRect(x+S*.58+i*S*.1, y-S*.52, S*.07, S*.3, S*.03); ctx.fill();
+    }
+    // Rocket pod — left shoulder
+    ctx.fillStyle = '#2e3e48';
+    ctx.beginPath(); ctx.roundRect(x-S*.92, y-S*.55, S*.3, S*.42, S*.05); ctx.fill();
+    for(let i=0;i<3;i++) {
+      ctx.fillStyle = '#1a2830';
+      ctx.beginPath(); ctx.ellipse(x-S*.77, y-S*.5+i*S*.14, S*.08, S*.06, 0, 0, Math.PI*2); ctx.fill();
+    }
+    // Head unit — angular
+    ctx.fillStyle = '#263840';
+    ctx.beginPath(); ctx.roundRect(x-S*.3, y-S*.88, S*.6, S*.4, S*.06); ctx.fill();
+    ctx.fillStyle = '#1a2830';
+    ctx.beginPath(); ctx.roundRect(x-S*.28, y-S*.85, S*.56, S*.35, S*.05); ctx.fill();
+    // Visor — single wide scanner slit
+    ctx.fillStyle = '#ff1133';
+    ctx.shadowBlur = 14; ctx.shadowColor = '#ff0020';
+    ctx.beginPath(); ctx.roundRect(x-S*.22, y-S*.72, S*.44, S*.1, S*.04); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = 'rgba(255,20,50,0.25)';
+    ctx.beginPath(); ctx.roundRect(x-S*.22, y-S*.72, S*.44, S*.1, S*.04); ctx.fill();
+  },
+
+  // VOID RIFT — swirling portal entity, rings of distortion, reaching hands
   void_rift(ctx, x, y, s) {
-    // Swirling void portal
-    ctx.globalAlpha=0.7;
-    ctx.fillStyle='#200040';
-    ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fill();
-    // Rift rings
-    ctx.globalAlpha=0.9;
-    ctx.strokeStyle='#7b1fa2'; ctx.lineWidth=s*.12;
-    ctx.beginPath(); ctx.arc(x,y,s*.75,0,Math.PI*2); ctx.stroke();
-    ctx.strokeStyle='#ce93d8'; ctx.lineWidth=s*.06;
-    ctx.beginPath(); ctx.arc(x,y,s*.45,0,Math.PI*2); ctx.stroke();
-    // Core
-    ctx.fillStyle='#ea80fc';
-    ctx.beginPath(); ctx.arc(x,y,s*.2,0,Math.PI*2); ctx.fill();
-    ctx.globalAlpha=1;
+    const S = s;
+    const t = Date.now() * 0.002;
+    // Distortion rings — rotating
+    for(let ring=3;ring>=0;ring--){
+      const rot = t * (ring%2===0?1:-1) * (1+ring*.3);
+      ctx.save(); ctx.translate(x,y); ctx.rotate(rot);
+      ctx.strokeStyle = `rgba(${80+ring*40},0,${180+ring*20},${0.5-ring*.08})`;
+      ctx.lineWidth = S*(0.06+ring*.02);
+      ctx.setLineDash([S*(0.2+ring*.05), S*(0.15+ring*.03)]);
+      ctx.beginPath(); ctx.arc(0, 0, S*(0.28+ring*.2), 0, Math.PI*2); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+    // Dark center
+    const vg = ctx.createRadialGradient(x,y,0,x,y,S*.55);
+    vg.addColorStop(0,'rgba(10,0,30,1)'); vg.addColorStop(0.4,'rgba(50,0,100,0.8)'); vg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle = vg; ctx.beginPath(); ctx.arc(x, y, S*.55, 0, Math.PI*2); ctx.fill();
+    // Event horizon glow
+    ctx.strokeStyle = '#8800ff';
+    ctx.shadowBlur = 16; ctx.shadowColor = '#aa00ff';
+    ctx.lineWidth = S*.08;
+    ctx.beginPath(); ctx.arc(x, y, S*.28, 0, Math.PI*2); ctx.stroke();
+    ctx.shadowBlur = 0;
+    // Core — white singularity
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowBlur = 20; ctx.shadowColor = '#cc88ff';
+    ctx.beginPath(); ctx.arc(x, y, S*.1, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+    // Warped hand reaching out
+    ctx.strokeStyle = 'rgba(100,0,200,0.7)'; ctx.lineWidth = S*.09; ctx.lineCap = 'round';
+    const ha = Math.sin(t)*0.4;
+    ctx.beginPath(); ctx.moveTo(x+S*.28, y+S*.08); ctx.lineTo(x+S*.65, y+S*.05+Math.sin(t)*S*.1); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+S*.62, y+S*.02+Math.sin(t)*S*.1); ctx.lineTo(x+S*.76, y-S*.08); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+S*.62, y+S*.02+Math.sin(t)*S*.1); ctx.lineTo(x+S*.78, y+S*.08); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+S*.62, y+S*.02+Math.sin(t)*S*.1); ctx.lineTo(x+S*.74, y+S*.18); ctx.stroke();
   },
+
+  // BOSS ZOMBIE KING — towering crowned undead, robed, scepter, three eyes
+  boss_zombie_king(ctx, x, y, s) {
+    const S = s;
+    // Robe — large, sweeping
+    ctx.fillStyle = '#3d0070';
+    ctx.beginPath();
+    ctx.moveTo(x-S*.6, y+S*.2);
+    ctx.bezierCurveTo(x-S*.7, y+S*.6, x-S*.5, y+S*.9, x, y+S*1.0);
+    ctx.bezierCurveTo(x+S*.5, y+S*.9, x+S*.7, y+S*.6, x+S*.6, y+S*.2);
+    ctx.lineTo(x+S*.55, y-S*.2); ctx.lineTo(x-S*.55, y-S*.2); ctx.closePath(); ctx.fill();
+    // Robe trim
+    ctx.strokeStyle = '#f1c40f'; ctx.lineWidth = S*.05;
+    ctx.beginPath(); ctx.moveTo(x-S*.6, y+S*.2); ctx.bezierCurveTo(x-S*.7, y+S*.6, x-S*.5, y+S*.9, x, y+S*1.0); ctx.bezierCurveTo(x+S*.5, y+S*.9, x+S*.7, y+S*.6, x+S*.6, y+S*.2); ctx.stroke();
+    // Ribcage showing through
+    ctx.strokeStyle = '#2a004a'; ctx.lineWidth = S*.04;
+    for(let i=0;i<4;i++) {
+      ctx.beginPath(); ctx.arc(x, y+S*.05+i*S*.2, S*.28-i*S*.04, -Math.PI*.7, -Math.PI*.3); ctx.stroke();
+    }
+    // Head — skull-like
+    ctx.fillStyle = '#7a6a50';
+    ctx.beginPath(); ctx.ellipse(x, y-S*.62, S*.38, S*.4, 0, 0, Math.PI*2); ctx.fill();
+    // Jaw bone
+    ctx.fillStyle = '#6a5a40';
+    ctx.beginPath(); ctx.ellipse(x, y-S*.4, S*.28, S*.18, 0, 0, Math.PI*2); ctx.fill();
+    // Crown — regal spikes
+    ctx.fillStyle = '#f1c40f';
+    ctx.beginPath();
+    ctx.moveTo(x-S*.38, y-S*.9);
+    for(let i=0;i<=4;i++){
+      const cx2 = x-S*.38+i*S*.19;
+      ctx.lineTo(cx2, i%2===0 ? y-S*1.3 : y-S*.95);
+    }
+    ctx.lineTo(x+S*.38, y-S*.9); ctx.lineTo(x+S*.38, y-S*.82); ctx.lineTo(x-S*.38, y-S*.82);
+    ctx.closePath(); ctx.fill();
+    // Crown jewels
+    ctx.fillStyle = '#e74c3c';
+    ctx.beginPath(); ctx.arc(x-S*.2, y-S*1.26, S*.07, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#3498db';
+    ctx.beginPath(); ctx.arc(x, y-S*1.3, S*.08, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#2ecc71';
+    ctx.beginPath(); ctx.arc(x+S*.2, y-S*1.26, S*.07, 0, Math.PI*2); ctx.fill();
+    // THREE eyes
+    ctx.fillStyle = '#ff6600';
+    ctx.shadowBlur = 10; ctx.shadowColor = '#ff4400';
+    [[x-S*.18,y-S*.68],[x+S*.18,y-S*.68],[x,y-S*.52]].forEach(([ex,ey])=>{
+      ctx.beginPath(); ctx.arc(ex, ey, S*.1, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#ffcc00'; ctx.beginPath(); ctx.arc(ex, ey, S*.05, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#ff6600';
+    });
+    ctx.shadowBlur = 0;
+    // Scepter
+    ctx.strokeStyle = '#b8960c'; ctx.lineWidth = S*.06; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x+S*.7, y-S*.8); ctx.lineTo(x+S*.7, y+S*.5); ctx.stroke();
+    ctx.fillStyle = '#e74c3c';
+    ctx.shadowBlur = 12; ctx.shadowColor = '#ff0000';
+    ctx.beginPath(); ctx.arc(x+S*.7, y-S*.88, S*.14, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+  },
+
+  // BOSS UNDEAD TITAN — colossal stone giant, crumbling, lava veins
+  boss_undead_titan(ctx, x, y, s) {
+    const S = s;
+    // Massive rough body
+    ctx.fillStyle = '#2e2e2e';
+    ctx.beginPath(); ctx.arc(x, y, S*.92, 0, Math.PI*2); ctx.fill();
+    // Stone slab texture — big cracked sections
+    ctx.fillStyle = '#222222';
+    ctx.beginPath(); ctx.roundRect(x-S*.8, y-S*.7, S*.45, S*.55, S*.05); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(x+S*.35, y-S*.7, S*.46, S*.55, S*.05); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(x-S*.78, y-S*.08, S*.4, S*.52, S*.05); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(x+S*.38, y-S*.08, S*.4, S*.52, S*.05); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(x-S*.38, y+S*.5, S*.76, S*.38, S*.05); ctx.fill();
+    // Lava crack network
+    ctx.strokeStyle = '#ff4400'; ctx.lineWidth = S*.05;
+    ctx.shadowBlur = 8; ctx.shadowColor = '#ff6600';
+    const cracks = [[x-S*.4,y-S*.5,x+S*.1,y-S*.2],[x+S*.1,y-S*.2,x+S*.35,y+S*.3],[x-S*.4,y+S*.1,x-S*.1,y+S*.55],[x+S*.35,y+S*.3,x+S*.1,y+S*.65],[x-S*.6,y-S*.1,x-S*.4,y+S*.1]];
+    cracks.forEach(([x1,y1,x2,y2])=>{ ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); });
+    ctx.shadowBlur = 0;
+    // Glowing lava at core
+    const lg = ctx.createRadialGradient(x,y+S*.2,0,x,y+S*.2,S*.45);
+    lg.addColorStop(0,'rgba(255,100,0,0.55)'); lg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle = lg; ctx.beginPath(); ctx.arc(x, y+S*.2, S*.45, 0, Math.PI*2); ctx.fill();
+    // Face — carved square hollows
+    ctx.fillStyle = '#111111';
+    ctx.beginPath(); ctx.roundRect(x-S*.3, y-S*.7, S*.22, S*.3, S*.03); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(x+S*.08, y-S*.7, S*.22, S*.3, S*.03); ctx.fill();
+    // Eye fire
+    ctx.fillStyle = '#ff3300';
+    ctx.shadowBlur = 16; ctx.shadowColor = '#ff6600';
+    ctx.beginPath(); ctx.arc(x-S*.19, y-S*.56, S*.1, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+S*.19, y-S*.56, S*.1, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#ffaa00';
+    ctx.beginPath(); ctx.arc(x-S*.19, y-S*.56, S*.05, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+S*.19, y-S*.56, S*.05, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+    // Fissure mouth
+    ctx.fillStyle = '#1a0000';
+    ctx.beginPath(); ctx.moveTo(x-S*.38, y-S*.18); ctx.lineTo(x+S*.38, y-S*.18); ctx.lineTo(x+S*.32, y-S*.04); ctx.lineTo(x-S*.32, y-S*.04); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#ff5500'; ctx.lineWidth = S*.04;
+    ctx.shadowBlur = 6; ctx.shadowColor = '#ff4400';
+    ctx.beginPath(); ctx.moveTo(x-S*.38, y-S*.18); ctx.lineTo(x+S*.38, y-S*.18); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x-S*.32, y-S*.04); ctx.lineTo(x+S*.32, y-S*.04); ctx.stroke();
+    ctx.shadowBlur = 0;
+  },
+
+  // BOSS SHADOW LORD — void-cloaked figure, pulsing dark energy, crown of eyes
+  boss_shadow_lord(ctx, x, y, s) {
+    const S = s;
+    const t = Date.now() * 0.0025;
+    // Outer void corona
+    const vc = ctx.createRadialGradient(x,y,S*.3,x,y,S*1.1);
+    vc.addColorStop(0,'rgba(30,0,60,0.7)'); vc.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle = vc; ctx.beginPath(); ctx.arc(x, y, S*1.1, 0, Math.PI*2); ctx.fill();
+    // Tentacle arms — six
+    ctx.strokeStyle = '#1a0035'; ctx.lineWidth = S*.14; ctx.lineCap = 'round';
+    for(let i=0;i<6;i++){
+      const a = (i/6)*Math.PI*2 + t;
+      const ax = x + Math.cos(a)*S*(0.72+Math.sin(t*2+i)*.15);
+      const ay = y + Math.sin(a)*S*(0.72+Math.sin(t*2+i)*.15);
+      const mx = x + Math.cos(a+0.5)*S*.4;
+      const my = y + Math.sin(a+0.5)*S*.4;
+      ctx.beginPath(); ctx.moveTo(x+Math.cos(a)*S*.25, y+Math.sin(a)*S*.25);
+      ctx.quadraticCurveTo(mx, my, ax, ay); ctx.stroke();
+    }
+    // Body — billowing dark robes
+    ctx.fillStyle = '#0a0010';
+    ctx.beginPath(); ctx.ellipse(x, y+S*.12, S*.55, S*.78, 0, 0, Math.PI*2); ctx.fill();
+    // Robe detail — purple sheen
+    const rg = ctx.createRadialGradient(x-S*.15, y-S*.1, 0, x, y+S*.1, S*.65);
+    rg.addColorStop(0,'rgba(80,0,140,0.4)'); rg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle = rg; ctx.beginPath(); ctx.ellipse(x, y+S*.12, S*.55, S*.78, 0, 0, Math.PI*2); ctx.fill();
+    // Head — faceless void
+    ctx.fillStyle = '#0a0010';
+    ctx.beginPath(); ctx.ellipse(x, y-S*.55, S*.33, S*.36, 0, 0, Math.PI*2); ctx.fill();
+    // Crown of eyes — semicircle above head
+    ctx.fillStyle = '#cc00ff';
+    ctx.shadowBlur = 12; ctx.shadowColor = '#aa00ff';
+    for(let i=0;i<5;i++){
+      const a = -Math.PI + (i+1)/6*Math.PI;
+      const er = S*.42;
+      const ex = x + Math.cos(a)*er;
+      const ey = (y-S*.55) + Math.sin(a)*er;
+      const pulse = S*(.07 + .03*Math.sin(t*2+i));
+      ctx.beginPath(); ctx.arc(ex, ey, pulse, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+    // Main two eyes on face — large
+    ctx.fillStyle = '#dd00ff';
+    ctx.shadowBlur = 18; ctx.shadowColor = '#cc00ff';
+    ctx.beginPath(); ctx.ellipse(x-S*.16, y-S*.58, S*.12+Math.sin(t)*.03, S*.16+Math.sin(t)*.02, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x+S*.16, y-S*.58, S*.12+Math.sin(t+1)*.03, S*.16+Math.sin(t+1)*.02, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(x-S*.16, y-S*.58, S*.05, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+S*.16, y-S*.58, S*.05, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+  },
+
+  // BOSS COLOSSUS PRIME — titanium-plated megabot
   boss_colossus_prime(ctx, x, y, s) {
-    // Titan boss
-    ctx.fillStyle='#455a64';
-    ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fill();
-    // Huge armor
-    ctx.fillStyle='#37474f';
-    ctx.beginPath(); ctx.ellipse(x,y-s*.2,s*.8,s*.55,0,0,Math.PI*2); ctx.fill();
-    // Gold ring
-    ctx.strokeStyle='#ffd700'; ctx.lineWidth=s*.12;
-    ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.stroke();
-    ctx.strokeStyle='#78909c'; ctx.lineWidth=s*.06;
-    ctx.beginPath(); ctx.moveTo(x-s*.6,y); ctx.lineTo(x+s*.6,y); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(x,y-s*.6); ctx.lineTo(x,y+s*.6); ctx.stroke();
-    // Eyes
-    ctx.fillStyle='#ff1744';
-    ctx.beginPath(); ctx.arc(x-s*.3,y-s*.2,s*.16,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x+s*.3,y-s*.2,s*.16,0,Math.PI*2); ctx.fill();
+    const S = s;
+    // Core hull
+    ctx.fillStyle = '#263844';
+    ctx.beginPath(); ctx.arc(x, y, S*.9, 0, Math.PI*2); ctx.fill();
+    // Armor plates — thick overlapping
+    ctx.fillStyle = '#1e2e38';
+    ctx.beginPath(); ctx.roundRect(x-S*.8, y-S*.6, S*.5, S*.5, S*.05); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(x+S*.3, y-S*.6, S*.5, S*.5, S*.05); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(x-S*.82, y+S*.05, S*.5, S*.5, S*.05); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(x+S*.32, y+S*.05, S*.5, S*.5, S*.05); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(x-S*.45, y-S*.8, S*.9, S*.28, S*.06); ctx.fill();
+    // Gold highlight trim
+    ctx.strokeStyle = '#f1c40f'; ctx.lineWidth = S*.04;
+    ctx.beginPath(); ctx.roundRect(x-S*.45, y-S*.8, S*.9, S*.28, S*.06); ctx.stroke();
+    ctx.beginPath(); ctx.arc(x, y, S*.9, 0, Math.PI*2); ctx.stroke();
+    // Visor — wide scanline
+    ctx.fillStyle = '#0a1820';
+    ctx.beginPath(); ctx.roundRect(x-S*.38, y-S*.72, S*.76, S*.22, S*.05); ctx.fill();
+    ctx.fillStyle = '#ff1133';
+    ctx.shadowBlur = 16; ctx.shadowColor = '#ff0030';
+    ctx.beginPath(); ctx.roundRect(x-S*.34, y-S*.68, S*.68, S*.14, S*.04); ctx.fill();
+    ctx.shadowBlur = 0;
+    // Cross-hairs in visor
+    ctx.strokeStyle = 'rgba(255,0,0,0.4)'; ctx.lineWidth = S*.02;
+    ctx.beginPath(); ctx.moveTo(x, y-S*.72); ctx.lineTo(x, y-S*.5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x-S*.38, y-S*.61); ctx.lineTo(x+S*.38, y-S*.61); ctx.stroke();
+    // Chest power core
+    const pcg = ctx.createRadialGradient(x, y+S*.15, 0, x, y+S*.15, S*.32);
+    pcg.addColorStop(0,'rgba(255,200,0,0.9)'); pcg.addColorStop(0.4,'rgba(255,80,0,0.5)'); pcg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle = pcg; ctx.beginPath(); ctx.arc(x, y+S*.15, S*.32, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fff8c0';
+    ctx.shadowBlur = 20; ctx.shadowColor = '#ffd700';
+    ctx.beginPath(); ctx.arc(x, y+S*.15, S*.1, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+    // Shoulder cannons
+    ctx.fillStyle = '#1a2830';
+    ctx.beginPath(); ctx.roundRect(x-S*.98, y-S*.62, S*.22, S*.48, S*.04); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(x+S*.76, y-S*.62, S*.22, S*.48, S*.04); ctx.fill();
+    ctx.fillStyle = '#0e1820';
+    for(let i=0;i<3;i++){
+      ctx.beginPath(); ctx.roundRect(x-S*.95, y-S*.58+i*S*.14, S*.16, S*.1, S*.02); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(x+S*.79, y-S*.58+i*S*.14, S*.16, S*.1, S*.02); ctx.fill();
+    }
   },
+
+  // BOSS VOID EMPEROR — cosmic horror, multiple arms, event horizon crown
   boss_void_emperor(ctx, x, y, s) {
-    // Void boss — dark with purple corona
-    ctx.fillStyle='#1a0030';
-    ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fill();
-    // Corona rings
-    ctx.strokeStyle='#aa00ff'; ctx.lineWidth=s*.14;
-    ctx.globalAlpha=0.7;
-    ctx.beginPath(); ctx.arc(x,y,s*.95,0,Math.PI*2); ctx.stroke();
-    ctx.strokeStyle='#e040fb'; ctx.lineWidth=s*.07;
-    ctx.beginPath(); ctx.arc(x,y,s*.65,0,Math.PI*2); ctx.stroke();
-    ctx.globalAlpha=1;
-    // Gold boss ring
-    ctx.strokeStyle='#ffd700'; ctx.lineWidth=s*.1;
-    ctx.beginPath(); ctx.arc(x,y,s*1.05,0,Math.PI*2); ctx.stroke();
-    // Eyes — three
-    ctx.fillStyle='#ea80fc';
-    ctx.beginPath(); ctx.arc(x,y-s*.35,s*.17,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x-s*.35,y+s*.1,s*.13,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x+s*.35,y+s*.1,s*.13,0,Math.PI*2); ctx.fill();
+    const S = s;
+    const t = Date.now() * 0.002;
+    // Cosmic nebula background glow
+    const ng = ctx.createRadialGradient(x, y, 0, x, y, S*1.2);
+    ng.addColorStop(0,'rgba(50,0,100,0.6)'); ng.addColorStop(0.6,'rgba(20,0,50,0.3)'); ng.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle = ng; ctx.beginPath(); ctx.arc(x, y, S*1.2, 0, Math.PI*2); ctx.fill();
+    // Six arms spiraling
+    for(let i=0;i<6;i++){
+      const a = (i/6)*Math.PI*2 + t*0.6;
+      const len = S*(1.0 + 0.2*Math.sin(t+i));
+      ctx.strokeStyle = `rgba(${100+i*20},0,${180+i*10},0.7)`;
+      ctx.lineWidth = S*(0.12-i*.015);
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(x+Math.cos(a)*S*.28, y+Math.sin(a)*S*.28);
+      ctx.bezierCurveTo(
+        x+Math.cos(a+0.6)*S*.6, y+Math.sin(a+0.6)*S*.6,
+        x+Math.cos(a+1.1)*S*.9, y+Math.sin(a+1.1)*S*.9,
+        x+Math.cos(a)*len, y+Math.sin(a)*len
+      );
+      ctx.stroke();
+    }
+    // Main body — dark with cosmic shimmer
+    ctx.fillStyle = '#100020';
+    ctx.beginPath(); ctx.arc(x, y, S*.7, 0, Math.PI*2); ctx.fill();
+    const csg = ctx.createRadialGradient(x-S*.2, y-S*.2, 0, x, y, S*.7);
+    csg.addColorStop(0,'rgba(140,0,255,0.3)'); csg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle = csg; ctx.beginPath(); ctx.arc(x, y, S*.7, 0, Math.PI*2); ctx.fill();
+    // Crown of orbit rings
+    ctx.save(); ctx.translate(x, y-S*.7); ctx.rotate(t);
+    ctx.strokeStyle = 'rgba(200,100,255,0.7)'; ctx.lineWidth = S*.05;
+    ctx.beginPath(); ctx.ellipse(0, 0, S*.4, S*.15, 0, 0, Math.PI*2); ctx.stroke();
+    ctx.restore();
+    ctx.save(); ctx.translate(x, y-S*.7); ctx.rotate(-t*1.5);
+    ctx.strokeStyle = 'rgba(255,50,200,0.5)'; ctx.lineWidth = S*.03;
+    ctx.beginPath(); ctx.ellipse(0, 0, S*.32, S*.12, Math.PI*.3, 0, Math.PI*2); ctx.stroke();
+    ctx.restore();
+    // Face — three eyes arranged vertically
+    ctx.fillStyle = '#cc00ff';
+    ctx.shadowBlur = 14; ctx.shadowColor = '#aa00ff';
+    [[x, y-S*.35], [x-S*.2, y-S*.08], [x+S*.2, y-S*.08]].forEach(([ex,ey])=>{
+      ctx.beginPath(); ctx.arc(ex, ey, S*.12+Math.sin(t)*.03, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ex, ey, S*.06, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#cc00ff';
+    });
+    ctx.shadowBlur = 0;
+    // Gold boss halo ring
+    ctx.strokeStyle = '#ffd700'; ctx.lineWidth = S*.08;
+    ctx.shadowBlur = 10; ctx.shadowColor = '#ffd700';
+    ctx.beginPath(); ctx.arc(x, y, S*.92, 0, Math.PI*2); ctx.stroke();
+    ctx.shadowBlur = 0;
   },
+
+  // BOSS OMEGA DESTROYER — final form, pure crimson annihilation machine
   boss_omega_destroyer(ctx, x, y, s) {
-    // Final boss — crimson juggernaut
-    ctx.fillStyle='#7f0000';
-    ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fill();
-    // Dark red layered armor
-    ctx.fillStyle='#b71c1c';
-    ctx.beginPath(); ctx.ellipse(x,y-s*.15,s*.85,s*.6,0,0,Math.PI*2); ctx.fill();
-    ctx.fillStyle='#c62828';
-    ctx.beginPath(); ctx.ellipse(x,y-s*.25,s*.6,s*.4,0,0,Math.PI*2); ctx.fill();
-    // Gold boss ring
-    ctx.strokeStyle='#ffd700'; ctx.lineWidth=s*.15;
-    ctx.beginPath(); ctx.arc(x,y,s*1.08,0,Math.PI*2); ctx.stroke();
-    // Second ring
-    ctx.strokeStyle='#ff6d00'; ctx.lineWidth=s*.08;
-    ctx.beginPath(); ctx.arc(x,y,s*.75,0,Math.PI*2); ctx.stroke();
-    // Three glowing eyes
-    ctx.fillStyle='#ff6e40';
-    ctx.shadowBlur=12; ctx.shadowColor='#ff1744';
-    ctx.beginPath(); ctx.arc(x-s*.3,y-s*.2,s*.17,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x+s*.3,y-s*.2,s*.17,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x,y+s*.15,s*.14,0,Math.PI*2); ctx.fill();
-    ctx.shadowBlur=0;
+    const S = s;
+    const t = Date.now() * 0.002;
+    // Pulsing energy field
+    const ef = ctx.createRadialGradient(x, y, S*.4, x, y, S*1.25);
+    ef.addColorStop(0,'rgba(200,0,30,0.0)'); ef.addColorStop(0.7,'rgba(150,0,20,0.2)'); ef.addColorStop(1,'rgba(80,0,0,0.5)');
+    ctx.fillStyle = ef; ctx.beginPath(); ctx.arc(x, y, S*1.25, 0, Math.PI*2); ctx.fill();
+    // Four massive bladed arms
+    for(let i=0;i<4;i++){
+      const a = (i/4)*Math.PI*2 + t*.5;
+      ctx.save(); ctx.translate(x,y); ctx.rotate(a);
+      ctx.fillStyle = '#7a0000';
+      ctx.beginPath();
+      ctx.moveTo(0, -S*.35);
+      ctx.lineTo(-S*.12, -S*.5);
+      ctx.lineTo(-S*.08, -S*.95);
+      ctx.lineTo(S*.08, -S*.95);
+      ctx.lineTo(S*.12, -S*.5);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#aa0010';
+      ctx.beginPath(); ctx.moveTo(0,-S*.35); ctx.lineTo(0,-S*.9); ctx.lineTo(S*.05,-S*.5); ctx.closePath(); ctx.fill();
+      // Blade edge glow
+      ctx.strokeStyle = '#ff3020'; ctx.lineWidth = S*.02;
+      ctx.shadowBlur = 6; ctx.shadowColor = '#ff0020';
+      ctx.beginPath(); ctx.moveTo(-S*.08,-S*.95); ctx.lineTo(0,-S*.95); ctx.lineTo(S*.08,-S*.95); ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    }
+    // Core body — thick armored sphere
+    ctx.fillStyle = '#500000';
+    ctx.beginPath(); ctx.arc(x, y, S*.72, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#700010';
+    ctx.beginPath(); ctx.ellipse(x, y-S*.12, S*.55, S*.45, 0, 0, Math.PI*2); ctx.fill();
+    // Energy core — beating
+    const pulse = S*(0.22 + 0.06*Math.sin(t*4));
+    const ecg = ctx.createRadialGradient(x, y, 0, x, y, pulse*2.5);
+    ecg.addColorStop(0,'rgba(255,255,200,1)'); ecg.addColorStop(0.3,'rgba(255,80,0,0.8)'); ecg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle = ecg; ctx.beginPath(); ctx.arc(x, y, pulse*2.5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fff8e0';
+    ctx.shadowBlur = 25; ctx.shadowColor = '#ff4400';
+    ctx.beginPath(); ctx.arc(x, y, pulse, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+    // Face — three-eye scan array
+    ctx.fillStyle = '#ff1a00';
+    ctx.shadowBlur = 12; ctx.shadowColor = '#ff0000';
+    [x-S*.28, x, x+S*.28].forEach(ex=>{
+      ctx.beginPath(); ctx.arc(ex, y-S*.38, S*.11, 0, Math.PI*2); ctx.fill();
+    });
+    ctx.fillStyle = '#ffaa00';
+    [x-S*.28, x, x+S*.28].forEach(ex=>{
+      ctx.beginPath(); ctx.arc(ex, y-S*.38, S*.05, 0, Math.PI*2); ctx.fill();
+    });
+    ctx.shadowBlur = 0;
+    // Armor ridge lines
+    ctx.strokeStyle = '#aa0010'; ctx.lineWidth = S*.05;
+    for(let i=0;i<3;i++) {
+      const ry = y-S*.25+i*S*.25;
+      ctx.beginPath(); ctx.arc(x, ry, S*(0.5-i*.08), Math.PI*.05, Math.PI*.95); ctx.stroke();
+    }
+    // Gold boss ring — double
+    ctx.strokeStyle = '#ffd700'; ctx.lineWidth = S*.1;
+    ctx.shadowBlur = 12; ctx.shadowColor = '#ffd700';
+    ctx.beginPath(); ctx.arc(x, y, S*.95, 0, Math.PI*2); ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,215,0,0.4)'; ctx.lineWidth = S*.05;
+    ctx.beginPath(); ctx.arc(x, y, S*1.05, 0, Math.PI*2); ctx.stroke();
+    ctx.shadowBlur = 0;
   },
+
   _default(ctx, x, y, s) {
-    ctx.fillStyle='#555'; ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#555';
+    ctx.beginPath(); ctx.arc(x, y, s, 0, Math.PI*2); ctx.fill();
   }
 };
+
 
 // ── Wave generation ───────────────────────────────────────
 function generateWaves(mapId, totalWaves, waveModifier) {

@@ -72,16 +72,37 @@
         <p id="authMsg" class="auth-msg"></p>
       </div>
       <div id="profilePanel" class="hidden">
-        <div class="profile-card">
-          <div class="profile-avatar" id="pAvatar">💀</div>
-          <div class="profile-info">
-            <h3 id="pName">Survivor</h3>
-            <div class="pstat">💰 Coins <strong id="pCoins">0</strong></div>
-            <div class="pstat">🌊 Best Wave <strong id="pBestWave">0</strong></div>
-            <div class="pstat">💀 Total Kills <strong id="pTotalKills">0</strong></div>
-            <div class="pstat">🗼 Towers Owned <strong id="pTowersOwned">0</strong></div>
+
+        <!-- Level Badge Card -->
+        <div class="profile-level-card">
+          <div class="plc-badge" id="pAcctLevelBadge">1</div>
+          <div class="plc-info">
+            <div class="plc-name-row">
+              <span id="pName" class="plc-name">Survivor</span>
+              <span id="pAcctTitle" class="plc-title">ROOKIE</span>
+            </div>
+            <div class="plc-xp-row">
+              <span id="pXPCurrent" class="plc-xp-cur">0 XP</span>
+              <span id="pXPNeeded" class="plc-xp-need">/ 500</span>
+            </div>
+            <div class="plc-bar-wrap">
+              <div class="plc-bar-fill" id="pXPBar"></div>
+            </div>
+            <div id="pNextUnlock" class="plc-next-unlock"></div>
           </div>
         </div>
+
+        <!-- Stats Grid -->
+        <div class="profile-stats-grid">
+          <div class="psg-cell"><div class="psg-val" id="pCoins">0</div><div class="psg-lbl">💰 COINS</div></div>
+          <div class="psg-cell"><div class="psg-val" id="pBestWave">0</div><div class="psg-lbl">🌊 BEST WAVE</div></div>
+          <div class="psg-cell"><div class="psg-val" id="pTotalKills">0</div><div class="psg-lbl">💀 KILLS</div></div>
+          <div class="psg-cell"><div class="psg-val" id="pTowersOwned">0</div><div class="psg-lbl">🗼 TOWERS</div></div>
+          <div class="psg-cell"><div class="psg-val" id="pGamesPlayed">0</div><div class="psg-lbl">🎮 GAMES</div></div>
+          <div class="psg-cell"><div class="psg-val" id="pMapsCompleted">0</div><div class="psg-lbl">🗺 MAPS WON</div></div>
+        </div>
+
+        <!-- Cosmetics -->
         <div class="cosmetic-section">
           <h4>YOUR COSMETICS</h4>
           <div id="cosmeticList" class="cosmetic-inventory"></div>
@@ -108,6 +129,16 @@
     <div class="hud-wave-badge">WAVE <span id="hudWave">1</span></div>
     <div class="hud-pill">💀 <span id="hudKills">0</span></div>
     <div class="hud-pill">⭐ <span id="hudScore">0</span></div>
+    <!-- XP strip -->
+    <div class="hud-xp-strip">
+      <span class="hud-xp-level" id="hudAcctLevel">1</span>
+      <div class="hud-xp-info">
+        <span class="hud-xp-title" id="hudAcctTitle">ROOKIE</span>
+        <div class="hud-xp-track">
+          <div class="hud-xp-fill" id="hudXPBar"></div>
+        </div>
+      </div>
+    </div>
     <div class="hud-controls">
       <button class="hud-btn pulse-green" id="btnStartWave">▶ START WAVE</button>
       <button class="hud-btn" id="btnSpeed" title="Change speed">1×</button>
@@ -294,7 +325,7 @@
         <button class="op-btn blue"   data-oa="godMode">🛡 God Mode</button>
         <button class="op-btn red"    data-oa="nukeEnemies">☢️ Nuke All</button>
         <button class="op-btn purple" data-oa="freezeAll">❄️ Freeze All</button>
-        <button class="op-btn purple" data-oa="speedHack">⚡ Speed Hack</button>
+        <button class="op-btn purple" data-oa="speedHack">⚡ Speed Hack (→16×)</button>
         <button class="op-btn gold"   data-oa="maxAllTowers">⬆ Max All Towers</button>
       </div>
       <div class="op-section-label" style="margin-top:8px">👹 SPAWN BOSS</div>

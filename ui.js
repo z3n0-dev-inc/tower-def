@@ -183,10 +183,10 @@ const UI = (() => {
       ...(PF.isLoggedIn() ? PF.ownersTowers() : []),
     ]);
 
-    // Group by rarity and add separators
+    // Ground towers by rarity
     const rarityOrder = ['basic','advanced','special','legendary'];
     rarityOrder.forEach(rarity => {
-      const defs = TOWER_DEFS.filter(d => !d.ownerOnly && d.rarity === rarity);
+      const defs = TOWER_DEFS.filter(d => !d.ownerOnly && !d.isAir && d.rarity === rarity);
       if (!defs.length) return;
       const sep = document.createElement('div');
       sep.className = `tp-sep tp-sep-${rarity}`;
@@ -197,6 +197,19 @@ const UI = (() => {
         _addPaletteItem(palette, def, owned, false);
       });
     });
+
+    // Air towers section
+    const airDefs = TOWER_DEFS.filter(d => !d.ownerOnly && d.isAir);
+    if (airDefs.length) {
+      const airSep = document.createElement('div');
+      airSep.className = 'tp-sep tp-sep-air';
+      airSep.innerHTML = '✈ AIR';
+      palette.appendChild(airSep);
+      airDefs.forEach(def => {
+        const owned = allOwned.has(def.id) || def.shopCost === 0;
+        _addPaletteItem(palette, def, owned, false);
+      });
+    }
 
     // Owner-only towers
     if (PF.isOwner || TOWER_DEFS.some(d => d.ownerOnly && allOwned.has(d.id))) {
@@ -222,7 +235,7 @@ const UI = (() => {
     const dps = (def.damage * def.fireRate).toFixed(1);
 
     item.innerHTML = `
-      <div class="tp-icon">${def.icon}</div>
+      <div class="tp-icon">${def.icon}${def.isAir ? '<span class="tp-air-badge">AIR</span>' : ''}</div>
       <div class="tp-name">${def.name}</div>
       <div class="tp-cost" style="color:${costColor}">${owned ? '💰'+def.cost : '🔒'}</div>
       ${!owned ? '<div class="tp-locked-icon">🔒</div>' : ''}
@@ -486,6 +499,11 @@ const UI = (() => {
       document.getElementById('pBestWave').textContent    = d.BestWave || 0;
       document.getElementById('pTotalKills').textContent  = d.TotalKills || 0;
       document.getElementById('pTowersOwned').textContent = (d.OwnedTowers||[]).length;
+      // Level/XP
+      if (typeof AccountLevel !== 'undefined') {
+        AccountLevel.load(d.AccountXP || 0);
+        _updateProfileLevelUI();
+      }
 
       // Cosmetics from inventory using catalog details
       _renderCosmeticInventory();
@@ -494,6 +512,43 @@ const UI = (() => {
       authBox.classList.remove('hidden');
       profilePanel.classList.add('hidden');
     }
+  }
+
+  function _updateProfileLevelUI() {
+    if (typeof AccountLevel === 'undefined') return;
+    const prog = AccountLevel.getProgress();
+    const col  = AccountLevel.getLevelColor(prog.level);
+    const title = AccountLevel.getTitle(prog.level);
+    const badge = document.getElementById('pAcctLevelBadge');
+    if (badge) {
+      badge.textContent  = prog.level;
+      badge.style.color  = col;
+      badge.style.borderColor = col;
+      badge.style.boxShadow = `0 0 12px ${col}55`;
+    }
+    const titleEl = document.getElementById('pAcctTitle');
+    if (titleEl) titleEl.textContent = title;
+    const xpCur = document.getElementById('pXPCurrent');
+    if (xpCur) xpCur.textContent = prog.level >= 100 ? 'MAX LEVEL' : `${prog.current.toLocaleString()} XP`;
+    const xpNeed = document.getElementById('pXPNeeded');
+    if (xpNeed) xpNeed.textContent = prog.level >= 100 ? '' : `/ ${prog.needed.toLocaleString()}`;
+    const xpBar = document.getElementById('pXPBar');
+    if (xpBar) { xpBar.style.width = (prog.pct*100).toFixed(1)+'%'; xpBar.style.background = col; }
+    // Next unlock
+    const nextUnlockEl = document.getElementById('pNextUnlock');
+    if (nextUnlockEl && prog.level < 100) {
+      const nextLvl = Object.keys(AccountLevel.LEVEL_UNLOCKS)
+        .map(Number).sort((a,b)=>a-b).find(l => l > prog.level);
+      if (nextLvl) {
+        const un = AccountLevel.LEVEL_UNLOCKS[nextLvl];
+        nextUnlockEl.textContent = `LVL ${nextLvl}: ${un.display}`;
+      }
+    }
+    // Games played
+    const gamesEl = document.getElementById('pGamesPlayed');
+    if (gamesEl) gamesEl.textContent = PF.playerData?.GamesPlayed || 0;
+    const mapsEl = document.getElementById('pMapsCompleted');
+    if (mapsEl) mapsEl.textContent = PF.playerData?.MapsCompleted || 0;
   }
 
   // Render cosmetic cards from PlayFab inventory + catalog

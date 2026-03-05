@@ -1,3 +1,138 @@
+// ══════════════════════════════════════════════════════════════
+//  ACCOUNT LEVEL SYSTEM  (BTD6-style XP progression)
+// ══════════════════════════════════════════════════════════════
+
+const AccountLevel = (() => {
+  // XP thresholds per level (cumulative) — level 1 = 0 XP, level 100 = ~2.5M
+  function _xpForLevel(lvl) {
+    if (lvl <= 1) return 0;
+    // Exponential curve: roughly 500 * (1.18^level)
+    return Math.floor(500 * Math.pow(1.18, lvl - 1));
+  }
+  function _totalXpForLevel(lvl) {
+    let total = 0;
+    for (let i = 2; i <= lvl; i++) total += _xpForLevel(i);
+    return total;
+  }
+  function getLevelFromXP(xp) {
+    let lvl = 1;
+    while (_totalXpForLevel(lvl + 1) <= xp) lvl++;
+    return Math.min(lvl, 100);
+  }
+  function getXPProgress(xp) {
+    const lvl = getLevelFromXP(xp);
+    if (lvl >= 100) return { level:100, current:0, needed:0, pct:1 };
+    const base = _totalXpForLevel(lvl);
+    const next = _totalXpForLevel(lvl + 1);
+    return { level:lvl, current:xp - base, needed:next - base, pct:(xp - base)/(next - base) };
+  }
+
+  // XP rewards per game action
+  const XP_TABLE = {
+    kill: 1,           // per enemy killed
+    bossKill: 50,      // per boss
+    waveClear: 30,     // per wave
+    perfectWave: 60,   // wave with no lives lost
+    mapComplete: 500,  // finishing a map
+    surviveWaves: 2,   // per wave survived (difficulty multiplier applied)
+  };
+
+  // Level-up unlocks catalog
+  const LEVEL_UNLOCKS = {
+    1:   { type:'title',   value:'ROOKIE',        display:'Title: Rookie' },
+    3:   { type:'tower',   value:'sniper',         display:'Tower Unlocked: Sniper' },
+    5:   { type:'title',   value:'SURVIVOR',       display:'Title: Survivor' },
+    7:   { type:'tower',   value:'freezer',        display:'Tower Unlocked: Freezer' },
+    10:  { type:'tower',   value:'rocketeer',      display:'Tower Unlocked: Rocketeer' },
+    12:  { type:'title',   value:'VETERAN',        display:'Title: Veteran' },
+    15:  { type:'tower',   value:'drone_bay',      display:'AIR TOWER: Drone Bay' },
+    18:  { type:'tower',   value:'flamer',         display:'Tower Unlocked: Flamethrower' },
+    20:  { type:'title',   value:'WARLORD',        display:'Title: Warlord' },
+    22:  { type:'tower',   value:'apache',         display:'AIR TOWER: Apache Gunship' },
+    25:  { type:'tower',   value:'tesla',          display:'Tower Unlocked: Tesla Coil' },
+    28:  { type:'tower',   value:'mortar',         display:'Tower Unlocked: Mortar' },
+    30:  { type:'title',   value:'COMMANDER',      display:'Title: Commander' },
+    32:  { type:'tower',   value:'stormwing',      display:'AIR TOWER: Stormwing Jet' },
+    35:  { type:'tower',   value:'venom',          display:'Tower Unlocked: Venom Tower' },
+    38:  { type:'tower',   value:'laser',          display:'Tower Unlocked: Laser Tower' },
+    40:  { type:'title',   value:'ELITE',          display:'Title: Elite' },
+    42:  { type:'tower',   value:'stratobomber',   display:'AIR TOWER: Strato Bomber' },
+    45:  { type:'tower',   value:'phantom',        display:'Tower Unlocked: Phantom Sniper' },
+    48:  { type:'tower',   value:'omega',          display:'Tower Unlocked: Omega Cannon' },
+    50:  { type:'title',   value:'LEGEND',         display:'Title: Legend' },
+    52:  { type:'tower',   value:'spectre',        display:'AIR TOWER: Spectre AC-130' },
+    55:  { type:'tower',   value:'temporal',       display:'Tower Unlocked: Time Distorter' },
+    58:  { type:'tower',   value:'reaper',         display:'Tower Unlocked: Soul Reaper' },
+    60:  { type:'title',   value:'IMMORTAL',       display:'Title: Immortal' },
+    65:  { type:'tower',   value:'sky_fortress',   display:'AIR TOWER: Sky Fortress' },
+    70:  { type:'title',   value:'GOD OF WAR',     display:'Title: God of War' },
+    80:  { type:'title',   value:'UNTOUCHABLE',    display:'Title: Untouchable' },
+    90:  { type:'title',   value:'TRANSCENDENT',   display:'Title: Transcendent' },
+    100: { type:'title',   value:'THE LAST BASTION',display:'Title: The Last Bastion' },
+  };
+
+  const TITLES = [
+    {min:1,  title:'ROOKIE'},
+    {min:5,  title:'SURVIVOR'},
+    {min:12, title:'VETERAN'},
+    {min:20, title:'WARLORD'},
+    {min:30, title:'COMMANDER'},
+    {min:40, title:'ELITE'},
+    {min:50, title:'LEGEND'},
+    {min:60, title:'IMMORTAL'},
+    {min:70, title:'GOD OF WAR'},
+    {min:80, title:'UNTOUCHABLE'},
+    {min:90, title:'TRANSCENDENT'},
+    {min:100,title:'THE LAST BASTION'},
+  ];
+
+  function getTitle(level) {
+    for (let i = TITLES.length - 1; i >= 0; i--) {
+      if (level >= TITLES[i].min) return TITLES[i].title;
+    }
+    return 'ROOKIE';
+  }
+
+  // Level badge color
+  function getLevelColor(level) {
+    if (level >= 90) return '#ff00ff';
+    if (level >= 70) return '#ff1744';
+    if (level >= 50) return '#ffd700';
+    if (level >= 30) return '#ff6d00';
+    if (level >= 15) return '#7c4dff';
+    if (level >= 5)  return '#00bcd4';
+    return '#78909c';
+  }
+
+  // In-memory state (synced with PlayFab)
+  let _xp = 0, _level = 1;
+
+  function load(xp) {
+    _xp = xp || 0;
+    _level = getLevelFromXP(_xp);
+  }
+  function getXP() { return _xp; }
+  function getLevel() { return _level; }
+
+  // Award XP and return level-ups that occurred
+  function awardXP(amount) {
+    const oldLevel = _level;
+    _xp += amount;
+    _level = getLevelFromXP(_xp);
+    const levelUps = [];
+    for (let l = oldLevel + 1; l <= _level; l++) {
+      if (LEVEL_UNLOCKS[l]) levelUps.push({ level: l, ...LEVEL_UNLOCKS[l] });
+    }
+    return levelUps;
+  }
+
+  function getProgress() { return getXPProgress(_xp); }
+  function getUnlockAt(level) { return LEVEL_UNLOCKS[level]; }
+
+  return { load, getXP, getLevel, getTitle, getProgress, getLevelColor, awardXP, XP_TABLE, LEVEL_UNLOCKS };
+})();
+
+
 /* ═══════════════════════════════════════════════
    game.js — Core game loop, state, rendering (improved)
    ═══════════════════════════════════════════════ */
@@ -9,6 +144,7 @@ const Game = (() => {
   let waves = [], currentWaveIndex = 0;
   let waveActive = false, waveSpawnQueue = [], spawnTimer = 0;
   let money, lives, score, kills, wave;
+  let _livesAtWaveStart = 0;
   let gameOver = false, victory = false;
   let speed = 1;
   let selectedTower = null;
@@ -53,6 +189,11 @@ const Game = (() => {
 
     money  = map.startGold;
     lives  = map.livesStart;
+    const _savedXP = PF.isLoggedIn()
+      ? (PF.playerData?.AccountXP || 0)
+      : parseInt(localStorage.getItem('ztd_xp') || '0');
+    AccountLevel.load(_savedXP);
+    _updateLevelHUD();
     score  = 0; kills = 0; wave = 0;
     towers = []; enemies = []; bullets = [];
     waveActive = false; waveSpawnQueue = []; spawnTimer = 0;
@@ -500,6 +641,15 @@ const Game = (() => {
         _triggerVictory();
         return;
       }
+      // XP for wave clear
+      const _perfectWave = lives >= _livesAtWaveStart;
+      const _waveXP = AccountLevel.XP_TABLE.waveClear
+        + wave * AccountLevel.XP_TABLE.surviveWaves
+        + (_perfectWave ? AccountLevel.XP_TABLE.perfectWave : 0);
+      const _luWave = AccountLevel.awardXP(_waveXP);
+      _luWave.forEach(lu => _handleLevelUp(lu));
+      if (_perfectWave) _floatText('PERFECT WAVE! +60 XP', '#00e5ff');
+      _updateLevelHUD();
       const waveBtn = document.getElementById('btnStartWave');
       waveBtn.textContent = '▶ SEND WAVE';
       waveBtn.classList.add('pulse-green');
@@ -553,6 +703,12 @@ const Game = (() => {
         e._rewarded = true;
         money += e.reward;
         score += e.reward * (e.isBoss ? 10 : 1);
+        // Award XP
+        const _killXP = e.isBoss
+          ? AccountLevel.XP_TABLE.bossKill
+          : AccountLevel.XP_TABLE.kill;
+        const _luKill = AccountLevel.awardXP(_killXP);
+        _luKill.forEach(lu => _handleLevelUp(lu));
         kills++;
         totalCoinsEarned += e.reward;
         _spawnDmgNum(e.x, e.y, `+${e.reward}`, false);
@@ -635,6 +791,12 @@ const Game = (() => {
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillStyle = money >= placingTower.cost ? '#2ecc71' : '#e74c3c';
       ctx.fillText(`$${placingTower.cost}`, col*tileSize+tileSize/2, row*tileSize+tileSize*0.82);
+      // AIR badge on preview
+      if (placingTower.isAir) {
+        ctx.font = `bold ${Math.floor(tileSize*0.22)}px 'Barlow Condensed', sans-serif`;
+        ctx.fillStyle = '#00e5ff';
+        ctx.fillText('AIR', col*tileSize+tileSize/2, row*tileSize+tileSize*0.18);
+      }
     }
 
     // Hover: show range for tower under cursor
@@ -832,9 +994,11 @@ const Game = (() => {
   }
 
   function _canPlace(col, row) {
-    if (map.pathSet.has(`${col},${row}`)) return false;
-    if (towers.some(t => t.tileX === col && t.tileY === row)) return false;
     if (col < 0 || col >= map.cols || row < 0 || row >= map.rows) return false;
+    if (towers.some(t => t.tileX === col && t.tileY === row)) return false;
+    // Air towers can be placed over path tiles
+    const isPath = map.pathSet.has(`${col},${row}`);
+    if (isPath && !placingTower?.isAir) return false;
     return true;
   }
 
@@ -914,6 +1078,7 @@ const Game = (() => {
 
     waveActive  = true;
     spawnTimer  = 0.5;
+    _livesAtWaveStart = lives;
     lastPlaced  = null; // can't undo across waves
     _updateHUD();
     _updateWavePreview();
@@ -941,7 +1106,7 @@ const Game = (() => {
     gameOver = true;
     stopGame();
     shakeAmount = 18;
-    PF.saveGameResult(wave, score, kills, totalCoinsEarned);
+    PF.saveGameResult(wave, score, kills, totalCoinsEarned, AccountLevel.getXP(), false);
     UI.unlockMap(map.id, false);
 
     setTimeout(() => {
@@ -956,7 +1121,10 @@ const Game = (() => {
   function _triggerVictory() {
     victory = true;
     stopGame();
-    PF.saveGameResult(wave, score, kills, totalCoinsEarned);
+    // Big XP bonus for completing the map
+    const _victoryLUs = AccountLevel.awardXP(AccountLevel.XP_TABLE.mapComplete);
+    _victoryLUs.forEach(lu => _handleLevelUp(lu));
+    PF.saveGameResult(wave, score, kills, totalCoinsEarned, AccountLevel.getXP(), true);
     UI.unlockNextMap(map.id);
 
     const stars = score > map.waves * 200 ? '⭐⭐⭐' : score > map.waves * 100 ? '⭐⭐' : '⭐';
@@ -1007,6 +1175,7 @@ const Game = (() => {
     document.getElementById('hudWave').textContent  = wave || '—';
     document.getElementById('hudKills').textContent = kills;
     document.getElementById('hudScore').textContent = score.toLocaleString();
+    _updateLevelHUD();
 
     // Lives danger pulse
     const livesPill = document.getElementById('hudLives').parentElement;
@@ -1022,7 +1191,44 @@ const Game = (() => {
     }
   }
 
-  function _updateWavePreview() {
+
+  function _handleLevelUp(lu) {
+    const col = AccountLevel.getLevelColor(lu.level);
+    // Dramatic level-up overlay
+    const el = document.createElement('div');
+    el.className = 'levelup-toast';
+    el.style.borderColor = col;
+    el.style.boxShadow = `0 0 50px ${col}44`;
+    el.innerHTML = `
+      <div class="lu-big" style="color:${col}">LEVEL ${lu.level}</div>
+      <div class="lu-sub">${AccountLevel.getTitle(lu.level)}</div>
+      ${lu.display ? `<div class="lu-unlock">🔓 ${lu.display}</div>` : ''}
+    `;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3000);
+    // Update HUD
+    _updateLevelHUD();
+    // If it unlocks a tower, refresh tower palette
+    if (lu.type === 'tower') UI.updateTowerPalette(map);
+  }
+
+  function _updateLevelHUD() {
+    const prog = AccountLevel.getProgress();
+    const lvlEl = document.getElementById('hudAcctLevel');
+    const barEl = document.getElementById('hudXPBar');
+    const titleEl = document.getElementById('hudAcctTitle');
+    if (lvlEl) {
+      lvlEl.textContent = prog.level;
+      lvlEl.style.color = AccountLevel.getLevelColor(prog.level);
+    }
+    if (barEl) {
+      barEl.style.width = (prog.pct * 100).toFixed(1) + '%';
+      barEl.style.background = AccountLevel.getLevelColor(prog.level);
+    }
+    if (titleEl) titleEl.textContent = AccountLevel.getTitle(prog.level);
+  }
+
+    function _updateWavePreview() {
     const panel = document.getElementById('wavePreview');
     if (currentWaveIndex >= waves.length) {
       panel.innerHTML = '<span style="color:var(--grn2);font-family:var(--f-mono);font-size:10px;letter-spacing:1px">✓ ALL WAVES CLEARED</span>';
@@ -1095,11 +1301,13 @@ const Game = (() => {
 
   let ownerSpeedLevel = 0;
   function ownerSpeedHack() {
-    const levels = [1, 2, 4, 8, 1];
+    const levels = [1, 2, 4, 8, 12, 16, 1];
     ownerSpeedLevel = (ownerSpeedLevel + 1) % levels.length;
     speed = levels[ownerSpeedLevel];
-    document.getElementById('btnSpeed').textContent = speed + '×';
-    _floatText(`⚡ SPEED: ${speed}×`, 'gold');
+    const btn = document.getElementById('btnSpeed');
+    btn.textContent = speed + '×';
+    btn.dataset.spd = speed;
+    _floatText(`⚡ SPEED: ${speed}×`, speed >= 12 ? 'red' : 'gold');
     return speed;
   }
 

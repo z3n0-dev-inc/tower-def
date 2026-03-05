@@ -83,7 +83,7 @@ const PF = {
   async loadPlayerData() {
     if (!this.sessionTicket) return;
     const r = await this._post('/Client/GetUserData', {
-      Keys: ['Coins','BestWave','TotalKills','OwnedTowers','UnlockedMaps','IsOwner','Stats']
+      Keys: ['Coins','BestWave','TotalKills','OwnedTowers','UnlockedMaps','IsOwner','Stats','AccountXP','GamesPlayed','MapsCompleted']
     });
     if (r.code === 200 && r.data.Data) {
       const d = r.data.Data;
@@ -91,15 +91,19 @@ const PF = {
         Coins:        parseInt(d.Coins?.Value       || '100'),
         BestWave:     parseInt(d.BestWave?.Value    || '0'),
         TotalKills:   parseInt(d.TotalKills?.Value  || '0'),
-        OwnedTowers:  JSON.parse(d.OwnedTowers?.Value  || '["gunner","archer"]'),
-        UnlockedMaps: JSON.parse(d.UnlockedMaps?.Value || '["graveyard"]'),
-        IsOwner:      d.IsOwner?.Value === 'true',
-        Stats:        JSON.parse(d.Stats?.Value || '{}'),
+        OwnedTowers:   JSON.parse(d.OwnedTowers?.Value  || '["gunner","archer"]'),
+        UnlockedMaps:  JSON.parse(d.UnlockedMaps?.Value || '["graveyard"]'),
+        IsOwner:       d.IsOwner?.Value === 'true',
+        Stats:         JSON.parse(d.Stats?.Value || '{}'),
+        AccountXP:     parseInt(d.AccountXP?.Value     || '0'),
+        GamesPlayed:   parseInt(d.GamesPlayed?.Value   || '0'),
+        MapsCompleted: parseInt(d.MapsCompleted?.Value || '0'),
       };
       this.isOwner = this.playerData.IsOwner;
     } else {
       this.playerData = { Coins:100, BestWave:0, TotalKills:0,
-        OwnedTowers:['gunner','archer'], UnlockedMaps:['graveyard'], IsOwner:false, Stats:{} };
+        OwnedTowers:['gunner','archer'], UnlockedMaps:['graveyard'], IsOwner:false, Stats:{},
+        AccountXP:0, GamesPlayed:0, MapsCompleted:0 };
       await this.savePlayerData();
     }
   },
@@ -111,9 +115,12 @@ const PF = {
         Coins:        String(this.playerData.Coins),
         BestWave:     String(this.playerData.BestWave),
         TotalKills:   String(this.playerData.TotalKills),
-        OwnedTowers:  JSON.stringify(this.playerData.OwnedTowers),
-        UnlockedMaps: JSON.stringify(this.playerData.UnlockedMaps),
-        Stats:        JSON.stringify(this.playerData.Stats),
+        OwnedTowers:   JSON.stringify(this.playerData.OwnedTowers),
+        UnlockedMaps:  JSON.stringify(this.playerData.UnlockedMaps),
+        Stats:         JSON.stringify(this.playerData.Stats),
+        AccountXP:     String(this.playerData.AccountXP     || 0),
+        GamesPlayed:   String(this.playerData.GamesPlayed   || 0),
+        MapsCompleted: String(this.playerData.MapsCompleted || 0),
       }
     });
   },
@@ -127,16 +134,21 @@ const PF = {
     });
   },
 
-  async saveGameResult(wave, score, kills, coinsEarned) {
+  async saveGameResult(wave, score, kills, coinsEarned, accountXP, victory) {
     if (!this.sessionTicket) {
       const best = parseInt(localStorage.getItem('ztd_bestWave')||'0');
       if (wave > best) localStorage.setItem('ztd_bestWave', wave);
       localStorage.setItem('ztd_coins', (parseInt(localStorage.getItem('ztd_coins')||'100') + coinsEarned));
+      localStorage.setItem('ztd_xp', String(accountXP||0));
+      localStorage.setItem('ztd_gamesPlayed', String((parseInt(localStorage.getItem('ztd_gamesPlayed')||'0')+1)));
       return;
     }
     if (wave > this.playerData.BestWave) this.playerData.BestWave = wave;
     this.playerData.TotalKills += kills;
     this.playerData.Coins      += coinsEarned;
+    this.playerData.AccountXP   = accountXP || this.playerData.AccountXP || 0;
+    this.playerData.GamesPlayed = (this.playerData.GamesPlayed || 0) + 1;
+    if (victory) this.playerData.MapsCompleted = (this.playerData.MapsCompleted || 0) + 1;
     await this.savePlayerData();
     await this._post('/Client/UpdatePlayerStatistics', { Statistics: [
       { StatisticName:'HighScore',  Value: score },
