@@ -43,6 +43,8 @@ const UI = (() => {
     _buildMapGrid();
     _buildShop();
     _refreshLeaderboard(currentLbStat);
+    _initInfiniteTab();
+    _initMapEditor();
 
     // Auto-refresh leaderboard
     lbInterval = setInterval(() => _refreshLeaderboard(currentLbStat), 30000);
@@ -590,6 +592,8 @@ const UI = (() => {
         if (btn.dataset.tab === 'leaderboard') _refreshLeaderboard(currentLbStat);
         if (btn.dataset.tab === 'shop')        _buildShop(document.querySelector('.sf.active')?.dataset.sf || 'all');
         if (btn.dataset.tab === 'profile')     _updateProfileUI();
+        if (btn.dataset.tab === 'infinite')    _refreshInfiniteLb();
+        if (btn.dataset.tab === 'editor')      _initMapEditor();
       };
     });
   }
@@ -708,6 +712,183 @@ const UI = (() => {
       particleCtx.fill();
     }
     particleCtx.globalAlpha = 1;
+  }
+
+  // ── INFINITE MODE ─────────────────────────────
+  function _initInfiniteTab() {
+    const card = document.getElementById('infiniteCard');
+    const btn  = document.getElementById('btnPlayInfinite');
+    if (!card || !btn) return;
+    setTimeout(() => {
+      const c = document.getElementById('prev-infinite');
+      if (c) drawMapPreview(c, getMap('infinite'));
+    }, 0);
+    card.onclick = btn.onclick = () => { startGame('infinite'); };
+    _refreshInfiniteLb();
+  }
+
+  function _refreshInfiniteLb() {
+    const el = document.getElementById('infiniteLb');
+    if (!el) return;
+    let lb = [];
+    try { lb = Game.getInfiniteLeaderboard ? Game.getInfiniteLeaderboard() : JSON.parse(localStorage.getItem('ztd_infinite_lb')||'[]'); } catch(e){}
+    if (!lb.length) { el.innerHTML = '<span style="color:var(--txt2)">No runs yet. Be the first!</span>'; return; }
+    el.innerHTML = lb.slice(0,15).map((e,i)=>`
+      <div style="display:flex;gap:12px;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.06)">
+        <span style="color:${i<3?'#f1c40f':'var(--txt2)'};font-weight:700;min-width:22px">#${i+1}</span>
+        <span style="flex:1;color:var(--txt)">${e.name||'ANON'}</span>
+        <span style="color:var(--amber3)">Wave ${e.wave}</span>
+        <span style="color:var(--txt3);font-size:9px">${new Date(e.date).toLocaleDateString()}</span>
+      </div>`).join('');
+  }
+
+  // ── MAP EDITOR ────────────────────────────────
+  let _edState = {
+    cols:20, rows:12, tiles:null, tool:'path',
+    spawn:null, end:null, theme:'graveyard',
+    history:[], painting:false,
+  };
+
+  function _initMapEditor() {
+    const canvas = document.getElementById('editorCanvas');
+    if (!canvas || canvas._edInited) return;
+    canvas._edInited = true;
+
+    const TSIZE = 32;
+    const cols = _edState.cols, rows = _edState.rows;
+    canvas.width  = cols * TSIZE;
+    canvas.height = rows * TSIZE;
+    _edState.tiles = Array.from({length:rows}, ()=>Array(cols).fill(0));
+
+    const ctx = canvas.getContext('2d');
+    function _edRender() {
+      const T = TSIZE;
+      ctx.fillStyle = '#1a2a15';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+      // Grid
+      ctx.strokeStyle='rgba(255,255,255,0.08)'; ctx.lineWidth=0.5;
+      for(let r=0;r<=rows;r++){ctx.beginPath();ctx.moveTo(0,r*T);ctx.lineTo(cols*T,r*T);ctx.stroke();}
+      for(let c=0;c<=cols;c++){ctx.beginPath();ctx.moveTo(c*T,0);ctx.lineTo(c*T,rows*T);ctx.stroke();}
+      // Path tiles
+      for(let r=0;r<rows;r++) for(let c=0;c<cols;c++){
+        if (_edState.tiles[r][c]===1) {
+          const bg=ctx.createLinearGradient(c*T,r*T,c*T+T,r*T+T);
+          bg.addColorStop(0,'#8a6a40'); bg.addColorStop(1,'#5a4020');
+          ctx.fillStyle=bg; ctx.fillRect(c*T,r*T,T,T);
+          ctx.strokeStyle='rgba(0,0,0,0.3)'; ctx.lineWidth=0.5;
+          ctx.strokeRect(c*T+0.5,r*T+0.5,T-1,T-1);
+        }
+      }
+      // Spawn
+      if (_edState.spawn) {
+        const [sc,sr]=_edState.spawn;
+        ctx.fillStyle='rgba(39,174,96,0.7)';ctx.fillRect(sc*T,sr*T,T,T);
+        ctx.fillStyle='#fff';ctx.font=`bold ${T*0.5}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText('S',sc*T+T/2,sr*T+T/2);
+      }
+      // End
+      if (_edState.end) {
+        const [ec,er]=_edState.end;
+        ctx.fillStyle='rgba(192,57,43,0.7)';ctx.fillRect(ec*T,er*T,T,T);
+        ctx.fillStyle='#fff';ctx.font=`bold ${T*0.5}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText('E',ec*T+T/2,er*T+T/2);
+      }
+    }
+
+    function _edGetCell(e) {
+      const rect=canvas.getBoundingClientRect();
+      const x=(e.clientX-rect.left)*cols*TSIZE/rect.width;
+      const y=(e.clientY-rect.top)*rows*TSIZE/rect.height;
+      return [Math.floor(x/TSIZE), Math.floor(y/TSIZE)];
+    }
+
+    function _edApply(c,r) {
+      if(c<0||c>=cols||r<0||r>=rows) return;
+      const t=_edState.tool;
+      if(t==='path')  { _edState.tiles[r][c]=1; }
+      if(t==='erase') { _edState.tiles[r][c]=0; if(_edState.spawn&&_edState.spawn[0]===c&&_edState.spawn[1]===r)_edState.spawn=null; if(_edState.end&&_edState.end[0]===c&&_edState.end[1]===r)_edState.end=null; }
+      if(t==='spawn') { _edState.tiles[r][c]=1; _edState.spawn=[c,r]; }
+      if(t==='end')   { _edState.tiles[r][c]=1; _edState.end=[c,r]; }
+      _edValidate();
+      _edRender();
+    }
+
+    canvas.onmousedown=e=>{ _edState.painting=true; const [c,r]=_edGetCell(e); _edApply(c,r); };
+    canvas.onmousemove=e=>{ if(_edState.painting){ const [c,r]=_edGetCell(e); _edApply(c,r); }};
+    canvas.onmouseup=canvas.onmouseleave=()=>{ _edState.painting=false; };
+
+    document.querySelectorAll('.ed-tool').forEach(b=>b.onclick=()=>{
+      document.querySelectorAll('.ed-tool').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active'); _edState.tool=b.dataset.tool;
+    });
+
+    document.getElementById('edClear').onclick=()=>{ _edState.tiles=Array.from({length:rows},()=>Array(cols).fill(0)); _edState.spawn=null; _edState.end=null; _edValidate(); _edRender(); };
+    document.getElementById('edUndo').onclick=()=>{
+      if(_edState.history.length===0) return;
+      _edState.tiles=_edState.history.pop();
+      _edValidate(); _edRender();
+    };
+    document.getElementById('edPlay').onclick=()=>{ _edLaunchCustom(); };
+    document.getElementById('edTheme')?.addEventListener('change',e=>{ _edState.theme=e.target.value; _edRender(); });
+
+    _edRender();
+  }
+
+  function _edValidate() {
+    const hasPath = _edState.tiles.some(r=>r.some(c=>c===1));
+    const ok = hasPath && _edState.spawn && _edState.end;
+    const btn = document.getElementById('edPlay');
+    if(btn) btn.disabled = !ok;
+    const st = document.getElementById('edStatus');
+    if(st){
+      if(!hasPath) st.textContent='Draw a path first';
+      else if(!_edState.spawn) st.textContent='Set a spawn point (🟢)';
+      else if(!_edState.end) st.textContent='Set an end point (🔴)';
+      else st.textContent='✅ Ready to test!';
+    }
+  }
+
+  function _edLaunchCustom() {
+    if(!_edState.spawn||!_edState.end) return;
+    // Build path from BFS/flood fill connected path tiles starting from spawn
+    const cols=_edState.cols, rows=_edState.rows;
+    const tiles=_edState.tiles;
+    const [sc,sr]=_edState.spawn;
+    const [ec,er]=_edState.end;
+    // Build adjacency list and BFS
+    const visited=new Set();
+    const queue=[[sc,sr,[]]];
+    let foundPath=null;
+    const key=(c,r)=>`${c},${r}`;
+    visited.add(key(sc,sr));
+    while(queue.length&&!foundPath){
+      const [c,r,path]=queue.shift();
+      const np=[...path,[c,r]];
+      if(c===ec&&r===er){ foundPath=np; break; }
+      [[0,-1],[0,1],[-1,0],[1,0]].forEach(([dc,dr])=>{
+        const nc=c+dc,nr=r+dr;
+        if(nc<0||nc>=cols||nr<0||nr>=rows) return;
+        if(tiles[nr][nc]!==1) return;
+        const k=key(nc,nr);
+        if(visited.has(k)) return;
+        visited.add(k); queue.push([nc,nr,np]);
+      });
+    }
+    if(!foundPath||foundPath.length<3){ toast('No valid path from Spawn→End!','red'); return; }
+
+    // Create custom map
+    const customMap = {
+      id:'custom', name:'CUSTOM MAP', theme:_edState.theme||'graveyard',
+      difficulty:3, waves:20, unlocked:true,
+      description:'Your custom map',
+      bgColor:'#1a2a15', pathColor:'#6b5530',
+      cols, rows, path:foundPath,
+      startGold:200, livesStart:20, waveModifier:1.5,
+    };
+    // Inject into MAPS temporarily
+    const existing=MAPS.findIndex(m=>m.id==='custom');
+    if(existing>=0) MAPS[existing]=customMap; else MAPS.push(customMap);
+    startGame('custom');
   }
 
   // ── PUBLIC ────────────────────────────────────

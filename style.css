@@ -1174,3 +1174,31 @@ kbd { font-size: 9px; min-width: 30px; }
 .placing-air-tower canvas {
   cursor: crosshair;
 }
+
+/* ── MAP EDITOR ─────────────────────────────── */
+.ed-tool {
+  width:100%; padding:7px 10px; font-family:var(--f-head);
+  font-size:11px; letter-spacing:1px; text-align:left;
+  background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1);
+  color:var(--txt); border-radius:4px; cursor:pointer;
+  transition:all 0.15s;
+}
+.ed-tool:hover { background:rgba(6,182,212,0.1); border-color:rgba(6,182,212,0.3); }
+.ed-tool.active { background:rgba(6,182,212,0.18); border-color:var(--cyan2); color:var(--cyan3); }
+
+/* ── BALLOON POPS ───────────────────────────── */
+.balloon-pop {
+  position:fixed; pointer-events:none; z-index:8999;
+  font-size:24px; animation:balloonPop 0.8s ease-out forwards;
+}
+@keyframes balloonPop {
+  0%   { transform:scale(0.5) rotate(0deg); opacity:1; }
+  40%  { transform:scale(1.4) rotate(15deg); opacity:1; }
+  100% { transform:scale(0.3) rotate(-20deg) translateY(-40px); opacity:0; }
+}
+
+/* ── WAVE ANNOUNCE STYLES ───────────────────── */
+.wa-moab { color:#44aaff; text-shadow:0 0 30px #44aaff; }
+.wa-bfb  { color:#ff4444; text-shadow:0 0 30px #ff4444; }
+.wa-zomg { color:#cc66ff; text-shadow:0 0 30px #cc66ff; }
+.wa-bad  { color:#ff2200; text-shadow:0 0 40px #ff2200; }

@@ -9,32 +9,30 @@
 
 const TOWER_DAMAGE_CONFIG = {
   //              damage  fireRate  range
-  gunner:       { damage:  20,  fireRate: 1.4,  range: 125 },
-  archer:       { damage:  14,  fireRate: 2.0,  range: 165 },
-  sniper:       { damage: 100,  fireRate: 0.45, range: 270 },
-  rocketeer:    { damage:  75,  fireRate: 0.65, range: 135 },
-  freezer:      { damage:  12,  fireRate: 0.9,  range: 115 },
-  flamer:       { damage:  10,  fireRate: 9.0,  range:  95 },
-  tesla:        { damage:  50,  fireRate: 1.1,  range: 145 },
-  laser:        { damage:  15,  fireRate: 16,   range: 185 },
-  mortar:       { damage: 120,  fireRate: 0.32, range: 205 },
-  venom:        { damage:  25,  fireRate: 1.6,  range: 145 },
-  omega:        { damage: 500,  fireRate: 0.28, range: 205 },
-  phantom:      { damage: 300,  fireRate: 0.85, range: 310 },
-  temporal:     { damage:  35,  fireRate: 0.18, range: 999 },
-  reaper:       { damage: 200,  fireRate: 1.0,  range: 205 },
+  gunner:       { damage:  15,  fireRate: 1.2,  range: 120 },
+  archer:       { damage:  10,  fireRate: 1.8,  range: 160 },
+  sniper:       { damage:  80,  fireRate: 0.38, range: 265 },
+  rocketeer:    { damage:  60,  fireRate: 0.55, range: 130 },
+  freezer:      { damage:  10,  fireRate: 0.8,  range: 110 },
+  flamer:       { damage:   8,  fireRate: 8.0,  range:  90 },
+  tesla:        { damage:  40,  fireRate: 0.9,  range: 140 },
+  laser:        { damage:  12,  fireRate: 14,   range: 180 },
+  mortar:       { damage:  95,  fireRate: 0.28, range: 200 },
+  venom:        { damage:  20,  fireRate: 1.4,  range: 140 },
+  omega:        { damage: 400,  fireRate: 0.24, range: 200 },
+  phantom:      { damage: 250,  fireRate: 0.72, range: 305 },
+  temporal:     { damage:  28,  fireRate: 0.15, range: 999 },
+  reaper:       { damage: 160,  fireRate: 0.85, range: 200 },
   shadow_commander: { damage: 9999,  fireRate: 3.0, range: 999 },
   neon_warden:      { damage: 9999,  fireRate: 8.0, range: 999 },
   void_hunter:      { damage: 99999, fireRate: 4.0, range: 999 },
-  // ── AIR TOWERS ──────────────────────────────────────────────
-  drone_bay:     { damage:  18,  fireRate: 2.2,  range: 155 },
-  apache:        { damage:  90,  fireRate: 0.55, range: 175 },
-  stormwing:     { damage:  35,  fireRate: 1.8,  range: 195 },
-  stratobomber:  { damage: 180,  fireRate: 0.28, range: 220 },
-  spectre:       { damage: 280,  fireRate: 0.9,  range: 340 },
-  sky_fortress:  { damage: 800,  fireRate: 0.22, range: 260 },
+  drone_bay:     { damage:  14,  fireRate: 2.0,  range: 150 },
+  apache:        { damage:  75,  fireRate: 0.48, range: 170 },
+  stormwing:     { damage:  28,  fireRate: 1.6,  range: 190 },
+  stratobomber:  { damage: 150,  fireRate: 0.24, range: 215 },
+  spectre:       { damage: 240,  fireRate: 0.78, range: 335 },
+  sky_fortress:  { damage: 650,  fireRate: 0.19, range: 255 },
 };
-
 const TOWER_DEFS = (() => {
   const C = TOWER_DAMAGE_CONFIG;
   return [
@@ -1262,6 +1260,15 @@ class Tower {
     this.auraAlpha    = 0;
     this.targetMode   = 'first';
     this.totalCostSpent = def.cost;
+
+    // Air tower orbit state
+    if (def.isAir) {
+      this.orbitAngle  = Math.random() * Math.PI * 2;
+      this.orbitRadius = tileSize * 1.5;
+      this.orbitSpeed  = 0.7 + Math.random() * 0.5;
+      this.orbitBaseX  = tileX * tileSize + tileSize / 2;
+      this.orbitBaseY  = tileY * tileSize + tileSize / 2;
+    }
   }
 
   get cost()  { return this.def.cost; }
@@ -1300,17 +1307,65 @@ class Tower {
     this.shootFlash   = Math.max(0, this.shootFlash - dt * 8);
     this.fireCooldown = Math.max(0, this.fireCooldown - dt);
 
-    this.target = this._pickTarget(enemies);
-    if (this.target) {
-      const dx = this.target.x - this.x;
-      const dy = this.target.y - this.y;
-      this.angle = Math.atan2(dy, dx) - Math.PI / 2;
-    }
+    const isAir = !!this.def.isAir;
 
-    if (this.target && this.fireCooldown <= 0) {
-      this.fireCooldown = 1 / (this.fireRate * this.auraBuff);
-      this.shootFlash   = 1;
-      this._fire(this.target, enemies);
+    if (isAir) {
+      // ── AIR TOWER: Orbiting aircraft BTD6-style ──────────────────
+      if (!this.orbitAngle) this.orbitAngle = Math.random() * Math.PI * 2;
+      if (!this.orbitRadius) this.orbitRadius = this.tileSize * 1.5;
+      if (!this.orbitSpeed) this.orbitSpeed = 0.8 + Math.random() * 0.5; // rad/s
+      if (!this.orbitBaseX) this.orbitBaseX = this.tileX * this.tileSize + this.tileSize / 2;
+      if (!this.orbitBaseY) this.orbitBaseY = this.tileY * this.tileSize + this.tileSize / 2;
+
+      // Pick target first
+      this.target = this._pickTarget(enemies);
+
+      if (this.target) {
+        // Fly toward target, orbiting around them
+        const tx = this.target.x, ty = this.target.y;
+        const dx = tx - this.x, dy = ty - this.y;
+        const dist = Math.sqrt(dx*dx+dy*dy);
+        // Angle of flight
+        this.angle = Math.atan2(dy, dx);
+        // Move toward target
+        const speed = this.tileSize * 3.5;
+        if (dist > this.tileSize * 0.8) {
+          this.x += (dx/dist) * speed * dt;
+          this.y += (dy/dist) * speed * dt;
+        }
+        // Fire
+        if (this.fireCooldown <= 0) {
+          this.fireCooldown = 1 / (this.fireRate * this.auraBuff);
+          this.shootFlash = 1;
+          this._fire(this.target, enemies);
+        }
+      } else {
+        // No target — orbit base tile
+        this.orbitAngle += this.orbitSpeed * dt;
+        const targetX = this.orbitBaseX + Math.cos(this.orbitAngle) * this.orbitRadius;
+        const targetY = this.orbitBaseY + Math.sin(this.orbitAngle) * this.orbitRadius;
+        const dx = targetX - this.x, dy = targetY - this.y;
+        const dist = Math.sqrt(dx*dx+dy*dy);
+        const speed = this.tileSize * 3.0;
+        if (dist > 4) {
+          this.x += (dx/dist) * Math.min(speed*dt, dist);
+          this.y += (dy/dist) * Math.min(speed*dt, dist);
+          this.angle = Math.atan2(dy, dx);
+        }
+      }
+    } else {
+      // Ground tower — stationary
+      this.target = this._pickTarget(enemies);
+      if (this.target) {
+        const dx = this.target.x - this.x;
+        const dy = this.target.y - this.y;
+        this.angle = Math.atan2(dy, dx) - Math.PI / 2;
+      }
+      if (this.target && this.fireCooldown <= 0) {
+        this.fireCooldown = 1 / (this.fireRate * this.auraBuff);
+        this.shootFlash   = 1;
+        this._fire(this.target, enemies);
+      }
     }
 
     this.bullets = this.bullets.filter(b => !b.dead);
@@ -1318,11 +1373,14 @@ class Tower {
   }
 
   _pickTarget(enemies) {
+    const myX = this.def.isAir ? this.x : (this.tileX * this.tileSize + this.tileSize/2);
+    const myY = this.def.isAir ? this.y : (this.tileY * this.tileSize + this.tileSize/2);
+    const checkRange = this.def.isAir ? this.range * 2.5 : this.range; // air towers have wider effective range
     const inRange = enemies.filter(e => {
-      const dx = e.x - this.x, dy = e.y - this.y;
+      const dx = e.x - myX, dy = e.y - myY;
       if (e.dead) return false;
       if (e.invisible && !this.canSeeInvis) return false;
-      return Math.sqrt(dx * dx + dy * dy) <= this.range;
+      return Math.sqrt(dx * dx + dy * dy) <= checkRange;
     });
     if (!inRange.length) return null;
     switch (this.targetMode) {
@@ -1362,10 +1420,12 @@ class Tower {
   draw(ctx) {
     const s = this.tileSize, pad = 5;
     const tx = this.tileX * s, ty = this.tileY * s;
-    const cx = this.x, cy = this.y;
+    // Air towers use live position; ground towers use tile center
+    const isAir = !!this.def.isAir;
+    const cx = isAir ? this.x : (this.tileX * s + s/2);
+    const cy = isAir ? this.y : (this.tileY * s + s/2);
     const flash = this.shootFlash;
     const col = this.def.color;
-    const isAir = !!this.def.isAir;
 
     // ── Tile background ──────────────────────────────────────────────────
     const rarityColors = { basic:'#3b82f6', advanced:'#06b6d4', special:'#a78bfa', legendary:'#f59e0b' };
@@ -1373,15 +1433,23 @@ class Tower {
 
     ctx.save();
     if (isAir) {
-      // Air towers: dashed cyan tile outline, no fill (they float above path)
-      ctx.strokeStyle = 'rgba(0,188,212,0.4)';
+      // Air towers: show landing pad at home tile
+      ctx.strokeStyle = 'rgba(0,188,212,0.35)';
       ctx.lineWidth = 1;
       ctx.setLineDash([3,3]);
       ctx.beginPath(); ctx.roundRect(tx+pad, ty+pad, s-pad*2, s-pad*2, 4); ctx.stroke();
       ctx.setLineDash([]);
-      // Drop shadow ellipse on ground
-      ctx.fillStyle = 'rgba(0,0,0,0.22)';
-      ctx.beginPath(); ctx.ellipse(cx, cy + s*0.3, s*0.36, s*0.1, 0, 0, Math.PI*2); ctx.fill();
+      // Pad H marker
+      ctx.fillStyle = 'rgba(0,188,212,0.25)'; ctx.beginPath(); ctx.roundRect(tx+pad,ty+pad,s-pad*2,s-pad*2,4); ctx.fill();
+      ctx.font = `bold ${Math.floor(s*0.3)}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillStyle='rgba(0,188,212,0.5)'; ctx.fillText('H', tx+s/2, ty+s/2);
+      // Flight path circle
+      ctx.strokeStyle = 'rgba(0,188,212,0.12)'; ctx.lineWidth=1; ctx.setLineDash([2,4]);
+      ctx.beginPath(); ctx.arc(tx+s/2, ty+s/2, s*1.5, 0, Math.PI*2); ctx.stroke();
+      ctx.setLineDash([]);
+      // Drop shadow under aircraft
+      ctx.fillStyle = 'rgba(0,0,0,0.18)';
+      ctx.beginPath(); ctx.ellipse(cx + s*0.08, this.tileY*s+s*0.85, s*0.32, s*0.08, 0, 0, Math.PI*2); ctx.fill();
     } else if (this.auraBuff > 1.0) {
       const ag = ctx.createRadialGradient(cx,cy,s*0.1,cx,cy,s*0.55);
       ag.addColorStop(0,'rgba(241,196,15,0.25)');

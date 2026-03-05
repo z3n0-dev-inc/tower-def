@@ -202,7 +202,7 @@ const Game = (() => {
     totalCoinsEarned = 0; shakeAmount = 0; killFeed = [];
     interestAccum = 0; lastPlaced = null;
 
-    waves = generateWaves(map.id, map.waves, map.waveModifier);
+    waves = generateWaves(map.id, map.waves, map.waveModifier, !!map.isInfinite);
 
     _buildMapCache();
     _buildMinimap();
@@ -695,15 +695,15 @@ const Game = (() => {
         const e = waveSpawnQueue.shift();
         if (e) {
           enemies.push(new Enemy(e.type, map.path, tileSize, wave, map.waveModifier));
-          spawnTimer = Math.max(0.18, (e.interval || 0.5) * 0.88);
+          spawnTimer = Math.max(0.12, (e.interval || 0.5) * 0.75);
         } else {
           spawnTimer = 0.5;
         }
       }
     }
 
-    // Wave complete check
-    if (waveActive && waveSpawnQueue.length === 0 && enemies.length === 0) {
+    // Wave complete check (not infinite)
+    if (!map.isInfinite && waveActive && waveSpawnQueue.length === 0 && enemies.length === 0) {
       waveActive = false;
 
       // Interest income between waves (5% of current gold, min 10)
@@ -763,7 +763,8 @@ const Game = (() => {
       if (e.reachedEnd && !e._lifeLost) {
         e._lifeLost = true;
         if (!godMode) {
-          lives -= e.isBoss ? 3 : 1;
+          const livesLost = e.def.isBlimp ? Math.max(8, e.def.tier - 6) : e.isBoss ? 5 : e.def.tier || 1;
+          lives -= livesLost;
           shakeAmount = e.isBoss ? 16 : 6;
           if (lives <= 0) { lives = 0; _triggerGameOver(); return; }
         }
@@ -771,14 +772,14 @@ const Game = (() => {
       }
     }
 
-    // Collect dead enemies for rewards
+    // Collect dead enemies for rewards + spawn balloon children
+    const _newChildren = [];
     for (let i = enemies.length - 1; i >= 0; i--) {
       const e = enemies[i];
       if (e.dead && !e.reachedEnd && !e._rewarded) {
         e._rewarded = true;
         money += e.reward;
         score += e.reward * (e.isBoss ? 10 : 1);
-        // Award XP
         const _killXP = e.isBoss
           ? AccountLevel.XP_TABLE.bossKill
           : AccountLevel.XP_TABLE.kill;
@@ -789,19 +790,45 @@ const Game = (() => {
         _spawnDmgNum(e.x, e.y, `+${e.reward}`, false);
         if (e.isBoss) {
           shakeAmount = 18;
-          killFeed.unshift({ text:`${e.name} KILLED`, age:0, boss:true });
-          _floatText(`${e.name} DEFEATED! +${e.reward}`, 'gold');
+          killFeed.unshift({ text:`${e.name} POPPED!`, age:0, boss:true });
+          _floatText(`${e.name} DESTROYED! +${e.reward}`, 'gold');
         } else if (kills % 50 === 0) {
-          killFeed.unshift({ text:`${kills} KILLS`, age:0, boss:false });
-          _spawnStreakPop(`💀 ${kills} KILLS!`);
+          killFeed.unshift({ text:`${kills} POPS`, age:0, boss:false });
+          _spawnStreakPop(`🎈 ${kills} POPS!`);
         } else if (kills % 10 === 0) {
-          killFeed.unshift({ text:`${kills} KILLS`, age:0, boss:false });
+          killFeed.unshift({ text:`${kills} POPS`, age:0, boss:false });
+        }
+        // Spawn inner balloon children (BTD6-style)
+        if (e.getSpawnChildren) {
+          const children = e.getSpawnChildren(wave, map.waveModifier);
+          children.forEach(c => _newChildren.push(c));
         }
         _updateHUD();
       }
     }
+    if (_newChildren.length > 0) enemies.push(..._newChildren);
 
     enemies = enemies.filter(e => !e.dead && !e.reachedEnd);
+
+    // Infinite mode: never end
+    if (map && map.isInfinite && waveActive && waveSpawnQueue.length===0 && enemies.length===0) {
+      // auto-load next infinite wave
+      if (currentWaveIndex < waves.length) {
+        const waveData = waves[currentWaveIndex];
+        wave = waveData.number;
+        currentWaveIndex++;
+        waveSpawnQueue = [];
+        waveData.enemies.forEach(group => {
+          for (let ii=0;ii<group.count;ii++) waveSpawnQueue.push({type:group.type,interval:group.interval});
+        });
+        spawnTimer = 2.5; // brief pause between waves
+        _livesAtWaveStart = lives;
+        _updateHUD(); _updateWavePreview();
+        UI.announceWave(wave, waveData.isBossWave);
+        // Save infinite leaderboard entry
+        _saveInfiniteScore(wave);
+      }
+    }
 
     // Aura towers: compute buffs for nearby towers
     towers.forEach(t => t.auraBuff = 1.0);
@@ -1071,9 +1098,12 @@ const Game = (() => {
   function _canPlace(col, row) {
     if (col < 0 || col >= map.cols || row < 0 || row >= map.rows) return false;
     if (towers.some(t => t.tileX === col && t.tileY === row)) return false;
-    // Air towers can be placed over path tiles
+    // Air towers can be placed on grass tiles only (they fly over everything)
     const isPath = map.pathSet.has(`${col},${row}`);
-    if (isPath && !placingTower?.isAir) return false;
+    if (placingTower?.isAir) {
+      return !isPath; // air towers land on grass pads, not on the path
+    }
+    if (isPath) return false;
     return true;
   }
 
@@ -1175,6 +1205,24 @@ const Game = (() => {
     document.removeEventListener('keydown', _onKey);
     const bar = document.getElementById('bossBar');
     if (bar) bar.classList.remove('visible');
+  }
+
+  function _saveInfiniteScore(waveReached) {
+    const existing = parseInt(localStorage.getItem('ztd_infinite_best') || '0');
+    if (waveReached > existing) {
+      localStorage.setItem('ztd_infinite_best', waveReached);
+    }
+    // Also save to leaderboard array
+    try {
+      const lb = JSON.parse(localStorage.getItem('ztd_infinite_lb') || '[]');
+      lb.push({ wave: waveReached, date: Date.now(), name: PF.getDisplayName() || 'ANON' });
+      lb.sort((a,b)=>b.wave-a.wave);
+      localStorage.setItem('ztd_infinite_lb', JSON.stringify(lb.slice(0,20)));
+    } catch(e) {}
+  }
+
+  function getInfiniteLeaderboard() {
+    try { return JSON.parse(localStorage.getItem('ztd_infinite_lb') || '[]'); } catch(e) { return []; }
   }
 
   function _triggerGameOver() {
@@ -1416,11 +1464,13 @@ const Game = (() => {
     startNextWave, toggleSpeed,
     ownerAddMoney, ownerSkipWave, ownerNukeEnemies, ownerGodMode,
     ownerFreezeAll, ownerSpeedHack, ownerSpawnBoss, ownerMaxAllTowers, ownerSetLives,
+    getInfiniteLeaderboard,
     get money()  { return money;  },
     get lives()  { return lives;  },
     get wave()   { return wave;   },
     get score()  { return score;  },
     get mapId()  { return map?.id; },
+    get isInfinite() { return !!(map && map.isInfinite); },
     isRunning:   () => !!raf,
   };
 })();
@@ -1605,16 +1655,18 @@ function _makePathTile(T, type, theme) {
     //  'br': inner corner is bottom-right → pivot=(T,T)
     //        road spans from angle π to 3π/2
 
+    // Corner pivot is at the tile corner, arcs from angle a0 to a1
+    // R_outer = T so the arc reaches the opposite two tile edges exactly
+    // R_inner = MARGIN so inner edge of road aligns with straight tile margins
     const pivots = { tl:[0,0], tr:[T,0], bl:[0,T], br:[T,T] };
-    const angles = { tl:[0, Math.PI/2], tr:[Math.PI/2, Math.PI], bl:[-Math.PI/2, 0], br:[Math.PI, 3*Math.PI/2] };
+    const angles = { tl:[0, Math.PI/2], tr:[Math.PI/2, Math.PI], bl:[3*Math.PI/2, Math.PI*2], br:[Math.PI, 3*Math.PI/2] };
 
     const [pvx, pvy] = pivots[type];
     const [a0, a1] = angles[type];
 
-    // Road outer radius = T (reaches the opposite edges)
-    // Road inner radius = MARGIN (the inside edge of the road)
+    // Road outer radius = T * √2 clipped by tile, inner = MARGIN
     const R_outer = T;
-    const R_inner = MARGIN;
+    const R_inner = MARGIN * 0.5; // tighter inner to reduce squareness
 
     const drawArcBand = (r_in, r_out, col, alpha) => {
       g.globalAlpha = alpha || 1; g.fillStyle = col;

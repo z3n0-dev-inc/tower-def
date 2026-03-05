@@ -24,6 +24,8 @@
 
   <nav class="menu-tabs">
     <button class="mtab active" data-tab="play">▶ PLAY</button>
+    <button class="mtab" data-tab="infinite">∞ INFINITE</button>
+    <button class="mtab" data-tab="editor">🗺 MAP EDITOR</button>
     <button class="mtab" data-tab="shop">⬡ SHOP</button>
     <button class="mtab" data-tab="leaderboard">◈ LEADERBOARD</button>
     <button class="mtab" data-tab="profile">◉ PROFILE</button>
@@ -34,6 +36,66 @@
     <div class="tab active" id="tab-play">
       <h2 class="tab-title">SELECT MAP</h2>
       <div class="map-grid" id="mapGrid"></div>
+    </div>
+
+    <!-- INFINITE TAB -->
+    <div class="tab" id="tab-infinite">
+      <h2 class="tab-title">∞ INFINITE MODE <span style="font-size:12px;color:var(--txt2)">HOW FAR CAN YOU GO?</span></h2>
+      <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap">
+        <div style="flex:1;min-width:220px">
+          <div class="map-card" id="infiniteCard" style="cursor:pointer;max-width:280px">
+            <div class="map-preview"><canvas id="prev-infinite" width="230" height="110"></canvas>
+              <div class="map-badge map-badge-open">∞</div></div>
+            <div class="map-info">
+              <div class="map-name">∞ INFINITE SURVIVAL</div>
+              <div class="map-diff" style="color:var(--txt2);font-size:10px">♾ ENDLESS WAVES</div>
+              <div class="map-waves-chip">🎈 Balloons get harder every round</div>
+              <div class="map-waves" style="margin-top:3px">B.A.D blimps every 40 waves. Beat your record!</div>
+            </div>
+          </div>
+          <button class="td-btn green full" id="btnPlayInfinite" style="margin-top:12px;font-size:18px;padding:14px">▶ START INFINITE</button>
+        </div>
+        <div style="flex:2;min-width:260px">
+          <h3 style="font-family:var(--f-head);color:var(--amber3);margin-bottom:8px">🏆 INFINITE LEADERBOARD</h3>
+          <div id="infiniteLb" style="font-family:var(--f-mono);font-size:11px;color:var(--txt)">Loading…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAP EDITOR TAB -->
+    <div class="tab" id="tab-editor">
+      <h2 class="tab-title">🗺 MAP EDITOR <span style="font-size:11px;color:var(--txt2)">BETA</span></h2>
+      <div id="editorWrap" style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start">
+        <div>
+          <canvas id="editorCanvas" style="border:2px solid rgba(6,182,212,0.3);cursor:crosshair;display:block"></canvas>
+          <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+            <button class="td-btn" id="edClear">🗑 Clear</button>
+            <button class="td-btn green" id="edPlay" disabled>▶ Test Map</button>
+            <button class="td-btn blue" id="edUndo">↩ Undo</button>
+          </div>
+        </div>
+        <div style="min-width:160px">
+          <div class="sp-title">TOOLS</div>
+          <div style="display:flex;flex-direction:column;gap:6px" id="editorTools">
+            <button class="ed-tool active" data-tool="path">🛣 Draw Path</button>
+            <button class="ed-tool" data-tool="erase">🗑 Erase</button>
+            <button class="ed-tool" data-tool="spawn">🟢 Set Spawn</button>
+            <button class="ed-tool" data-tool="end">🔴 Set End</button>
+          </div>
+          <div class="sp-title" style="margin-top:12px">THEME</div>
+          <select id="edTheme" class="td-input" style="width:100%;margin-top:4px">
+            <option value="graveyard">🌿 Graveyard</option>
+            <option value="urban">🏙 Urban</option>
+            <option value="volcanic">🌋 Volcanic</option>
+            <option value="arctic">❄️ Arctic</option>
+          </select>
+          <div class="sp-title" style="margin-top:12px">GRID</div>
+          <div style="font-size:10px;color:var(--txt2);margin-top:4px">
+            Click to draw path tiles.<br>Set spawn (🟢) and end (🔴),<br>then click Test Map!
+          </div>
+          <div id="edStatus" style="margin-top:10px;font-size:10px;color:var(--grn2)"></div>
+        </div>
+      </div>
     </div>
 
     <div class="tab" id="tab-shop">
