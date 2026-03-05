@@ -6,7 +6,7 @@
   <title>ZOMBIE TOWER DEFENCE</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=JetBrains+Mono:wght@300;400;700&family=Barlow+Condensed:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=JetBrains+Mono:wght@300;400;700&family=Barlow+Condensed:wght@300;400;500;600;700&family=Russo+One&family=Share+Tech+Mono&family=Exo+2:wght@400;600;700;900&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
@@ -189,6 +189,16 @@
     <div class="hud-pill">💰 <span id="hudMoney">100</span></div>
     <div class="hud-pill">❤️ <span id="hudLives">20</span></div>
     <div class="hud-wave-badge">WAVE <span id="hudWave">1</span></div>
+    <div class="hud-threat" id="hudThreat" title="Threat Level">
+      <span class="threat-label">THREAT</span>
+      <div class="threat-bars">
+        <div class="threat-bar" id="tb1"></div>
+        <div class="threat-bar" id="tb2"></div>
+        <div class="threat-bar" id="tb3"></div>
+        <div class="threat-bar" id="tb4"></div>
+        <div class="threat-bar" id="tb5"></div>
+      </div>
+    </div>
     <div class="hud-pill">💀 <span id="hudKills">0</span></div>
     <div class="hud-pill">⭐ <span id="hudScore">0</span></div>
     <!-- XP strip -->
@@ -214,6 +224,7 @@
     <div class="canvas-wrap">
       <canvas id="gameCanvas"></canvas>
       <div id="dmgLayer"></div>
+      <div id="screenFlash"></div>
     </div>
 
     <!-- SIDE PANEL -->
@@ -260,19 +271,35 @@
     </aside>
   </div>
 
+  <!-- KILL FEED PANEL -->
+  <div id="killFeedPanel"></div>
+
+  <!-- COMBO DISPLAY -->
+  <div id="comboDisplay" class="combo-display hidden">
+    <div class="combo-number" id="comboCount">0×</div>
+    <div class="combo-label">COMBO</div>
+    <div class="combo-bar-wrap"><div class="combo-bar-fill" id="comboBar" style="width:100%"></div></div>
+  </div>
+
   <!-- WAVE ANNOUNCE -->
   <div id="waveAnnounce" class="wave-announce hidden">
     <div class="wa-content">
-      <div class="wa-wave" id="waWave">WAVE <span id="waNum">1</span></div>
-      <div class="wa-sub" id="waSub">INCOMING!</div>
+      <div class="wa-backdrop"></div>
+      <div class="wa-eyebrow" id="waEyebrow">WAVE</div>
+      <div class="wa-number" id="waNum">1</div>
+      <div class="wa-tagline" id="waSub">INCOMING!</div>
+      <div class="wa-bars">
+        <div class="wa-bar"></div><div class="wa-bar"></div><div class="wa-bar"></div>
+        <div class="wa-bar"></div><div class="wa-bar"></div>
+      </div>
     </div>
   </div>
 
   <!-- BOSS BAR -->
   <div id="bossBar">
     <div id="bossBarName">
-      <span id="bossBarLabel">👑 ZOMBIE KING</span>
-      <span id="bossBarHp">2000 / 2000</span>
+      <span id="bossBarLabel">👑 BOSS</span>
+      <span id="bossBarHp">—</span>
     </div>
     <div id="bossBarTrack"><div id="bossBarFill"></div></div>
   </div>

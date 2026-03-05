@@ -145,6 +145,7 @@ const Game = (() => {
   let waveActive = false, waveSpawnQueue = [], spawnTimer = 0;
   let money, lives, score, kills, wave;
   let _livesAtWaveStart = 0;
+  let _killsAtWaveStart = 0;
   let gameOver = false, victory = false;
   let speed = 1;
   let selectedTower = null;
@@ -161,6 +162,10 @@ const Game = (() => {
 
   // Kill feed (recent kills shown HUD right)
   let killFeed = [];
+
+  // Combo system
+  let _combo = 0, _comboTimer = 0;
+  const _COMBO_DECAY = 3.5; // seconds to lose combo
 
   // Interest income accumulator
   let interestAccum = 0;
@@ -207,6 +212,8 @@ const Game = (() => {
     _buildMapCache();
     _buildMinimap();
     _bindEvents();
+    // Pre-render all balloon sprites into cache (eliminates first-frame jank)
+    _prewarmSpriteCache();
     _updateHUD();
     _updateWavePreview();
     UI.updateTowerPalette(map);
@@ -671,6 +678,8 @@ const Game = (() => {
     raf = requestAnimationFrame(_loop);
     const rawDt = Math.min((ts - lastTime) / 1000, 0.05);
     lastTime = ts;
+    if (rawDt > 0.049) return;
+    updateAnimTime(rawDt);  // Update shared animation clock once per frame
     const dt = rawDt * speed;
     _update(dt, rawDt);
     _draw();
@@ -684,9 +693,21 @@ const Game = (() => {
     shakeX = (Math.random() - 0.5) * shakeAmount;
     shakeY = (Math.random() - 0.5) * shakeAmount;
 
-    // Kill feed age-out
-    killFeed = killFeed.filter(k => k.age < 4.0);
-    killFeed.forEach(k => k.age += rawDt);
+    // Combo decay
+    if (_combo > 0 && waveActive) {
+      _comboTimer -= rawDt;
+      if (_comboTimer <= 0) { _combo = 0; _comboTimer = 0; _updateComboDisplay(); }
+      else {
+        const bar = document.getElementById('comboBar');
+        if (bar) bar.style.width = Math.max(0, (_comboTimer / _COMBO_DECAY) * 100) + '%';
+      }
+    }
+
+    // Kill feed age-out (age first, then filter — avoids double pass)
+    for (let i = killFeed.length-1; i >= 0; i--) {
+      killFeed[i].age += rawDt;
+      if (killFeed[i].age >= 4.0) killFeed.splice(i, 1);
+    }
 
     // Spawn queue
     if (waveActive && waveSpawnQueue.length > 0) {
@@ -706,8 +727,14 @@ const Game = (() => {
     if (!map.isInfinite && waveActive && waveSpawnQueue.length === 0 && enemies.length === 0) {
       waveActive = false;
 
+      // Round summary popup
+      _showRoundSummary(wave, kills - _killsAtWaveStart, money);
+
+      // Reset combo on wave end
+      _combo = 0; _comboTimer = 0; _updateComboDisplay();
+
       // Interest income between waves (5% of current gold, min 10)
-      const interest = Math.max(15, Math.floor(money * 0.06));
+      const interest = Math.max(8, Math.floor(money * 0.03));
       money += interest;
       _updateHUD();
       _floatText(`+${interest} INTEREST EARNED`, 'gold');
@@ -763,9 +790,20 @@ const Game = (() => {
       if (e.reachedEnd && !e._lifeLost) {
         e._lifeLost = true;
         if (!godMode) {
-          const livesLost = e.def.isBlimp ? Math.max(8, e.def.tier - 6) : e.isBoss ? 5 : e.def.tier || 1;
+          // Lives lost per balloon reaching end — brutal scaling
+          let livesLost;
+          if (e.def.isBlimp) {
+            // Blimps cost serious lives based on tier
+            livesLost = Math.max(10, (e.def.tier - 11) * 4);
+          } else {
+            // Regular balloons cost their tier (red=1, pink=5, purple=8, etc.)
+            livesLost = e.def.tier || 1;
+          }
           lives -= livesLost;
-          shakeAmount = e.isBoss ? 16 : 6;
+          shakeAmount = e.isBoss ? 18 : 8;
+          _screenFlash('red');
+          _flashPill('hudLives', 'lives-hit');
+          _combo = 0; _comboTimer = 0; _updateComboDisplay(); // reset combo on life lost
           if (lives <= 0) { lives = 0; _triggerGameOver(); return; }
         }
         _updateHUD();
@@ -778,6 +816,7 @@ const Game = (() => {
       const e = enemies[i];
       if (e.dead && !e.reachedEnd && !e._rewarded) {
         e._rewarded = true;
+        const prevMoney = money;
         money += e.reward;
         score += e.reward * (e.isBoss ? 10 : 1);
         const _killXP = e.isBoss
@@ -787,16 +826,38 @@ const Game = (() => {
         _luKill.forEach(lu => _handleLevelUp(lu));
         kills++;
         totalCoinsEarned += e.reward;
-        _spawnDmgNum(e.x, e.y, `+${e.reward}`, false);
+
+        // Combo system
+        _combo++;
+        _comboTimer = _COMBO_DECAY;
+        _updateComboDisplay();
+
+        // Satisfying crit flash for high-value kills
+        const isCrit = e.isBoss || e.def.tier >= 12;
+        _spawnDmgNum(e.x, e.y, `+${e.reward}`, isCrit);
+
+        // Money pill flash
+        _flashPill('hudMoney', 'money-gain');
+
         if (e.isBoss) {
-          shakeAmount = 18;
-          killFeed.unshift({ text:`${e.name} POPPED!`, age:0, boss:true });
+          shakeAmount = 22;
+          _screenFlash('gold');
+          _addKillFeedEntry(`💥 ${e.name} DESTROYED!`, true);
           _floatText(`${e.name} DESTROYED! +${e.reward}`, 'gold');
-        } else if (kills % 50 === 0) {
-          killFeed.unshift({ text:`${kills} POPS`, age:0, boss:false });
-          _spawnStreakPop(`🎈 ${kills} POPS!`);
-        } else if (kills % 10 === 0) {
-          killFeed.unshift({ text:`${kills} POPS`, age:0, boss:false });
+        } else {
+          // Combo milestones
+          if (_combo > 0 && _combo % 25 === 0) {
+            _spawnStreakPop(`🔥 ${_combo}× COMBO!`);
+            _screenFlash('gold');
+          } else if (_combo > 0 && _combo % 10 === 0) {
+            _screenFlash('green');
+          }
+          if (kills % 50 === 0) {
+            _addKillFeedEntry(`🎈 ${kills} total pops!`, false);
+            _spawnStreakPop(`🎈 ${kills} POPS!`);
+          } else if (kills % 25 === 0) {
+            _addKillFeedEntry(`💀 ${kills} kills!`, false);
+          }
         }
         // Spawn inner balloon children (BTD6-style)
         if (e.getSpawnChildren) {
@@ -808,7 +869,10 @@ const Game = (() => {
     }
     if (_newChildren.length > 0) enemies.push(..._newChildren);
 
-    enemies = enemies.filter(e => !e.dead && !e.reachedEnd);
+    // Only reallocate array if something actually died
+    let anyDead = false;
+    for (let i = 0; i < enemies.length; i++) { if (enemies[i].dead || enemies[i].reachedEnd) { anyDead = true; break; } }
+    if (anyDead) enemies = enemies.filter(e => !e.dead && !e.reachedEnd);
 
     // Infinite mode: never end
     if (map && map.isInfinite && waveActive && waveSpawnQueue.length===0 && enemies.length===0) {
@@ -823,6 +887,7 @@ const Game = (() => {
         });
         spawnTimer = 2.5; // brief pause between waves
         _livesAtWaveStart = lives;
+        _killsAtWaveStart = kills;
         _updateHUD(); _updateWavePreview();
         UI.announceWave(wave, waveData.isBossWave);
         // Save infinite leaderboard entry
@@ -830,31 +895,44 @@ const Game = (() => {
       }
     }
 
-    // Aura towers: compute buffs for nearby towers
-    towers.forEach(t => t.auraBuff = 1.0);
-    towers.forEach(t => {
-      if (t.def.aura) {
-        towers.forEach(other => {
-          if (other === t) return;
-          const d = Math.hypot(other.x - t.x, other.y - t.y);
-          if (d <= t.range * 0.8) {
-            other.auraBuff = Math.max(other.auraBuff, 1.0 + (t.def.auraBonus || 0.5));
-          }
-        });
+    // Aura towers: only recompute when tower count changes (cache it)
+    // Simple O(n²) but towers are few, skip if no aura towers
+    let hasAura = false;
+    for (let i = 0; i < towers.length; i++) { if (towers[i].def && towers[i].def.aura) { hasAura = true; break; } }
+    if (hasAura) {
+      for (let i = 0; i < towers.length; i++) towers[i].auraBuff = 1.0;
+      for (let i = 0; i < towers.length; i++) {
+        const t = towers[i];
+        if (!t.def.aura) continue;
+        const rSq = (t.range * 0.8) * (t.range * 0.8);
+        const bonus = 1.0 + (t.def.auraBonus || 0.5);
+        for (let j = 0; j < towers.length; j++) {
+          if (i === j) continue;
+          const o = towers[j];
+          const dx = o.x - t.x, dy = o.y - t.y;
+          if (dx*dx + dy*dy <= rSq) o.auraBuff = Math.max(o.auraBuff, bonus);
+        }
       }
-    });
+    }
+
+    // Build live enemy list once (avoid repeated filter calls inside tower.update)
+    const liveEnemies = [];
+    for (let i = 0; i < enemies.length; i++) { if (!enemies[i].dead) liveEnemies.push(enemies[i]); }
 
     // Update towers
-    const liveEnemies = enemies.filter(e => !e.dead);
-    towers.forEach(t => {
+    for (let i = 0; i < towers.length; i++) {
+      const t = towers[i];
       t.targetMode = targetMode;
       t.update(dt, liveEnemies);
       while (t.bullets.length > 0) bullets.push(t.bullets.shift());
-    });
+    }
 
-    // Update bullets
+    // Update bullets (reverse loop so we can splice safely, but filter at end)
     for (let i = bullets.length - 1; i >= 0; i--) bullets[i].update(dt);
-    bullets = bullets.filter(b => !b.dead);
+    // Filter dead bullets - only allocate new array if needed
+    let anyDeadBullets = false;
+    for (let i = 0; i < bullets.length; i++) { if (bullets[i].dead) { anyDeadBullets = true; break; } }
+    if (anyDeadBullets) bullets = bullets.filter(b => !b.dead);
   }
 
   function _draw() {
@@ -863,7 +941,7 @@ const Game = (() => {
     ctx.save();
     if (shakeAmount > 0) ctx.translate(shakeX, shakeY);
 
-    // Map
+    // Map (cached offscreen canvas)
     ctx.drawImage(mapCanvas, 0, 0);
 
     // Placement preview
@@ -883,17 +961,14 @@ const Game = (() => {
       ctx.fill();
       ctx.stroke();
 
-      // Draw tower preview using canvas art
       ctx.globalAlpha = 0.7;
       const previewFn = (typeof TowerArt !== 'undefined' && TowerArt[placingTower.id]) || null;
       if (previewFn) previewFn(ctx, col*tileSize+tileSize/2, row*tileSize+tileSize/2, tileSize, placingTower.color);
       ctx.globalAlpha = 1;
-      // Cost label
       ctx.font = `bold ${Math.floor(tileSize*0.28)}px sans-serif`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillStyle = money >= placingTower.cost ? '#2ecc71' : '#e74c3c';
       ctx.fillText(`$${placingTower.cost}`, col*tileSize+tileSize/2, row*tileSize+tileSize*0.82);
-      // AIR badge on preview
       if (placingTower.isAir) {
         ctx.font = `bold ${Math.floor(tileSize*0.22)}px 'Barlow Condensed', sans-serif`;
         ctx.fillStyle = '#00e5ff';
@@ -901,7 +976,7 @@ const Game = (() => {
       }
     }
 
-    // Hover: show range for tower under cursor
+    // Hover range
     if (!placingTower && hoverTile) {
       const [col, row] = hoverTile;
       const hovered = towers.find(t => t.tileX === col && t.tileY === row);
@@ -916,11 +991,31 @@ const Game = (() => {
       }
     }
 
-    towers.forEach(t => t.draw(ctx));
-    enemies.forEach(e => e.draw(ctx));
-    bullets.forEach(b => b.draw(ctx));
+    // PERFORMANCE: draw towers (always on screen)
+    const tLen = towers.length;
+    for (let i = 0; i < tLen; i++) towers[i].draw(ctx);
 
-    // Hover tile highlight (when not placing)
+    // PERFORMANCE: skip offscreen enemies - cull with margin
+    const cw = canvas.width, ch = canvas.height;
+    const margin = 80;
+    const eLen = enemies.length;
+    for (let i = 0; i < eLen; i++) {
+      const e = enemies[i];
+      if (e.x > -margin && e.x < cw+margin && e.y > -margin && e.y < ch+margin) {
+        e.draw(ctx);
+      }
+    }
+
+    // PERFORMANCE: batch bullets - simple circles where possible
+    const bLen = bullets.length;
+    for (let i = 0; i < bLen; i++) {
+      const b = bullets[i];
+      if (b.x > -margin && b.x < cw+margin && b.y > -margin && b.y < ch+margin) {
+        b.draw(ctx);
+      }
+    }
+
+    // Hover tile highlight
     if (!placingTower && hoverTile) {
       const [col, row] = hoverTile;
       ctx.strokeStyle = 'rgba(255,255,255,0.09)';
@@ -928,15 +1023,9 @@ const Game = (() => {
       ctx.strokeRect(col*tileSize+0.5, row*tileSize+0.5, tileSize-1, tileSize-1);
     }
 
-    // Kill feed (drawn on canvas, top-right)
     _drawKillFeed(ctx);
-
     ctx.restore();
-
-    // Boss bar (DOM overlay, updated each frame)
     _updateBossBar();
-
-    // Minimap
     _drawMinimap();
   }
 
@@ -946,6 +1035,69 @@ const Game = (() => {
     el.textContent = text;
     document.body.appendChild(el);
     setTimeout(() => el.remove(), 1900);
+  }
+
+  // ── NEW FEEDBACK HELPERS ─────────────────────────────────────────
+  function _screenFlash(type) {
+    const el = document.getElementById('screenFlash');
+    if (!el) return;
+    el.className = 'flash-' + type;
+    clearTimeout(el._t);
+    el._t = setTimeout(() => { el.className = ''; }, 180);
+  }
+
+  function _flashPill(id, cls) {
+    const el = document.getElementById(id)?.parentElement;
+    if (!el) return;
+    el.classList.add(cls);
+    clearTimeout(el['_t_' + cls]);
+    el['_t_' + cls] = setTimeout(() => el.classList.remove(cls), 700);
+  }
+
+  function _updateComboDisplay() {
+    const disp = document.getElementById('comboDisplay');
+    const cnt  = document.getElementById('comboCount');
+    if (!disp || !cnt) return;
+    if (_combo < 5) {
+      disp.classList.add('hidden');
+    } else {
+      disp.classList.remove('hidden');
+      cnt.textContent = _combo + '×';
+      // Re-trigger pop animation
+      cnt.style.animation = 'none';
+      void cnt.offsetWidth;
+      cnt.style.animation = '';
+    }
+  }
+
+  const _killFeedMax = 6;
+  function _addKillFeedEntry(text, isBoss) {
+    const panel = document.getElementById('killFeedPanel');
+    if (!panel) return;
+    const el = document.createElement('div');
+    el.className = 'kf-entry' + (isBoss ? ' boss' : '');
+    el.textContent = text;
+    panel.insertBefore(el, panel.firstChild);
+    // Fade out after delay
+    setTimeout(() => { el.style.opacity = '0'; }, 2800);
+    setTimeout(() => el.remove(), 3200);
+    // Cap entries
+    while (panel.children.length > _killFeedMax) panel.removeChild(panel.lastChild);
+  }
+
+  function _showRoundSummary(waveNum, waveKills, currentMoney) {
+    const prev = document.querySelector('.round-summary');
+    if (prev) prev.remove();
+    const perfect = lives >= _livesAtWaveStart;
+    const el = document.createElement('div');
+    el.className = 'round-summary';
+    el.innerHTML = `
+      <div class="rs-title">WAVE ${waveNum} CLEAR${perfect ? ' — PERFECT! ⭐' : ''}</div>
+      <div class="rs-stat">💀 <span>${waveKills}</span> kills this wave</div>
+      <div class="rs-stat">💰 <span>$${currentMoney.toLocaleString()}</span> cash</div>
+    `;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3400);
   }
 
   function _updateBossBar() {
@@ -1299,6 +1451,8 @@ const Game = (() => {
     document.getElementById('hudKills').textContent = kills;
     document.getElementById('hudScore').textContent = score.toLocaleString();
     _updateLevelHUD();
+    _updateThreatLevel();
+    UI.refreshCanAfford(money);
 
     // Lives danger pulse
     const livesPill = document.getElementById('hudLives').parentElement;
@@ -1311,6 +1465,23 @@ const Game = (() => {
     } else {
       livesPill.classList.remove('lives-danger');
       livesPill.style.borderColor = '';
+    }
+  }
+
+  function _updateThreatLevel() {
+    // Threat level 1-5 based on wave number
+    const w = wave || 0;
+    let threatLevel = 1;
+    if (w >= 5)  threatLevel = 2;
+    if (w >= 10) threatLevel = 3;
+    if (w >= 20) threatLevel = 4;
+    if (w >= 40) threatLevel = 5;
+    const classes = ['','t1','t2','t3','t4','t5'];
+    for (let i = 1; i <= 5; i++) {
+      const bar = document.getElementById('tb'+i);
+      if (bar) {
+        bar.className = 'threat-bar' + (i <= threatLevel ? ' '+classes[i] : '');
+      }
     }
   }
 
@@ -1658,8 +1829,13 @@ function _makePathTile(T, type, theme) {
     // Corner pivot is at the tile corner, arcs from angle a0 to a1
     // R_outer = T so the arc reaches the opposite two tile edges exactly
     // R_inner = MARGIN so inner edge of road aligns with straight tile margins
+    // Pivot is the OUTER corner of the turn (where the road bends away from)
+    // tl pivot=(0,0): road enters from bottom, exits right → arc sweeps from π/2 (down) to 0 (right)  
+    // tr pivot=(T,0): road enters from bottom, exits left  → arc sweeps from π/2 to π
+    // bl pivot=(0,T): road enters from top, exits right    → arc sweeps from 3π/2 to 2π (=0)
+    // br pivot=(T,T): road enters from top, exits left     → arc sweeps from π to 3π/2
     const pivots = { tl:[0,0], tr:[T,0], bl:[0,T], br:[T,T] };
-    const angles = { tl:[0, Math.PI/2], tr:[Math.PI/2, Math.PI], bl:[3*Math.PI/2, Math.PI*2], br:[Math.PI, 3*Math.PI/2] };
+    const angles = { tl:[0, Math.PI/2], tr:[Math.PI/2, Math.PI], bl:[3*Math.PI/2, 2*Math.PI], br:[Math.PI, 3*Math.PI/2] };
 
     const [pvx, pvy] = pivots[type];
     const [a0, a1] = angles[type];
@@ -1747,17 +1923,25 @@ function _getPathTileType(path, idx) {
   const dir = toDir || fromDir;
   if (!toDir || !fromDir) return dir.dc !== 0 ? 'h' : 'v';
   if (fromDir.dc === toDir.dc || fromDir.dr === toDir.dr) return toDir.dc !== 0 ? 'h' : 'v';
-  // Corner detection: determine which CORNER of the tile is the inner pivot
-  // Inner pivot = the corner that both the incoming and outgoing paths point toward
+  // Corner: determine the OUTER pivot (opposite of inner) to match the arc pivot coords
+  // The arc is drawn from the corner pivot outward, so pivot = outer corner of the turn
   const fd = fromDir, td = toDir;
-  // Going right then down, OR going up then left → inner corner is bottom-right → pivot BR
-  if ((fd.dc===1&&td.dr===1)||(fd.dr===-1&&td.dc===-1)) return 'br';
-  // Going left then down, OR going up then right → inner corner is bottom-left → pivot BL
-  if ((fd.dc===-1&&td.dr===1)||(fd.dr===-1&&td.dc===1)) return 'bl';
-  // Going right then up, OR going down then left → inner corner is top-right → pivot TR
-  if ((fd.dc===1&&td.dr===-1)||(fd.dr===1&&td.dc===-1)) return 'tr';
-  // Going left then up, OR going down then right → inner corner is top-left → pivot TL
-  if ((fd.dc===-1&&td.dr===-1)||(fd.dr===1&&td.dc===1)) return 'tl';
+  // → then ↓ (right then down): outer corner is top-left → 'tl'
+  if (fd.dc===1  && td.dr===1)  return 'tl';
+  // ← then ↓ (left then down): outer corner is top-right → 'tr'
+  if (fd.dc===-1 && td.dr===1)  return 'tr';
+  // → then ↑ (right then up): outer corner is bottom-left → 'bl'
+  if (fd.dc===1  && td.dr===-1) return 'bl';
+  // ← then ↑ (left then up): outer corner is bottom-right → 'br'
+  if (fd.dc===-1 && td.dr===-1) return 'br';
+  // ↓ then → (down then right): outer corner is top-left → 'tl'
+  if (fd.dr===1  && td.dc===1)  return 'tl';
+  // ↓ then ← (down then left): outer corner is top-right → 'tr'
+  if (fd.dr===1  && td.dc===-1) return 'tr';
+  // ↑ then → (up then right): outer corner is bottom-left → 'bl'
+  if (fd.dr===-1 && td.dc===1)  return 'bl';
+  // ↑ then ← (up then left): outer corner is bottom-right → 'br'
+  if (fd.dr===-1 && td.dc===-1) return 'br';
   return 'h';
 }
 

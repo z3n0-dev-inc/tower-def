@@ -226,6 +226,20 @@ const UI = (() => {
     }
   }
 
+  // Dim towers player can't currently afford (called on HUD money update)
+  function refreshCanAfford(money) {
+    const items = document.querySelectorAll('#towerPalette .tp-item:not(.locked)');
+    items.forEach(item => {
+      const def = TOWER_DEFS.find(d => d.id === item.dataset.id);
+      if (!def) return;
+      if (money < def.cost) {
+        item.classList.add('cant-afford');
+      } else {
+        item.classList.remove('cant-afford');
+      }
+    });
+  }
+
   function _addPaletteItem(palette, def, owned, isOwnerItem) {
     const item = document.createElement('div');
     item.className = 'tp-item' + (owned ? '' : ' locked');
@@ -623,18 +637,28 @@ const UI = (() => {
   }
 
   // ── WAVE ANNOUNCE ─────────────────────────────
+  const _WAVE_TAGLINES = [
+    'INCOMING!', 'BRACE YOURSELF!', 'HERE THEY COME!',
+    'DEFEND THE BASE!', 'NO MERCY!', 'HOLD THE LINE!',
+    'THEY MULTIPLY!', 'STAY SHARP!', 'PREPARE FOR IMPACT!',
+  ];
   function announceWave(num, isBoss) {
-    const el   = document.getElementById('waveAnnounce');
-    const waveEl = document.getElementById('waWave');
+    const el     = document.getElementById('waveAnnounce');
+    const numEl  = document.getElementById('waNum');
     const subEl  = document.getElementById('waSub');
-    document.getElementById('waNum').textContent = num;
-    subEl.textContent = isBoss ? '⚠ BOSS WAVE!' : 'INCOMING!';
+    const eyeEl  = document.getElementById('waEyebrow');
+    if (!el) return;
+    numEl.textContent = num;
     if (isBoss) {
-      waveEl?.classList.add('boss-wave');
-      subEl.classList.add('boss-wave');
+      eyeEl.textContent = '⚠ BOSS —';
+      subEl.textContent = 'BRACE FOR IMPACT!';
+      numEl.className = 'wa-number boss';
+      subEl.className = 'wa-tagline boss';
     } else {
-      waveEl?.classList.remove('boss-wave');
-      subEl.classList.remove('boss-wave');
+      eyeEl.textContent = 'WAVE';
+      subEl.textContent = _WAVE_TAGLINES[Math.floor(Math.random() * _WAVE_TAGLINES.length)];
+      numEl.className = 'wa-number';
+      subEl.className = 'wa-tagline';
     }
     el.classList.remove('hidden');
     setTimeout(() => el.classList.add('hidden'), 2200);
@@ -896,7 +920,7 @@ const UI = (() => {
     init, showScreen, startGame,
     updateTowerPalette, showTowerInfo,
     unlockMap, unlockNextMap,
-    announceWave, toast,
+    announceWave, toast, refreshCanAfford,
     addOwnedTower: id => { ownedTowers.add(id); _saveLocalProgress(); },
     get ownedTowers() { return ownedTowers; },
   };
