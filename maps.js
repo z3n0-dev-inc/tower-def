@@ -346,25 +346,38 @@ function drawMapPreview(canvas, map) {
   const pc = PC[map.theme] || PC.graveyard;
   const pw = Math.max(tW, tH);
 
-  const strokePath = (lw, col, alpha, dash) => {
-    ctx.save();
-    if (alpha!==undefined) ctx.globalAlpha = alpha;
-    if (dash) ctx.setLineDash(dash);
-    ctx.strokeStyle = col; ctx.lineWidth = pw * lw;
-    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.beginPath();
-    map.path.forEach(([c,r],i)=>{
-      const px=c*tW+tW/2, py=r*tH+tH/2;
-      i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+  // Use tile-based path rendering if available (from game.js)
+  const T = Math.min(tW, tH);
+  if (typeof _makePathTile === 'function' && typeof _getPathTileType === 'function') {
+    const tileCache = {};
+    ['h','v','tl','tr','bl','br'].forEach(tp => {
+      const tile = _makePathTile(T, tp, map.theme);
+      if (tile) tileCache[tp] = tile;
     });
-    ctx.stroke(); ctx.restore();
-  };
-
-  strokePath(1.05, 'rgba(0,0,0,0.75)');
-  strokePath(0.96, pc.edge, 0.58);
-  strokePath(0.88, pc.p1);
-  strokePath(0.42, pc.p2, 0.68);
-  strokePath(0.15, pc.hi);
+    map.path.forEach(([c, r], idx) => {
+      const tp = _getPathTileType(map.path, idx);
+      const tile = tileCache[tp];
+      if (tile) ctx.drawImage(tile, c * tW, r * tH, tW, tH);
+    });
+  } else {
+    // Fallback stroked path
+    const strokePath = (lw, col, alpha, dash) => {
+      ctx.save();
+      if (alpha!==undefined) ctx.globalAlpha = alpha;
+      if (dash) ctx.setLineDash(dash);
+      ctx.strokeStyle = col; ctx.lineWidth = T * lw;
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.beginPath();
+      map.path.forEach(([c,r],i)=>{
+        const px2=c*tW+tW/2, py2=r*tH+tH/2;
+        i===0?ctx.moveTo(px2,py2):ctx.lineTo(px2,py2);
+      });
+      ctx.stroke(); ctx.restore();
+    };
+    strokePath(1.05, 'rgba(0,0,0,0.75)');
+    strokePath(0.88, pc.p1);
+    strokePath(0.42, pc.p2, 0.68);
+  }
   // Direction arrows along path
   _drawPathArrows(ctx, map, tW, tH, pc.p2);
 
