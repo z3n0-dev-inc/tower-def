@@ -3,13 +3,12 @@
    ═══════════════════════════════════════════════ */
 
 window.addEventListener('DOMContentLoaded', async () => {
-  // Init both panels — they stay hidden until PlayFab inventory
-  // confirms the correct item exists (owner_panel / mod_panel)
+  // Init panel — stays hidden until PlayFab inventory confirms
+  // owner_panel (👑 Owner Console) or mod_panel (🛡 Mod Console)
   Owner.init();
-  Mod.init();
 
   // Init UI — handles login, auto-login, leaderboard, shop etc.
-  // playfab.js loadInventory() calls Owner.show() / Mod.show() as needed
+  // playfab.js loadInventory() calls Owner.show() / Owner.hide() as needed
   await UI.init();
 
   console.log('%c🧟 Zombie Tower Defence', 'color:#e74c3c;font-size:18px;font-weight:bold');
