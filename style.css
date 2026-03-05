@@ -653,3 +653,95 @@ kbd { background:var(--bg4); border:1px solid var(--bdr2); border-radius:2px; pa
 /* Leaderboard refresh button */
 #btnRefreshLB { min-width: 32px; font-size: 14px; }
 #btnRefreshLB:hover { color: var(--cyan3) !important; }
+
+/* ══════════════════════════════════════════════
+   DEV PANEL
+   ══════════════════════════════════════════════ */
+
+:root {
+  --dev-accent: #ff6b35;
+  --dev-glow:   rgba(255,107,53,0.18);
+  --dev-border: rgba(255,107,53,0.28);
+}
+
+/* Dev trigger — sits above the owner/mod trigger */
+.dev-trigger {
+  bottom: 160px !important; /* stack above owner trigger */
+}
+
+.ot-dev {
+  background: linear-gradient(135deg, rgba(40,15,0,0.97), rgba(60,20,0,0.97));
+  border-color: var(--dev-border) !important;
+}
+
+.dev-trigger .ot-pulse-ring.dev-ring {
+  border-color: var(--dev-accent);
+}
+
+.dev-trigger.open .ot-dev,
+.dev-trigger:hover .ot-dev {
+  border-color: var(--dev-accent) !important;
+  box-shadow: 0 0 20px var(--dev-glow);
+}
+
+/* Dev panel container */
+.dev-panel {
+  border-color: var(--dev-border) !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.9), 0 0 50px var(--dev-glow) !important;
+}
+
+.dev-hdr {
+  background: rgba(255,107,53,0.07) !important;
+  border-bottom-color: var(--dev-border) !important;
+}
+.dev-hdr .op-hdr-title { color: var(--dev-accent) !important; }
+.dev-panel .op-corner   { border-color: rgba(255,107,53,0.5) !important; }
+
+/* Slide-in animation for dev panel */
+.dev-panel.dev-opening { animation: opSlideIn 0.25s cubic-bezier(0.22,1,0.36,1) both; }
+.dev-panel.dev-closing { animation: opSlideOut 0.22s ease-in forwards; }
+
+/* Section labels */
+.dev-label {
+  color: var(--dev-accent) !important;
+  border-bottom: 1px solid var(--dev-border);
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+}
+
+/* Status bar */
+.dev-status-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 10px;
+  background: rgba(255,107,53,0.04);
+  border: 1px solid var(--dev-border);
+  border-radius: var(--radius);
+  margin-bottom: 4px;
+}
+.dev-status-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--f-mono);
+  font-size: 7px;
+  letter-spacing: 1.5px;
+  color: var(--txt3);
+}
+.dev-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dev-dot-on  { background: var(--dev-accent); box-shadow: 0 0 6px var(--dev-accent); }
+.dev-dot-off { background: var(--txt3); opacity: 0.4; }
+
+/* Dev log placeholder */
+.dev-placeholder {
+  font-family: var(--f-mono);
+  font-size: 9px;
+  color: var(--dev-accent);
+  opacity: 0.5;
+  padding: 4px 0;
+}

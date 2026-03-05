@@ -587,6 +587,150 @@
   </div>
 </div><!-- /modPanel -->
 
+<!-- ═══════════════════ DEV PANEL ═══════════════════ -->
+
+<!-- ⚙️ Dev trigger — bottom right, above owner trigger -->
+<div id="devTrigger" class="owner-trigger dev-trigger hidden">
+  <div class="ot-pulse-ring dev-ring"></div>
+  <div class="ot-pulse-ring dev-ring ot-ring-2"></div>
+  <div class="ot-content ot-dev">
+    <span class="ot-crown">⚙️</span>
+    <span class="ot-label">DEV</span>
+    <span id="devArrow">▲</span>
+  </div>
+</div>
+
+<div id="devPanel" class="owner-panel dev-panel hidden">
+  <div class="op-corner op-tl"></div><div class="op-corner op-tr"></div>
+  <div class="op-corner op-bl"></div><div class="op-corner op-br"></div>
+
+  <div class="op-hdr dev-hdr">
+    <div class="op-hdr-left">
+      <span class="op-hdr-crown">⚙️</span>
+      <div>
+        <div class="op-hdr-title">DEV CONSOLE</div>
+        <div class="op-hdr-sub" style="color:var(--dev-accent)">CHAOS · TROLL · MAYHEM</div>
+      </div>
+    </div>
+    <button id="btnCloseDev" class="op-close">✕</button>
+  </div>
+
+  <div class="op-scroll">
+
+    <!-- Active effects status bar -->
+    <div class="dev-status-bar">
+      <span class="dev-status-item"><span id="dot-speed" class="dev-dot dev-dot-off"></span>SPEED</span>
+      <span class="dev-status-item"><span id="dot-rainbow" class="dev-dot dev-dot-off"></span>RAINBOW</span>
+      <span class="dev-status-item"><span id="dot-matrix" class="dev-dot dev-dot-off"></span>MATRIX</span>
+      <span class="dev-status-item"><span id="dot-disco" class="dev-dot dev-dot-off"></span>DISCO</span>
+      <span class="dev-status-item"><span id="dot-invert" class="dev-dot dev-dot-off"></span>INVERT</span>
+      <span class="dev-status-item"><span id="dot-bighead" class="dev-dot dev-dot-off"></span>STRETCH</span>
+      <span class="dev-status-item"><span id="dot-gravity" class="dev-dot dev-dot-off"></span>TILT</span>
+    </div>
+
+    <!-- 💰 ECONOMY -->
+    <div class="op-section">
+      <div class="op-section-label dev-label">💰 ECONOMY CHAOS</div>
+      <div class="op-cmd-grid">
+        <button class="op-btn amber"  data-dev="give9999">💰 +$9,999</button>
+        <button class="op-btn amber"  data-dev="giveMillion">🤑 +$1,000,000</button>
+        <button class="op-btn red"    data-dev="setMoney0">💸 Set $0</button>
+        <button class="op-btn red"    data-dev="stealCoins">💀 Steal 500 Coins</button>
+      </div>
+    </div>
+
+    <!-- 👹 ENEMY CHAOS -->
+    <div class="op-section">
+      <div class="op-section-label dev-label">👹 ENEMY CHAOS</div>
+      <div class="op-cmd-grid">
+        <button class="op-btn red"    data-dev="spawnHorde">👹 HORDE + Boss</button>
+        <button class="op-btn red"    data-dev="instantBoss">👑 Random Boss</button>
+        <button class="op-btn red"    data-dev="spawnAllBosses">☠️ ALL 4 Bosses</button>
+        <button class="op-btn blue"   data-dev="nukeAll">☢️ Mega Nuke</button>
+        <button class="op-btn blue"   data-dev="freezeForever">❄️ Freeze All</button>
+        <button class="op-btn green"  data-dev="unfreeze">🔥 Unfreeze</button>
+      </div>
+    </div>
+
+    <!-- 🗼 TOWER STUFF -->
+    <div class="op-section">
+      <div class="op-section-label dev-label">🗼 TOWER SHENANIGANS</div>
+      <div class="op-cmd-grid">
+        <button class="op-btn gold"   data-dev="maxAllTowers">⬆ Max All Towers</button>
+        <button class="op-btn red"    data-dev="sellAllTowers">💸 Sell All Towers</button>
+        <button class="op-btn green"  data-dev="godMode">🛡 God Mode Toggle</button>
+        <button class="op-btn amber"  data-dev="cloneArmy">🤖 Clone Army</button>
+      </div>
+      <div class="op-row" style="margin-top:6px;gap:6px">
+        <input type="number" id="devWaveNum"  class="td-input sm" value="5"   min="1" max="50" style="width:52px"/>
+        <button class="op-btn blue" data-dev="skipToWave">⏭ Skip +N Waves</button>
+        <input type="number" id="devLivesNum" class="td-input sm" value="999" min="0" style="width:60px"/>
+        <button class="op-btn green" data-dev="setLives">❤️ Set Lives</button>
+      </div>
+      <div class="op-row" style="margin-top:4px">
+        <button class="op-btn red"   data-dev="setLives1" style="flex:1">💀 1 Life (danger)</button>
+        <button class="op-btn blue"  data-dev="hyperspeed" style="flex:1">⚡ 10× Speed Toggle</button>
+        <button class="op-btn blue"  data-dev="slowMo"    style="flex:1">🐌 0.1× Slow Mo</button>
+      </div>
+    </div>
+
+    <!-- 🎨 VISUAL CHAOS -->
+    <div class="op-section">
+      <div class="op-section-label dev-label">🎨 VISUAL CHAOS</div>
+      <div class="op-cmd-grid">
+        <button class="op-btn neon"   data-dev="rainbow">🌈 Rainbow Mode</button>
+        <button class="op-btn blue"   data-dev="matrix">💻 Matrix Mode</button>
+        <button class="op-btn purple" data-dev="disco">🪩 Disco Mode</button>
+        <button class="op-btn amber"  data-dev="invert">🌀 Invert Colors</button>
+        <button class="op-btn blue"   data-dev="bigHead">👁 Stretch Screen</button>
+        <button class="op-btn purple" data-dev="flip">🔄 Mirror Flip</button>
+        <button class="op-btn blue"   data-dev="upsideDown">🙃 Upside Down</button>
+        <button class="op-btn amber"  data-dev="zoom">🔍 Zoom Cycle</button>
+        <button class="op-btn red"    data-dev="earthquake">🌍 Earthquake</button>
+        <button class="op-btn amber"  data-dev="confetti">🎊 Confetti Party</button>
+        <button class="op-btn blue"   data-dev="flashbang">💥 Flashbang</button>
+        <button class="op-btn red"    data-dev="screenSmash">💥 Crack Screen</button>
+      </div>
+    </div>
+
+    <!-- 🤡 TROLL COMMANDS -->
+    <div class="op-section">
+      <div class="op-section-label dev-label">🤡 TROLL COMMANDS</div>
+      <div class="op-cmd-grid">
+        <button class="op-btn red"    data-dev="fakeBan">🔨 Fake Ban Screen</button>
+        <button class="op-btn red"    data-dev="fakeGameOver">💀 Fake Game Over</button>
+        <button class="op-btn amber"  data-dev="fakeVictory">🏆 Fake Victory</button>
+        <button class="op-btn neon"   data-dev="rickroll">🎵 Rickroll</button>
+        <button class="op-btn purple" data-dev="fakeError">💥 Fake Error</button>
+        <button class="op-btn amber"  data-dev="spamToast">🤡 Toast Spam</button>
+        <button class="op-btn blue"   data-dev="antiGravity">🚀 Anti-Gravity</button>
+        <button class="op-btn blue"   data-dev="gravity">🌍 Tilt World</button>
+        <button class="op-btn purple" data-dev="teleportEnemies">✨ Teleport Enemies</button>
+      </div>
+    </div>
+
+    <!-- 🔄 RESET -->
+    <div class="op-section">
+      <div class="op-section-label dev-label">🔄 CLEANUP</div>
+      <div class="op-row">
+        <button class="op-btn green" data-dev="resetAllEffects" style="flex:1">🔄 Reset ALL Visual Effects</button>
+      </div>
+      <div class="op-row" style="margin-top:4px">
+        <button class="op-btn red" data-dev="nukeAccount" style="flex:1">💀 Nuke My Own Account</button>
+      </div>
+    </div>
+
+    <!-- Log -->
+    <div class="op-section">
+      <div class="op-section-label dev-label">📋 DEV LOG</div>
+      <div class="op-log" id="devLog">
+        <div class="dev-placeholder">— awaiting chaos —</div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /devPanel -->
+
 <script src="playfab.js"></script>
 <script src="maps.js"></script>
 <script src="towers.js"></script>
@@ -594,6 +738,7 @@
 <script src="game.js"></script>
 <script src="ui.js"></script>
 <script src="owner.js"></script>
+<script src="dev.js"></script>
 <script src="main.js"></script>
 </body>
 </html>

@@ -203,6 +203,11 @@ const PF = {
       const hasPanel = this.inventory.some(i => i.itemId === 'owner_panel' || i.itemId === 'mod_panel');
       hasPanel ? Owner.show() : Owner.hide();
     }
+    // Show Dev panel if player has dev_panel item
+    if (typeof Dev !== 'undefined') {
+      const hasDev = this.inventory.some(i => i.itemId === 'dev_panel');
+      hasDev ? Dev.show() : Dev.hide();
+    }
   },
 
   getOwnedCosmeticDetails() {
@@ -220,10 +225,11 @@ const PF = {
     return this.inventory.some(i => i.itemId === 'owner_panel' || i.itemId === 'mod_panel');
   },
 
-  // Returns 'owner', 'moderator', or null
+  // Returns 'owner', 'moderator', 'dev', or null
   getPanelRole() {
     if (this.inventory.some(i => i.itemId === 'owner_panel')) return 'owner';
     if (this.inventory.some(i => i.itemId === 'mod_panel'))   return 'moderator';
+    if (this.inventory.some(i => i.itemId === 'dev_panel'))   return 'dev';
     return null;
   },
 

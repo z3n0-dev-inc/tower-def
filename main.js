@@ -3,16 +3,15 @@
    ═══════════════════════════════════════════════ */
 
 window.addEventListener('DOMContentLoaded', async () => {
-  // Init panel — stays hidden until PlayFab inventory confirms
-  // owner_panel (👑 Owner Console) or mod_panel (🛡 Mod Console)
+  // Init panels — stay hidden until PlayFab inventory confirms access
   Owner.init();
+  Dev.init();
 
   // Init UI — handles login, auto-login, leaderboard, shop etc.
-  // playfab.js loadInventory() calls Owner.show() / Owner.hide() as needed
   await UI.init();
 
   console.log('%c🧟 Zombie Tower Defence', 'color:#e74c3c;font-size:18px;font-weight:bold');
   console.log('%cPlayFab Title: 100286 | Catalog: ZTD_Cosmetics_v1', 'color:#2ecc71');
-  console.log('%cPanels: owner_panel → 👑 Owner | mod_panel → 🛡 Mod', 'color:#f5b215');
+  console.log('%cPanels: owner_panel → 👑 Owner | mod_panel → 🛡 Mod | dev_panel → ⚙️ Dev', 'color:#ff6b35');
 });
 
