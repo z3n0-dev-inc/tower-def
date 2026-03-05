@@ -224,6 +224,298 @@ const Game = (() => {
     _renderMap(mapCtx);
   }
 
+  // ── Pre-render a single path tile to an offscreen canvas ──────────────────
+  function _makePathTile(T, type, theme) {
+    // type: 'h' | 'v' | 'tl'|'tr'|'bl'|'br' (corner: which quadrant is INSIDE the curve)
+    const oc = document.createElement('canvas');
+    oc.width = oc.height = T;
+    const g = oc.getContext('2d');
+
+    // Theme road colors
+    const RC = {
+      graveyard: { base:'#5a4428', mid:'#6b5535', edge:'#3a2810', border:'#2a1e08', stone:'#7a6845', light:'rgba(255,220,160,0.12)', crack:'rgba(0,0,0,0.22)' },
+      urban:     { base:'#4a4a4a', mid:'#5c5c5c', edge:'#2a2a2a', border:'#1a1a1a', stone:'#6e6e6e', light:'rgba(255,255,255,0.06)', crack:'rgba(0,0,0,0.3)' },
+      volcanic:  { base:'#3c1800', mid:'#501e00', edge:'#7a1800', border:'#1e0800', stone:'#6a2800', light:'rgba(255,80,0,0.1)', crack:'rgba(255,60,0,0.25)' },
+      arctic:    { base:'#a0c0dc', mid:'#b8d4ec', edge:'#d8eeff', border:'#6080a0', stone:'#c8e0f4', light:'rgba(255,255,255,0.2)', crack:'rgba(200,235,255,0.35)' },
+      hell:      { base:'#580000', mid:'#700000', edge:'#bb0000', border:'#2a0000', stone:'#880000', light:'rgba(255,30,0,0.12)', crack:'rgba(255,0,0,0.3)' },
+      nuclear:   { base:'#364e00', mid:'#4a6800', edge:'#78a800', border:'#1c2e00', stone:'#5a7000', light:'rgba(120,220,0,0.1)', crack:'rgba(100,200,0,0.3)' },
+      shadow:    { base:'#1c0040', mid:'#280060', edge:'#6000cc', border:'#0c0020', stone:'#380080', light:'rgba(140,0,255,0.1)', crack:'rgba(120,0,255,0.35)' },
+      omega:     { base:'#2a0006', mid:'#400008', edge:'#cc0020', border:'#140002', stone:'#580012', light:'rgba(255,0,30,0.12)', crack:'rgba(255,0,30,0.4)' },
+    };
+    const rc = RC[theme] || RC.graveyard;
+
+    const isCorner = ['tl','tr','bl','br'].includes(type);
+
+    g.save();
+    if (isCorner) {
+      // ── CORNER TILE ────────────────────────────────────────────────────────
+      // Fill full tile with base road color
+      g.fillStyle = rc.base;
+      g.fillRect(0, 0, T, T);
+
+      // Determine pivot corner
+      const px = type === 'tl' || type === 'bl' ? T : 0;
+      const py = type === 'tl' || type === 'tr' ? T : 0;
+
+      // Road width = full tile; outer arc clips off the unwanted corner triangle
+      // Inner arc radius = T * 0.18, outer arc radius = T * 0.18 + T = T * 1.18
+      // But we want the road to fill the tile in a curve: use a thick arc stroke
+
+      // Outer border
+      g.beginPath();
+      g.arc(px, py, T * 0.95, 0, Math.PI * 2);
+      g.fillStyle = rc.border;
+      g.fill();
+
+      // Road surface (inner fill of the bent road)
+      g.beginPath();
+      g.moveTo(px === 0 ? 0 : T, 0);
+      g.lineTo(px === 0 ? T : 0, 0);
+      g.lineTo(px === 0 ? T : 0, T);
+      g.lineTo(px === 0 ? 0 : T, T);
+      g.closePath();
+      // Clip to tile
+      g.save();
+      g.beginPath();
+      g.rect(0, 0, T, T);
+      g.clip();
+
+      // Draw outer road edge arc
+      g.beginPath();
+      g.arc(px, py, T * 0.92, 0, Math.PI * 2);
+      g.fillStyle = rc.edge;
+      g.fill();
+
+      // Main surface arc band
+      g.beginPath();
+      g.arc(px, py, T * 0.85, 0, Math.PI * 2);
+      g.fillStyle = rc.base;
+      g.fill();
+
+      // Mid-tone arc
+      g.beginPath();
+      g.arc(px, py, T * 0.65, 0, Math.PI * 2);
+      g.fillStyle = rc.mid;
+      g.fill();
+
+      // Inner hole (cut out center — inner edge of the curved road)
+      g.beginPath();
+      g.arc(px, py, T * 0.18, 0, Math.PI * 2);
+      // Nothing — we keep it filled; the hole is the background behind
+
+      // Inner cutout (the non-road area inside the curve) — paint ground color back
+      // We will handle this after by masking: paint from center circle outward nothing
+      // Actually, do it via globalCompositeOperation
+      g.globalCompositeOperation = 'destination-out';
+      g.beginPath();
+      g.arc(px, py, T * 0.18, 0, Math.PI * 2);
+      g.fill();
+      g.globalCompositeOperation = 'source-over';
+
+      // The corner "outside" area — triangle region that should be ground
+      // Already transparent via arc destination-out at center
+      // Now also cut out the outer square corner (90-degree wedge outside the arc)
+      g.globalCompositeOperation = 'destination-out';
+      // Cut a rectangle away from the "outside" corner
+      const cx2 = px === 0 ? 1 : 0, cy2 = py === 0 ? 1 : 0;
+      g.beginPath();
+      g.arc(px, py, T * 0.18, 0, Math.PI * 2);
+      g.fill();
+      g.globalCompositeOperation = 'source-over';
+
+      g.restore();
+
+      // Center highlight on curve
+      g.save();
+      g.beginPath(); g.rect(0, 0, T, T); g.clip();
+      g.beginPath();
+      g.arc(px, py, T * 0.52, 0, Math.PI * 2);
+      const cgrad = g.createRadialGradient(px, py, T*0.15, px, py, T*0.52);
+      cgrad.addColorStop(0, 'rgba(0,0,0,0)');
+      cgrad.addColorStop(0.7, rc.light);
+      cgrad.addColorStop(1, 'rgba(0,0,0,0)');
+      g.strokeStyle = rc.light;
+      g.lineWidth = T * 0.08;
+      g.stroke();
+      g.restore();
+
+    } else {
+      // ── STRAIGHT TILE ──────────────────────────────────────────────────────
+      g.fillStyle = rc.border;
+      g.fillRect(0, 0, T, T);
+
+      const isH = type === 'h';
+      const x1 = isH ? 0 : T * 0.07;
+      const y1 = isH ? T * 0.07 : 0;
+      const x2 = isH ? T : T * 0.93;
+      const y2 = isH ? T * 0.93 : T;
+
+      // Outer edge strip
+      g.fillStyle = rc.edge;
+      g.fillRect(x1, y1, x2 - x1, y2 - y1);
+
+      // Main surface
+      const margin = isH ? T * 0.09 : T * 0.09;
+      g.fillStyle = rc.base;
+      g.fillRect(
+        isH ? x1 : x1 + margin * 0.5,
+        isH ? y1 + margin * 0.5 : y1,
+        isH ? x2 - x1 : x2 - x1 - margin,
+        isH ? y2 - y1 - margin : y2 - y1
+      );
+
+      // Center lighter band
+      g.fillStyle = rc.mid;
+      g.globalAlpha = 0.7;
+      if (isH) {
+        g.fillRect(0, T * 0.3, T, T * 0.4);
+      } else {
+        g.fillRect(T * 0.3, 0, T * 0.4, T);
+      }
+      g.globalAlpha = 1;
+
+      // Center highlight
+      g.fillStyle = rc.light;
+      if (isH) {
+        g.fillRect(0, T * 0.42, T, T * 0.16);
+      } else {
+        g.fillRect(T * 0.42, 0, T * 0.16, T);
+      }
+
+      // Edge shadow lines (road border detail)
+      g.strokeStyle = 'rgba(0,0,0,0.35)';
+      g.lineWidth = T * 0.03;
+      if (isH) {
+        g.beginPath(); g.moveTo(0, T*0.09); g.lineTo(T, T*0.09); g.stroke();
+        g.beginPath(); g.moveTo(0, T*0.91); g.lineTo(T, T*0.91); g.stroke();
+      } else {
+        g.beginPath(); g.moveTo(T*0.09, 0); g.lineTo(T*0.09, T); g.stroke();
+        g.beginPath(); g.moveTo(T*0.91, 0); g.lineTo(T*0.91, T); g.stroke();
+      }
+    }
+
+    // ── SURFACE TEXTURE ──────────────────────────────────────────────────────
+    const tRng = mulberry32(T * 7 + (type.charCodeAt(0) || 0));
+    if (theme === 'graveyard') {
+      // Dirt pebbles & cracks
+      for (let i = 0; i < 8; i++) {
+        const sx = tRng() * T, sy = tRng() * T;
+        g.globalAlpha = 0.15 + tRng() * 0.2;
+        g.fillStyle = tRng() < 0.5 ? '#6a5030' : '#8a7050';
+        g.beginPath(); g.ellipse(sx, sy, 1.5 + tRng()*3, 1 + tRng()*2, tRng()*Math.PI, 0, Math.PI*2); g.fill();
+      }
+      // Occasional crack line
+      if (tRng() < 0.4) {
+        g.strokeStyle = rc.crack; g.lineWidth = 0.8; g.globalAlpha = 0.5;
+        const cx = tRng()*T*0.8+T*0.1, cy = tRng()*T*0.8+T*0.1;
+        g.beginPath(); g.moveTo(cx, cy);
+        g.lineTo(cx+(tRng()-0.5)*T*0.5, cy+(tRng()-0.5)*T*0.5);
+        g.stroke();
+      }
+    } else if (theme === 'arctic') {
+      // Ice crack lines
+      for (let i = 0; i < 3; i++) {
+        if (tRng() < 0.5) {
+          g.strokeStyle = 'rgba(220,245,255,0.45)'; g.lineWidth = 0.7; g.globalAlpha = 0.6;
+          const fx = tRng()*T, fy = tRng()*T;
+          g.beginPath(); g.moveTo(fx, fy); g.lineTo(fx+(tRng()-0.5)*T*0.5, fy+(tRng()-0.5)*T*0.4); g.stroke();
+        }
+      }
+      // Snow sparkle dots
+      for (let i = 0; i < 5; i++) {
+        g.globalAlpha = 0.2 + tRng()*0.3;
+        g.fillStyle = '#ffffff';
+        g.beginPath(); g.arc(tRng()*T, tRng()*T, 0.8+tRng()*1.5, 0, Math.PI*2); g.fill();
+      }
+    } else if (theme === 'volcanic' || theme === 'hell') {
+      // Lava glow cracks
+      for (let i = 0; i < 4; i++) {
+        if (tRng() < 0.35) {
+          const gx = tRng()*T, gy = tRng()*T;
+          const gl = g.createRadialGradient(gx, gy, 0, gx, gy, T*0.18);
+          gl.addColorStop(0, theme==='hell'?'rgba(255,40,0,0.6)':'rgba(255,120,0,0.5)');
+          gl.addColorStop(1, 'rgba(0,0,0,0)');
+          g.fillStyle = gl; g.beginPath(); g.arc(gx, gy, T*0.18, 0, Math.PI*2); g.fill();
+        }
+      }
+    } else if (theme === 'urban') {
+      // Asphalt noise
+      for (let i = 0; i < 12; i++) {
+        g.globalAlpha = 0.06 + tRng()*0.1;
+        g.fillStyle = tRng()<0.5 ? '#333' : '#777';
+        g.fillRect(tRng()*T, tRng()*T, 1+tRng()*3, 1+tRng()*2);
+      }
+    } else if (theme === 'nuclear') {
+      // Green glow patches
+      for (let i = 0; i < 3; i++) {
+        if (tRng() < 0.3) {
+          const gx = tRng()*T, gy = tRng()*T;
+          const gl = g.createRadialGradient(gx, gy, 0, gx, gy, T*0.15);
+          gl.addColorStop(0, 'rgba(140,230,0,0.35)');
+          gl.addColorStop(1, 'rgba(80,180,0,0)');
+          g.fillStyle = gl; g.beginPath(); g.arc(gx, gy, T*0.15, 0, Math.PI*2); g.fill();
+        }
+      }
+    } else if (theme === 'shadow') {
+      // Purple sparkles
+      for (let i = 0; i < 5; i++) {
+        g.globalAlpha = 0.15 + tRng()*0.25;
+        g.fillStyle = tRng()<0.5 ? '#9900ff' : '#cc00ff';
+        g.beginPath(); g.arc(tRng()*T, tRng()*T, 0.5+tRng()*2, 0, Math.PI*2); g.fill();
+      }
+    } else if (theme === 'omega') {
+      // Red circuit lines
+      if (tRng() < 0.5) {
+        g.strokeStyle = 'rgba(220,0,30,0.3)'; g.lineWidth = 0.8;
+        const isH2 = type === 'h';
+        g.beginPath(); g.moveTo(isH2?0:T*0.5, isH2?T*0.5:0); g.lineTo(isH2?T:T*0.5, isH2?T*0.5:T); g.stroke();
+      }
+    }
+    g.globalAlpha = 1;
+    g.restore();
+    return oc;
+  }
+
+  // ── Determine tile type from path context ─────────────────────────────────
+  function _getPathTileType(path, idx) {
+    const [c, r] = path[idx];
+    const prev = idx > 0 ? path[idx-1] : null;
+    const next = idx < path.length-1 ? path[idx+1] : null;
+
+    const fromDir = prev ? { dc: c - prev[0], dr: r - prev[1] } : null;
+    const toDir   = next ? { dc: next[0] - c, dr: next[1] - r } : null;
+
+    // If only one neighbor, it's a straight matching that direction
+    const dir = toDir || fromDir;
+    if (!toDir || !fromDir) {
+      return (dir.dc !== 0) ? 'h' : 'v';
+    }
+
+    // Straight
+    if (fromDir.dc === toDir.dc || fromDir.dr === toDir.dr) {
+      return (toDir.dc !== 0) ? 'h' : 'v';
+    }
+
+    // Corner: determine which quadrant pivot is at
+    // The "inside" corner pivot is where from-direction and to-direction both point
+    // coming FROM left (dc=1) and going UP (dr=-1) → pivot at top-right → 'tr'
+    // coming FROM right (dc=-1) and going UP (dr=-1) → pivot at top-left → 'tl'
+    // coming FROM left (dc=1) and going DOWN (dr=1) → pivot at bottom-right → 'br'
+    // coming FROM right (dc=-1) and going DOWN → pivot at bottom-left → 'bl'
+    // coming FROM up (dr=1) and going RIGHT (dc=1) → pivot at bottom-right → 'br'
+    // coming FROM up (dr=1) and going LEFT (dc=-1) → pivot at bottom-left → 'bl'
+    // coming FROM down (dr=-1) and going RIGHT → pivot at top-right → 'tr'
+    // coming FROM down (dr=-1) and going LEFT → pivot at top-left → 'tl'
+
+    const fd = fromDir, td = toDir;
+    if ((fd.dc===1&&td.dr===-1)||(fd.dr===1&&td.dc===1)) return 'br';
+    if ((fd.dc===-1&&td.dr===-1)||(fd.dr===1&&td.dc===-1)) return 'bl';
+    if ((fd.dc===1&&td.dr===1)||(fd.dr===-1&&td.dc===1)) return 'tr';
+    if ((fd.dc===-1&&td.dr===1)||(fd.dr===-1&&td.dc===-1)) return 'tl';
+
+    return 'h'; // fallback
+  }
+
   function _renderMap(c) {
     const w = map.cols * tileSize, h = map.rows * tileSize;
     const theme = map.theme || 'graveyard';
@@ -309,56 +601,175 @@ const Game = (() => {
     c.fillStyle = grad;
     c.fillRect(0, 0, w, h);
 
-    // ── 2. GROUND TILES (non-path) ───────────────────────────────────────────
-    // Each grass tile gets a unique subtle variation for organic feel
+    // ── 2. GROUND TILES (non-path) — Pre-rendered per-tile rich ground ─────────
+    // Pre-render 8 grass tile variants for variety
+    const GRASS_VARIANTS = 8;
+    const grassTiles = [];
+    for (let v = 0; v < GRASS_VARIANTS; v++) {
+      const gt = document.createElement('canvas');
+      gt.width = gt.height = T;
+      const gg = gt.getContext('2d');
+      const gRng = mulberry32(v * 1337 + 42);
+      const colors = [th.grass1, th.grass2, th.grass3, th.grassDark];
+
+      // Base fill
+      gg.fillStyle = colors[v % colors.length];
+      gg.fillRect(0, 0, T, T);
+
+      // Subtle variation patches
+      for (let p = 0; p < 4; p++) {
+        gg.fillStyle = colors[(v + p + 1) % colors.length];
+        gg.globalAlpha = 0.2 + gRng()*0.25;
+        gg.beginPath();
+        gg.ellipse(gRng()*T, gRng()*T, T*(0.2+gRng()*0.4), T*(0.15+gRng()*0.3), gRng()*Math.PI, 0, Math.PI*2);
+        gg.fill();
+      }
+      gg.globalAlpha = 1;
+
+      if (theme === 'graveyard') {
+        // Lush grass blades in clusters
+        const bladeColors = ['#2a4816','#336120','#1e3a10','#3d7225','#2a5518'];
+        for (let b = 0; b < 14; b++) {
+          const bx = gRng()*T, by = T*0.7 + gRng()*T*0.3;
+          const bh = T*0.12 + gRng()*T*0.2;
+          const lean = (gRng()-0.5)*T*0.08;
+          gg.strokeStyle = bladeColors[Math.floor(gRng()*bladeColors.length)];
+          gg.lineWidth = 1 + gRng()*1.2;
+          gg.lineCap = 'round';
+          gg.globalAlpha = 0.55 + gRng()*0.4;
+          gg.beginPath();
+          gg.moveTo(bx, by);
+          gg.quadraticCurveTo(bx + lean*0.5, by - bh*0.55, bx + lean, by - bh);
+          gg.stroke();
+        }
+        // Occasional small flowers
+        if (gRng() < 0.25) {
+          const fx = T*0.2 + gRng()*T*0.6, fy = T*0.2 + gRng()*T*0.5;
+          const flColors = ['#ffe066','#ff8888','#ffbbee','#ffffff'];
+          const flC = flColors[Math.floor(gRng()*flColors.length)];
+          for (let petal = 0; petal < 5; petal++) {
+            const pa = (petal/5)*Math.PI*2;
+            gg.fillStyle = flC; gg.globalAlpha = 0.7;
+            gg.beginPath(); gg.ellipse(fx+Math.cos(pa)*T*0.05, fy+Math.sin(pa)*T*0.05, T*0.04, T*0.025, pa, 0, Math.PI*2); gg.fill();
+          }
+          gg.fillStyle = '#ffe066'; gg.globalAlpha = 0.9;
+          gg.beginPath(); gg.arc(fx, fy, T*0.025, 0, Math.PI*2); gg.fill();
+        }
+        // Small stones
+        if (gRng() < 0.2) {
+          gg.fillStyle = '#6a7060'; gg.globalAlpha = 0.5;
+          gg.beginPath(); gg.ellipse(T*0.15+gRng()*T*0.7, T*0.3+gRng()*T*0.5, T*0.055+gRng()*T*0.04, T*0.035+gRng()*T*0.03, gRng()*Math.PI, 0, Math.PI*2); gg.fill();
+        }
+      } else if (theme === 'urban') {
+        // Cracked concrete / asphalt
+        for (let cr = 0; cr < 4; cr++) {
+          gg.strokeStyle = gRng()<0.5?'rgba(0,0,0,0.2)':'rgba(180,180,180,0.1)';
+          gg.lineWidth = 0.5 + gRng()*1.2;
+          gg.globalAlpha = 0.3 + gRng()*0.4;
+          const sx = gRng()*T, sy = gRng()*T;
+          gg.beginPath(); gg.moveTo(sx, sy);
+          let cx2=sx, cy2=sy;
+          for (let s=0; s<3; s++){cx2+=(gRng()-0.5)*T*0.5; cy2+=(gRng()-0.5)*T*0.5; gg.lineTo(cx2,cy2);}
+          gg.stroke();
+        }
+        // Debris specks
+        for (let d = 0; d < 8; d++) {
+          gg.fillStyle = gRng()<0.5?'#333':'#666';
+          gg.globalAlpha = 0.15 + gRng()*0.2;
+          gg.fillRect(gRng()*T, gRng()*T, 1+gRng()*3, 1+gRng()*2);
+        }
+      } else if (theme === 'arctic') {
+        // Snow texture - bumps and sparkles
+        for (let s = 0; s < 8; s++) {
+          const sg2 = gg.createRadialGradient(gRng()*T, gRng()*T, 0, gRng()*T, gRng()*T, T*0.2);
+          sg2.addColorStop(0, 'rgba(255,255,255,0.4)'); sg2.addColorStop(1, 'rgba(230,245,255,0)');
+          gg.fillStyle = sg2; gg.beginPath(); gg.ellipse(gRng()*T, gRng()*T, T*0.12+gRng()*T*0.1, T*0.07+gRng()*T*0.06, gRng()*Math.PI, 0, Math.PI*2); gg.fill();
+        }
+        // Ice sparkle dots
+        for (let sp = 0; sp < 6; sp++) {
+          gg.fillStyle = '#ffffff'; gg.globalAlpha = 0.3 + gRng()*0.5;
+          gg.beginPath(); gg.arc(gRng()*T, gRng()*T, 0.5+gRng()*1.5, 0, Math.PI*2); gg.fill();
+        }
+        // Frozen grass tuft
+        if (gRng() < 0.3) {
+          const bx = T*0.2+gRng()*T*0.6;
+          for (let b = 0; b < 4; b++) {
+            gg.strokeStyle = '#aaccdd'; gg.lineWidth = 1; gg.globalAlpha = 0.5;
+            gg.beginPath(); gg.moveTo(bx+(b-2)*T*0.06, T*0.85); gg.lineTo(bx+(b-2)*T*0.06+(gRng()-0.5)*T*0.04, T*0.6); gg.stroke();
+          }
+        }
+      } else if (theme === 'volcanic') {
+        // Ash and cinder ground
+        for (let ash = 0; ash < 6; ash++) {
+          gg.fillStyle = gRng()<0.5?'#3a2010':'#4a2818';
+          gg.globalAlpha = 0.3+gRng()*0.3;
+          gg.beginPath(); gg.ellipse(gRng()*T, gRng()*T, T*0.05+gRng()*T*0.1, T*0.03+gRng()*T*0.07, gRng()*Math.PI, 0, Math.PI*2); gg.fill();
+        }
+        // Lava crack glow
+        if (gRng() < 0.3) {
+          const gl2 = gg.createRadialGradient(gRng()*T, gRng()*T, 0, gRng()*T, gRng()*T, T*0.2);
+          gl2.addColorStop(0, 'rgba(255,80,0,0.4)'); gl2.addColorStop(1, 'rgba(200,30,0,0)');
+          gg.fillStyle = gl2; gg.beginPath(); gg.arc(gRng()*T, gRng()*T, T*0.2, 0, Math.PI*2); gg.fill();
+        }
+      } else if (theme === 'hell') {
+        // Scorched ground
+        for (let s = 0; s < 5; s++) {
+          gg.fillStyle = gRng()<0.5?'#1a0000':'#2a0400';
+          gg.globalAlpha = 0.4+gRng()*0.4;
+          gg.beginPath(); gg.ellipse(gRng()*T, gRng()*T, T*0.06+gRng()*T*0.12, T*0.04+gRng()*T*0.08, gRng()*Math.PI, 0, Math.PI*2); gg.fill();
+        }
+        // Ember glow
+        if (gRng() < 0.35) {
+          gg.fillStyle = gRng()<0.5?'#ff2200':'#ff6600'; gg.globalAlpha = 0.2+gRng()*0.25;
+          gg.beginPath(); gg.arc(gRng()*T, gRng()*T, 1+gRng()*2, 0, Math.PI*2); gg.fill();
+        }
+      } else if (theme === 'nuclear') {
+        // Irradiated ground with glowing patches
+        for (let b = 0; b < 12; b++) {
+          const bx = gRng()*T, by = T*0.6 + gRng()*T*0.4;
+          gg.strokeStyle = gRng()<0.5?'#3a6800':'#507800';
+          gg.lineWidth = 1; gg.lineCap = 'round'; gg.globalAlpha = 0.4+gRng()*0.4;
+          gg.beginPath(); gg.moveTo(bx, by); gg.quadraticCurveTo(bx+(gRng()-0.5)*T*0.08, by-T*0.06, bx+(gRng()-0.5)*T*0.06, by-T*0.15); gg.stroke();
+        }
+        if (gRng() < 0.25) {
+          const ggl = gg.createRadialGradient(gRng()*T, gRng()*T, 0, gRng()*T, gRng()*T, T*0.18);
+          ggl.addColorStop(0, 'rgba(140,220,0,0.45)'); ggl.addColorStop(1, 'rgba(80,160,0,0)');
+          gg.fillStyle = ggl; gg.beginPath(); gg.arc(gRng()*T, gRng()*T, T*0.18, 0, Math.PI*2); gg.fill();
+        }
+      } else if (theme === 'shadow') {
+        // Dark void ground with purple wisps
+        for (let s = 0; s < 4; s++) {
+          const gl3 = gg.createRadialGradient(gRng()*T, gRng()*T, 0, gRng()*T, gRng()*T, T*0.2);
+          gl3.addColorStop(0, 'rgba(100,0,200,0.2)'); gl3.addColorStop(1, 'rgba(50,0,120,0)');
+          gg.fillStyle = gl3; gg.beginPath(); gg.ellipse(gRng()*T, gRng()*T, T*0.15+gRng()*T*0.1, T*0.1+gRng()*T*0.08, gRng()*Math.PI, 0, Math.PI*2); gg.fill();
+        }
+        for (let sp = 0; sp < 4; sp++) {
+          gg.fillStyle = gRng()<0.5?'#6600cc':'#9900ff'; gg.globalAlpha = 0.1+gRng()*0.2;
+          gg.beginPath(); gg.arc(gRng()*T, gRng()*T, 0.5+gRng()*1.5, 0, Math.PI*2); gg.fill();
+        }
+      } else if (theme === 'omega') {
+        // Void metal / corrupted ground
+        for (let s = 0; s < 5; s++) {
+          gg.strokeStyle = 'rgba(200,0,30,0.15)'; gg.lineWidth = 0.5; gg.globalAlpha = 0.4+gRng()*0.4;
+          gg.beginPath(); gg.moveTo(gRng()*T, gRng()*T); gg.lineTo(gRng()*T, gRng()*T); gg.stroke();
+        }
+        if (gRng() < 0.2) {
+          gg.fillStyle = '#ff0020'; gg.globalAlpha = 0.08+gRng()*0.12;
+          gg.beginPath(); gg.arc(gRng()*T, gRng()*T, T*0.1+gRng()*T*0.1, 0, Math.PI*2); gg.fill();
+        }
+      }
+      gg.globalAlpha = 1;
+      grassTiles.push(gt);
+    }
+
+    // Draw ground tiles using pre-rendered variants
     for (let row = 0; row < map.rows; row++) {
       for (let col = 0; col < map.cols; col++) {
         if (map.pathSet.has(`${col},${row}`)) continue;
         const v = rng();
         const tx = col * T, ty = row * T;
-
-        // Base tile color with variation
-        const colors = [th.grass1, th.grass2, th.grass3, th.grassDark];
-        c.fillStyle = colors[Math.floor(v * colors.length)];
-        c.globalAlpha = 0.85 + rng() * 0.15;
-        c.fillRect(tx, ty, T, T);
-
-        // Grass texture: small blades / patches
-        if (theme === 'graveyard' || theme === 'nuclear') {
-          // Green grass blades
-          const bladeColor = theme === 'nuclear' ? '#3a6800' : '#2a4a16';
-          c.strokeStyle = bladeColor;
-          c.lineWidth = 1;
-          const nb = 3 + Math.floor(rng() * 4);
-          for (let b = 0; b < nb; b++) {
-            const bx = tx + rng() * T, by = ty + rng() * T;
-            const bh = 3 + rng() * 6;
-            c.globalAlpha = 0.4 + rng() * 0.4;
-            c.beginPath();
-            c.moveTo(bx, by);
-            c.quadraticCurveTo(bx + (rng()-0.5)*4, by - bh*0.6, bx + (rng()-0.5)*3, by - bh);
-            c.stroke();
-          }
-        } else if (theme === 'arctic') {
-          // Snow sparkles
-          if (rng() < 0.3) {
-            c.fillStyle = '#ffffff';
-            c.globalAlpha = 0.15 + rng() * 0.2;
-            c.beginPath();
-            c.arc(tx + rng()*T, ty + rng()*T, 1 + rng()*2, 0, Math.PI*2);
-            c.fill();
-          }
-        } else if (theme === 'volcanic' || theme === 'hell') {
-          // Ash / ember particles
-          if (rng() < 0.2) {
-            c.fillStyle = theme === 'hell' ? '#ff2200' : '#ff5500';
-            c.globalAlpha = 0.12 + rng() * 0.15;
-            c.beginPath();
-            c.arc(tx + rng()*T, ty + rng()*T, 1.5, 0, Math.PI*2);
-            c.fill();
-          }
-        }
-        c.globalAlpha = 1;
+        const tileIdx = Math.floor(v * GRASS_VARIANTS);
+        c.drawImage(grassTiles[tileIdx], tx, ty);
       }
     }
 
@@ -468,113 +879,30 @@ const Game = (() => {
       c.globalAlpha = 1;
     }
 
-    // ── 5. PATH DRAWING — Beautiful stone/dirt road ──────────────────────────
-    const pathPoints = map.path.map(([pc,pr]) => ({
-      x: pc*T + T/2, y: pr*T + T/2
-    }));
+    // ── 5. PATH — Tile-by-tile rendering (straight + corners) ────────────────
+    const tileCache = {};
+    ['h','v','tl','tr','bl','br'].forEach(type => {
+      tileCache[type] = _makePathTile(T, type, theme);
+    });
+    map.path.forEach(([pc, pr], idx) => {
+      const type = _getPathTileType(map.path, idx);
+      const tile = tileCache[type];
+      if (tile) c.drawImage(tile, pc * T, pr * T);
+    });
 
-    const drawPathStroke = (lw, style, alpha, dash) => {
-      c.save();
-      c.lineCap = 'round'; c.lineJoin = 'round';
-      c.lineWidth = T * lw;
-      c.strokeStyle = style;
-      if (alpha !== undefined) c.globalAlpha = alpha;
-      if (dash) c.setLineDash(dash);
-      c.beginPath();
-      pathPoints.forEach((p, i) => i === 0 ? c.moveTo(p.x, p.y) : c.lineTo(p.x, p.y));
-      c.stroke();
-      c.restore();
-    };
-
-    // Outer shadow
-    drawPathStroke(1.05, 'rgba(0,0,0,0.7)');
-    // Edge border (themed color)
-    drawPathStroke(0.95, th.pathDark, 1);
-    // Outer edge glow/color
-    drawPathStroke(0.88, th.pathEdge, 0.55);
-    // Main road surface
-    drawPathStroke(0.82, th.path1, 1);
-    // Inner lighter band
-    drawPathStroke(0.55, th.path2, 0.6);
-    // Stone/surface detail layer
-    drawPathStroke(0.30, th.pathStone, 0.35);
-    // Center specular
-    drawPathStroke(0.12, 'rgba(255,255,255,0.08)');
-
-    // Path surface texture: pebbles / stones / cracks per tile
-    {
-      const texRng = mulberry32(77);
-      map.path.forEach(([pc, pr], idx) => {
-        const px = pc*T, py = pr*T;
-        const cx2 = px + T/2, cy2 = py + T/2;
-
-        if (theme === 'graveyard') {
-          // Dirt with small stones
-          for (let s = 0; s < 3; s++) {
-            const sx = cx2 + (texRng()-0.5)*T*0.65, sy = cy2 + (texRng()-0.5)*T*0.65;
-            c.globalAlpha = 0.18 + texRng()*0.18;
-            c.fillStyle = texRng() < 0.5 ? '#6a5030' : '#7a6040';
-            c.beginPath(); c.ellipse(sx, sy, 2+texRng()*3, 1.5+texRng()*2, texRng()*Math.PI, 0, Math.PI*2); c.fill();
-          }
-        } else if (theme === 'arctic') {
-          // Ice cracks
-          if (texRng() < 0.35) {
-            c.save(); c.strokeStyle='rgba(210,240,255,0.35)'; c.lineWidth=1;
-            c.globalAlpha = 0.5;
-            c.beginPath();
-            const fx = cx2 + (texRng()-0.5)*T*0.5, fy = cy2 + (texRng()-0.5)*T*0.5;
-            c.moveTo(fx, fy); c.lineTo(fx+(texRng()-0.5)*T*0.4, fy+(texRng()-0.5)*T*0.4);
-            c.stroke(); c.restore();
-          }
-        } else if (theme === 'volcanic' || theme === 'hell') {
-          // Lava veins on path
-          if (texRng() < 0.25) {
-            const glow = c.createRadialGradient(cx2, cy2, 0, cx2, cy2, T*0.25);
-            glow.addColorStop(0, theme==='hell'?'rgba(255,30,0,0.3)':'rgba(255,100,0,0.25)');
-            glow.addColorStop(1, 'rgba(0,0,0,0)');
-            c.fillStyle = glow; c.beginPath(); c.arc(cx2, cy2, T*0.25, 0, Math.PI*2); c.fill();
-          }
-        } else if (theme === 'urban') {
-          // Road marking dashes
-          if (idx % 6 === 0 && idx > 0 && idx < map.path.length-1) {
-            const [nc, nr] = map.path[Math.min(idx+1, map.path.length-1)];
-            const angle = Math.atan2(nr-pr, nc-pc);
-            c.save(); c.translate(cx2, cy2); c.rotate(angle);
-            c.fillStyle = 'rgba(255,255,255,0.1)';
-            c.fillRect(-T*0.06, -T*0.28, T*0.12, T*0.56);
-            c.restore();
-          }
-        } else if (theme === 'nuclear') {
-          // Green glow spots
-          if (texRng() < 0.15) {
-            c.globalAlpha = 0.2;
-            c.fillStyle = '#88cc00';
-            c.beginPath(); c.arc(cx2+(texRng()-0.5)*T*0.5, cy2+(texRng()-0.5)*T*0.5, 2, 0, Math.PI*2); c.fill();
-          }
-        } else if (theme === 'omega') {
-          // Circuit pattern
-          if (idx % 3 === 0) {
-            c.save(); c.strokeStyle = 'rgba(220,0,30,0.2)'; c.lineWidth = 0.8;
-            c.beginPath(); c.moveTo(cx2-T*0.3, cy2); c.lineTo(cx2+T*0.3, cy2);
-            c.stroke(); c.restore();
-          }
-        }
-        c.globalAlpha = 1;
-      });
-    }
 
     // ── 6. DECORATIONS on non-path tiles (rich themed art) ──────────────────
     {
       let placed = 0;
       const decRng = mulberry32(55);
-      const maxDeco = Math.min(40, map.cols * map.rows * 0.12);
+      const maxDeco = Math.min(80, map.cols * map.rows * 0.18);
       for (let row = 0; row < map.rows && placed < maxDeco; row++) {
         for (let col = 0; col < map.cols && placed < maxDeco; col++) {
           if (map.pathSet.has(`${col},${row}`)) continue;
-          if (decRng() < 0.09) {
-            const dx = col*T + T/2, dy = row*T + T/2;
-            c.globalAlpha = 0.55 + decRng()*0.35;
-            _drawMapDeco(c, theme, dx, dy, T * 0.38, decRng);
+          if (decRng() < 0.13) {
+            const dx = col*T + T*0.2 + decRng()*T*0.6, dy = row*T + T*0.2 + decRng()*T*0.6;
+            c.globalAlpha = 0.7 + decRng()*0.3;
+            _drawMapDeco(c, theme, dx, dy, T * 0.42, decRng);
             c.globalAlpha = 1;
             placed++;
           }
@@ -601,15 +929,21 @@ const Game = (() => {
       c.fillRect(0, 0, w, h);
     }
 
-    // ── 9. GRID LINES (very subtle) ──────────────────────────────────────────
-    c.strokeStyle = 'rgba(255,255,255,0.02)';
-    c.lineWidth = 0.5;
-    for (let col = 0; col <= map.cols; col++) {
-      c.beginPath(); c.moveTo(col*T, 0); c.lineTo(col*T, h); c.stroke();
-    }
-    for (let row = 0; row <= map.rows; row++) {
-      c.beginPath(); c.moveTo(0, row*T); c.lineTo(w, row*T); c.stroke();
-    }
+    // ── 9. PATH EDGE SHADOWS — drop shadow from path onto adjacent grass ────
+    map.path.forEach(([pc, pr]) => {
+      [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dc, dr]) => {
+        const nc = pc+dc, nr = pr+dr;
+        if (nc<0||nc>=map.cols||nr<0||nr>=map.rows) return;
+        if (map.pathSet.has(`${nc},${nr}`)) return;
+        const fromX = pc*T+T/2, fromY = pr*T+T/2;
+        const shiftX = (nc-pc)*T*0.5, shiftY = (nr-pr)*T*0.5;
+        const sg = c.createRadialGradient(fromX+shiftX*0.2, fromY+shiftY*0.2, 0, fromX+shiftX*0.2, fromY+shiftY*0.2, T*0.7);
+        sg.addColorStop(0, 'rgba(0,0,0,0.3)');
+        sg.addColorStop(1, 'rgba(0,0,0,0)');
+        c.fillStyle = sg;
+        c.fillRect(nc*T, nr*T, T, T);
+      });
+    });
 
     // ── 10. START / END PORTALS ──────────────────────────────────────────────
     const [sc, sr] = map.path[0];
