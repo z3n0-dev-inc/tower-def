@@ -227,241 +227,354 @@ const Game = (() => {
   function _renderMap(c) {
     const w = map.cols * tileSize, h = map.rows * tileSize;
     const theme = map.theme || 'graveyard';
+    const T = tileSize;
     const rng  = mulberry32(42);
     const rng2 = mulberry32(99);
     const rng3 = mulberry32(17);
 
-    // ── 1. Base ground fill ──────────────────────────────────────────────────
-    const themes = {
-      graveyard: { bg1:'#162011', bg2:'#1e2d16', accent:'#243d1a', path1:'#3a2c18', path2:'#4f3e22', pathEdge:'#2a1e0e', fog:'rgba(160,200,140,0.04)' },
-      urban:     { bg1:'#161616', bg2:'#1e1e1e', accent:'#252525', path1:'#4a4a4a', path2:'#606060', pathEdge:'#1a1a1a', fog:null },
-      volcanic:  { bg1:'#140600', bg2:'#1e0800', accent:'#2a0e00', path1:'#2e1000', path2:'#3d1500', pathEdge:'#8b1a00', fog:'rgba(255,80,0,0.03)' },
-      arctic:    { bg1:'#0a1522', bg2:'#0e1d30', accent:'#162540', path1:'#8ab4d4', path2:'#aacde8', pathEdge:'#d0e8f8', fog:'rgba(200,230,255,0.05)' },
-      hell:      { bg1:'#0d0000', bg2:'#150000', accent:'#200000', path1:'#4a0000', path2:'#600000', pathEdge:'#c00000', fog:'rgba(255,30,0,0.04)' },
-      nuclear:   { bg1:'#0a1200', bg2:'#111a00', accent:'#182400', path1:'#3a5000', path2:'#506800', pathEdge:'#7a9a00', fog:'rgba(120,200,0,0.03)' },
-      shadow:    { bg1:'#020208', bg2:'#04040f', accent:'#08081a', path1:'#1e0040', path2:'#2a0060', pathEdge:'#5500aa', fog:'rgba(100,0,255,0.04)' },
-      omega:     { bg1:'#000002', bg2:'#000008', accent:'#05000f', path1:'#280000', path2:'#400000', pathEdge:'#cc0020', fog:'rgba(255,0,30,0.05)' },
+    // ── THEME PALETTES ───────────────────────────────────────────────────────
+    const THEMES = {
+      graveyard: {
+        sky1:'#0e1f0b', sky2:'#162614', sky3:'#0a150a',
+        grass1:'#1a3312', grass2:'#1f3d16', grass3:'#243f18', grassDark:'#0f2009',
+        path1:'#5c4a2e', path2:'#6b5738', pathEdge:'#3a2c18', pathDark:'#2a1e0e',
+        pathStone:'#7a6848', pathCrack:'rgba(0,0,0,0.35)',
+        fog:'rgba(130,190,110,0.06)', vignette:'rgba(0,0,0,0.5)',
+        ambient:'rgba(100,180,80,0.04)',
+      },
+      urban: {
+        sky1:'#101012', sky2:'#161618', sky3:'#0a0a0c',
+        grass1:'#1a1a1c', grass2:'#202022', grass3:'#252527', grassDark:'#111113',
+        path1:'#525252', path2:'#636363', pathEdge:'#282828', pathDark:'#181818',
+        pathStone:'#6e6e6e', pathCrack:'rgba(0,0,0,0.4)',
+        fog:null, vignette:'rgba(0,0,0,0.55)',
+        ambient:'rgba(200,200,255,0.02)',
+      },
+      volcanic: {
+        sky1:'#160500', sky2:'#1e0800', sky3:'#100300',
+        grass1:'#1c0900', grass2:'#221000', grass3:'#280d00', grassDark:'#0f0500',
+        path1:'#4a2000', path2:'#5c2a00', pathEdge:'#8b2000', pathDark:'#200800',
+        pathStone:'#6e3000', pathCrack:'rgba(255,60,0,0.3)',
+        fog:'rgba(255,60,0,0.04)', vignette:'rgba(0,0,0,0.5)',
+        ambient:'rgba(255,80,0,0.06)',
+      },
+      arctic: {
+        sky1:'#0c1828', sky2:'#10203a', sky3:'#081420',
+        grass1:'#c8dff0', grass2:'#d5e8f8', grass3:'#e0eeff', grassDark:'#9ab8d0',
+        path1:'#a8c8e0', path2:'#c0d8ee', pathEdge:'#e8f4ff', pathDark:'#6a90b0',
+        pathStone:'#d8eaf8', pathCrack:'rgba(200,235,255,0.4)',
+        fog:'rgba(200,230,255,0.07)', vignette:'rgba(5,15,35,0.5)',
+        ambient:'rgba(180,220,255,0.05)',
+      },
+      hell: {
+        sky1:'#100000', sky2:'#180000', sky3:'#0c0000',
+        grass1:'#200000', grass2:'#280000', grass3:'#300000', grassDark:'#150000',
+        path1:'#600000', path2:'#780000', pathEdge:'#cc0000', pathDark:'#300000',
+        pathStone:'#8a0000', pathCrack:'rgba(255,0,0,0.35)',
+        fog:'rgba(255,20,0,0.05)', vignette:'rgba(0,0,0,0.55)',
+        ambient:'rgba(200,0,0,0.07)',
+      },
+      nuclear: {
+        sky1:'#0a1200', sky2:'#0f1800', sky3:'#080e00',
+        grass1:'#182200', grass2:'#1e2c00', grass3:'#253400', grassDark:'#0e1600',
+        path1:'#3a5800', path2:'#4e7000', pathEdge:'#7aaa00', pathDark:'#1e3000',
+        pathStone:'#607800', pathCrack:'rgba(120,200,0,0.35)',
+        fog:'rgba(100,200,0,0.04)', vignette:'rgba(0,0,0,0.5)',
+        ambient:'rgba(120,220,0,0.05)',
+      },
+      shadow: {
+        sky1:'#020206', sky2:'#04040e', sky3:'#010104',
+        grass1:'#080818', grass2:'#0c0c22', grass3:'#100e28', grassDark:'#040410',
+        path1:'#1e0048', path2:'#2a0066', pathEdge:'#6600cc', pathDark:'#0e0022',
+        pathStone:'#380080', pathCrack:'rgba(140,0,255,0.4)',
+        fog:'rgba(80,0,200,0.05)', vignette:'rgba(0,0,0,0.6)',
+        ambient:'rgba(100,0,200,0.06)',
+      },
+      omega: {
+        sky1:'#000004', sky2:'#00000a', sky3:'#000002',
+        grass1:'#04000c', grass2:'#080014', grass3:'#0a0018', grassDark:'#020008',
+        path1:'#300008', path2:'#480010', pathEdge:'#dd0025', pathDark:'#180004',
+        pathStone:'#600015', pathCrack:'rgba(255,0,35,0.45)',
+        fog:'rgba(200,0,30,0.06)', vignette:'rgba(0,0,0,0.6)',
+        ambient:'rgba(200,0,30,0.07)',
+      },
     };
-    const th = themes[theme] || themes.graveyard;
+    const th = THEMES[theme] || THEMES.graveyard;
 
-    // Background gradient
-    const grad = c.createLinearGradient(0, 0, w, h);
-    grad.addColorStop(0, th.bg1);
-    grad.addColorStop(0.5, th.bg2);
-    grad.addColorStop(1, th.bg1);
+    // ── 1. SKY / BASE GRADIENT ───────────────────────────────────────────────
+    const grad = c.createLinearGradient(0, 0, w*0.3, h);
+    grad.addColorStop(0, th.sky1);
+    grad.addColorStop(0.45, th.sky2);
+    grad.addColorStop(1, th.sky3);
     c.fillStyle = grad;
     c.fillRect(0, 0, w, h);
 
-    // ── 2. Ground texture: varied tile-like patches ──────────────────────────
+    // ── 2. GROUND TILES (non-path) ───────────────────────────────────────────
+    // Each grass tile gets a unique subtle variation for organic feel
     for (let row = 0; row < map.rows; row++) {
       for (let col = 0; col < map.cols; col++) {
         if (map.pathSet.has(`${col},${row}`)) continue;
         const v = rng();
-        if (v < 0.25) {
-          c.fillStyle = th.accent;
-          c.globalAlpha = 0.4 + rng() * 0.3;
-          const ox = rng() * tileSize * 0.3, oy = rng() * tileSize * 0.3;
-          c.fillRect(col*tileSize + ox, row*tileSize + oy,
-            tileSize * (0.4 + rng()*0.5), tileSize * (0.3 + rng()*0.4));
+        const tx = col * T, ty = row * T;
+
+        // Base tile color with variation
+        const colors = [th.grass1, th.grass2, th.grass3, th.grassDark];
+        c.fillStyle = colors[Math.floor(v * colors.length)];
+        c.globalAlpha = 0.85 + rng() * 0.15;
+        c.fillRect(tx, ty, T, T);
+
+        // Grass texture: small blades / patches
+        if (theme === 'graveyard' || theme === 'nuclear') {
+          // Green grass blades
+          const bladeColor = theme === 'nuclear' ? '#3a6800' : '#2a4a16';
+          c.strokeStyle = bladeColor;
+          c.lineWidth = 1;
+          const nb = 3 + Math.floor(rng() * 4);
+          for (let b = 0; b < nb; b++) {
+            const bx = tx + rng() * T, by = ty + rng() * T;
+            const bh = 3 + rng() * 6;
+            c.globalAlpha = 0.4 + rng() * 0.4;
+            c.beginPath();
+            c.moveTo(bx, by);
+            c.quadraticCurveTo(bx + (rng()-0.5)*4, by - bh*0.6, bx + (rng()-0.5)*3, by - bh);
+            c.stroke();
+          }
+        } else if (theme === 'arctic') {
+          // Snow sparkles
+          if (rng() < 0.3) {
+            c.fillStyle = '#ffffff';
+            c.globalAlpha = 0.15 + rng() * 0.2;
+            c.beginPath();
+            c.arc(tx + rng()*T, ty + rng()*T, 1 + rng()*2, 0, Math.PI*2);
+            c.fill();
+          }
+        } else if (theme === 'volcanic' || theme === 'hell') {
+          // Ash / ember particles
+          if (rng() < 0.2) {
+            c.fillStyle = theme === 'hell' ? '#ff2200' : '#ff5500';
+            c.globalAlpha = 0.12 + rng() * 0.15;
+            c.beginPath();
+            c.arc(tx + rng()*T, ty + rng()*T, 1.5, 0, Math.PI*2);
+            c.fill();
+          }
         }
+        c.globalAlpha = 1;
       }
     }
-    c.globalAlpha = 1;
 
-    // Fine noise dots
-    c.fillStyle = th.accent;
-    for (let i = 0; i < 600; i++) {
-      c.globalAlpha = 0.2 + rng2() * 0.35;
+    // ── 3. GROUND LARGE PATCHES (adds biome depth) ───────────────────────────
+    for (let i = 0; i < 80; i++) {
       const gx = rng2() * w, gy = rng2() * h;
-      c.fillRect(gx, gy, rng2() < 0.25 ? 3 : 1.5, rng2() < 0.25 ? 3 : 1.5);
+      const col = Math.floor(gx / T), row = Math.floor(gy / T);
+      if (map.pathSet.has(`${col},${row}`)) continue;
+      c.globalAlpha = 0.08 + rng2() * 0.14;
+      c.fillStyle = th.grass3;
+      c.beginPath();
+      c.ellipse(gx, gy, T*(0.4+rng2()*0.8), T*(0.25+rng2()*0.5), rng2()*Math.PI, 0, Math.PI*2);
+      c.fill();
     }
     c.globalAlpha = 1;
 
-    // ── 3. Theme-specific ground details ────────────────────────────────────
-    if (theme === 'volcanic' || theme === 'hell') {
-      // Lava cracks in ground
-      c.strokeStyle = theme === 'hell' ? '#8b0000' : '#bf3600';
-      c.lineWidth = 1.5;
-      for (let i = 0; i < 12; i++) {
-        const sx = rng3()*w, sy = rng3()*h;
-        const col = Math.floor(sx/tileSize), row = Math.floor(sy/tileSize);
+    // ── 4. THEME-SPECIFIC GROUND FEATURES ────────────────────────────────────
+    if (theme === 'graveyard') {
+      // Misty wisps
+      for (let i = 0; i < 8; i++) {
+        const gx = rng3()*w, gy = rng3()*h;
+        const col = Math.floor(gx/T), row = Math.floor(gy/T);
         if (map.pathSet.has(`${col},${row}`)) continue;
-        c.globalAlpha = 0.3 + rng3()*0.4;
-        c.beginPath(); c.moveTo(sx,sy);
-        let cx2=sx, cy2=sy;
-        for(let j=0;j<4;j++){cx2+=(rng3()-0.5)*tileSize*1.2; cy2+=(rng3()-0.5)*tileSize*1.2; c.lineTo(cx2,cy2);}
-        c.stroke();
+        const g = c.createRadialGradient(gx, gy, 0, gx, gy, T*1.2);
+        g.addColorStop(0, 'rgba(140,200,120,0.12)');
+        g.addColorStop(1, 'rgba(140,200,120,0)');
+        c.fillStyle = g; c.fillRect(gx-T*1.2, gy-T*1.2, T*2.4, T*2.4);
+      }
+    }
+    if (theme === 'arctic') {
+      // Snow mounds
+      for (let i = 0; i < 18; i++) {
+        const ix = rng3()*w, iy = rng3()*h;
+        const col2 = Math.floor(ix/T), row2 = Math.floor(iy/T);
+        if (map.pathSet.has(`${col2},${row2}`)) continue;
+        c.globalAlpha = 0.5 + rng3()*0.4;
+        const sg = c.createRadialGradient(ix, iy, 0, ix, iy, T*0.8);
+        sg.addColorStop(0, '#f0f8ff');
+        sg.addColorStop(0.5, '#d8eeff');
+        sg.addColorStop(1, 'rgba(180,220,255,0)');
+        c.fillStyle = sg;
+        c.beginPath();
+        c.ellipse(ix, iy, T*(0.5+rng3()*0.7), T*(0.3+rng3()*0.35), rng3()*Math.PI, 0, Math.PI*2);
+        c.fill();
       }
       c.globalAlpha = 1;
     }
-    if (theme === 'arctic') {
-      // Ice sheen patches
-      for (let i = 0; i < 18; i++) {
-        const ix = rng3()*w, iy = rng3()*h;
-        const col = Math.floor(ix/tileSize), row = Math.floor(iy/tileSize);
-        if (map.pathSet.has(`${col},${row}`)) continue;
-        c.globalAlpha = 0.07 + rng3()*0.1;
-        c.fillStyle = '#d0efff';
-        c.beginPath(); c.ellipse(ix, iy, tileSize*(0.5+rng3()*0.7), tileSize*(0.3+rng3()*0.4), rng3()*Math.PI, 0, Math.PI*2); c.fill();
+    if (theme === 'volcanic' || theme === 'hell') {
+      // Lava cracks in ground
+      const lavaColor = theme === 'hell' ? '#cc0000' : '#dd4400';
+      for (let i = 0; i < 16; i++) {
+        const sx = rng3()*w, sy = rng3()*h;
+        const col2 = Math.floor(sx/T), row2 = Math.floor(sy/T);
+        if (map.pathSet.has(`${col2},${row2}`)) continue;
+        c.globalAlpha = 0.25 + rng3()*0.3;
+        c.strokeStyle = lavaColor; c.lineWidth = 1.5; c.lineCap = 'round';
+        c.beginPath(); c.moveTo(sx, sy);
+        let cx2=sx, cy2=sy;
+        for(let j=0;j<4;j++){cx2+=(rng3()-0.5)*T*1.5; cy2+=(rng3()-0.5)*T*1.2; c.lineTo(cx2,cy2);}
+        c.stroke();
       }
       c.globalAlpha = 1;
     }
     if (theme === 'nuclear') {
-      // Radioactive puddles
-      for (let i = 0; i < 10; i++) {
+      // Glowing radioactive pools
+      for (let i = 0; i < 12; i++) {
         const px = rng3()*w, py = rng3()*h;
-        const col = Math.floor(px/tileSize), row = Math.floor(py/tileSize);
-        if (map.pathSet.has(`${col},${row}`)) continue;
-        c.globalAlpha = 0.15 + rng3()*0.2;
-        c.fillStyle = '#a4c400';
-        c.beginPath(); c.ellipse(px, py, tileSize*(0.4+rng3()*0.5), tileSize*(0.2+rng3()*0.3), rng3()*Math.PI, 0, Math.PI*2); c.fill();
+        const col2 = Math.floor(px/T), row2 = Math.floor(py/T);
+        if (map.pathSet.has(`${col2},${row2}`)) continue;
+        const pg = c.createRadialGradient(px, py, 0, px, py, T*0.7);
+        pg.addColorStop(0, 'rgba(150,230,0,0.35)');
+        pg.addColorStop(0.6, 'rgba(100,180,0,0.15)');
+        pg.addColorStop(1, 'rgba(80,150,0,0)');
+        c.fillStyle = pg;
+        c.beginPath();
+        c.ellipse(px, py, T*(0.45+rng3()*0.5), T*(0.25+rng3()*0.3), rng3()*Math.PI, 0, Math.PI*2);
+        c.fill();
       }
-      c.globalAlpha = 1;
     }
     if (theme === 'shadow' || theme === 'omega') {
-      // Void cracks
-      c.strokeStyle = theme === 'omega' ? '#440010' : '#1a0040';
-      c.lineWidth = 2;
-      for (let i = 0; i < 8; i++) {
+      // Void rifts
+      const riftColor = theme === 'omega' ? 'rgba(220,0,30,0.3)' : 'rgba(120,0,255,0.25)';
+      for (let i = 0; i < 10; i++) {
         const sx = rng3()*w, sy = rng3()*h;
-        c.globalAlpha = 0.5 + rng3()*0.4;
-        c.beginPath(); c.moveTo(sx,sy);
-        let cx2=sx,cy2=sy;
-        for(let j=0;j<5;j++){cx2+=(rng3()-0.5)*tileSize*1.5; cy2+=(rng3()-0.5)*tileSize*1.5; c.lineTo(cx2,cy2);}
+        c.globalAlpha = 0.6 + rng3()*0.35;
+        c.strokeStyle = riftColor; c.lineWidth = 2; c.lineCap = 'round';
+        c.beginPath(); c.moveTo(sx, sy);
+        let cx2=sx, cy2=sy;
+        for(let j=0;j<6;j++){cx2+=(rng3()-0.5)*T*1.8; cy2+=(rng3()-0.5)*T*1.5; c.lineTo(cx2,cy2);}
+        c.stroke();
+      }
+      c.globalAlpha = 1;
+    }
+    if (theme === 'urban') {
+      // Cracked asphalt lines
+      for (let i = 0; i < 20; i++) {
+        const sx = rng3()*w, sy = rng3()*h;
+        const col2 = Math.floor(sx/T), row2 = Math.floor(sy/T);
+        if (map.pathSet.has(`${col2},${row2}`)) continue;
+        c.globalAlpha = 0.15 + rng3()*0.2;
+        c.strokeStyle = '#888'; c.lineWidth = 0.8;
+        c.beginPath(); c.moveTo(sx, sy);
+        let cx2=sx, cy2=sy;
+        for(let j=0;j<3;j++){cx2+=(rng3()-0.5)*T; cy2+=(rng3()-0.5)*T; c.lineTo(cx2,cy2);}
         c.stroke();
       }
       c.globalAlpha = 1;
     }
 
-    // ── 4. PATH ─────────────────────────────────────────────────────────────
-    c.save();
-    c.lineCap = 'round'; c.lineJoin = 'round';
+    // ── 5. PATH DRAWING — Beautiful stone/dirt road ──────────────────────────
+    const pathPoints = map.path.map(([pc,pr]) => ({
+      x: pc*T + T/2, y: pr*T + T/2
+    }));
 
-    // Deep shadow under path
-    c.strokeStyle = 'rgba(0,0,0,0.55)';
-    c.lineWidth = tileSize * 0.94 + 8;
-    c.beginPath();
-    map.path.forEach(([pc,pr], i) => {
-      const px = pc*tileSize+tileSize/2, py = pr*tileSize+tileSize/2;
-      i === 0 ? c.moveTo(px,py) : c.lineTo(px,py);
-    });
-    c.stroke();
+    const drawPathStroke = (lw, style, alpha, dash) => {
+      c.save();
+      c.lineCap = 'round'; c.lineJoin = 'round';
+      c.lineWidth = T * lw;
+      c.strokeStyle = style;
+      if (alpha !== undefined) c.globalAlpha = alpha;
+      if (dash) c.setLineDash(dash);
+      c.beginPath();
+      pathPoints.forEach((p, i) => i === 0 ? c.moveTo(p.x, p.y) : c.lineTo(p.x, p.y));
+      c.stroke();
+      c.restore();
+    };
 
-    // Path edge highlight (theme-colored glow)
-    c.strokeStyle = th.pathEdge;
-    c.lineWidth = tileSize * 0.90 + 2;
-    c.globalAlpha = 0.6;
-    c.beginPath();
-    map.path.forEach(([pc,pr], i) => {
-      const px = pc*tileSize+tileSize/2, py = pr*tileSize+tileSize/2;
-      i === 0 ? c.moveTo(px,py) : c.lineTo(px,py);
-    });
-    c.stroke();
-    c.globalAlpha = 1;
+    // Outer shadow
+    drawPathStroke(1.05, 'rgba(0,0,0,0.7)');
+    // Edge border (themed color)
+    drawPathStroke(0.95, th.pathDark, 1);
+    // Outer edge glow/color
+    drawPathStroke(0.88, th.pathEdge, 0.55);
+    // Main road surface
+    drawPathStroke(0.82, th.path1, 1);
+    // Inner lighter band
+    drawPathStroke(0.55, th.path2, 0.6);
+    // Stone/surface detail layer
+    drawPathStroke(0.30, th.pathStone, 0.35);
+    // Center specular
+    drawPathStroke(0.12, 'rgba(255,255,255,0.08)');
 
-    // Main path fill
-    c.strokeStyle = th.path1;
-    c.lineWidth = tileSize * 0.86;
-    c.beginPath();
-    map.path.forEach(([pc,pr], i) => {
-      const px = pc*tileSize+tileSize/2, py = pr*tileSize+tileSize/2;
-      i === 0 ? c.moveTo(px,py) : c.lineTo(px,py);
-    });
-    c.stroke();
+    // Path surface texture: pebbles / stones / cracks per tile
+    {
+      const texRng = mulberry32(77);
+      map.path.forEach(([pc, pr], idx) => {
+        const px = pc*T, py = pr*T;
+        const cx2 = px + T/2, cy2 = py + T/2;
 
-    // Path center highlight (lighter stripe)
-    c.strokeStyle = th.path2;
-    c.lineWidth = tileSize * 0.38;
-    c.globalAlpha = 0.5;
-    c.beginPath();
-    map.path.forEach(([pc,pr], i) => {
-      const px = pc*tileSize+tileSize/2, py = pr*tileSize+tileSize/2;
-      i === 0 ? c.moveTo(px,py) : c.lineTo(px,py);
-    });
-    c.stroke();
-    c.globalAlpha = 1;
-
-    // Specular sheen down center
-    c.strokeStyle = 'rgba(255,255,255,0.06)';
-    c.lineWidth = tileSize * 0.18;
-    c.beginPath();
-    map.path.forEach(([pc,pr], i) => {
-      const px = pc*tileSize+tileSize/2, py = pr*tileSize+tileSize/2;
-      i === 0 ? c.moveTo(px,py) : c.lineTo(px,py);
-    });
-    c.stroke();
-    c.globalAlpha = 1;
-
-    // Theme path overlays
-    if (theme === 'arctic') {
-      // Snow / ice cracks on path
-      c.strokeStyle = 'rgba(200,235,255,0.12)';
-      c.lineWidth = 1.5;
-      for (let i = 1; i < map.path.length - 1; i++) {
-        const [pc,pr] = map.path[i];
-        const px = pc*tileSize+tileSize/2, py = pr*tileSize+tileSize/2;
-        if (rng2() < 0.3) {
-          c.beginPath();
-          c.moveTo(px-(rng2()-0.5)*tileSize*.4, py-(rng2()-0.5)*tileSize*.4);
-          c.lineTo(px+(rng2()-0.5)*tileSize*.4, py+(rng2()-0.5)*tileSize*.4);
-          c.stroke();
+        if (theme === 'graveyard') {
+          // Dirt with small stones
+          for (let s = 0; s < 3; s++) {
+            const sx = cx2 + (texRng()-0.5)*T*0.65, sy = cy2 + (texRng()-0.5)*T*0.65;
+            c.globalAlpha = 0.18 + texRng()*0.18;
+            c.fillStyle = texRng() < 0.5 ? '#6a5030' : '#7a6040';
+            c.beginPath(); c.ellipse(sx, sy, 2+texRng()*3, 1.5+texRng()*2, texRng()*Math.PI, 0, Math.PI*2); c.fill();
+          }
+        } else if (theme === 'arctic') {
+          // Ice cracks
+          if (texRng() < 0.35) {
+            c.save(); c.strokeStyle='rgba(210,240,255,0.35)'; c.lineWidth=1;
+            c.globalAlpha = 0.5;
+            c.beginPath();
+            const fx = cx2 + (texRng()-0.5)*T*0.5, fy = cy2 + (texRng()-0.5)*T*0.5;
+            c.moveTo(fx, fy); c.lineTo(fx+(texRng()-0.5)*T*0.4, fy+(texRng()-0.5)*T*0.4);
+            c.stroke(); c.restore();
+          }
+        } else if (theme === 'volcanic' || theme === 'hell') {
+          // Lava veins on path
+          if (texRng() < 0.25) {
+            const glow = c.createRadialGradient(cx2, cy2, 0, cx2, cy2, T*0.25);
+            glow.addColorStop(0, theme==='hell'?'rgba(255,30,0,0.3)':'rgba(255,100,0,0.25)');
+            glow.addColorStop(1, 'rgba(0,0,0,0)');
+            c.fillStyle = glow; c.beginPath(); c.arc(cx2, cy2, T*0.25, 0, Math.PI*2); c.fill();
+          }
+        } else if (theme === 'urban') {
+          // Road marking dashes
+          if (idx % 6 === 0 && idx > 0 && idx < map.path.length-1) {
+            const [nc, nr] = map.path[Math.min(idx+1, map.path.length-1)];
+            const angle = Math.atan2(nr-pr, nc-pc);
+            c.save(); c.translate(cx2, cy2); c.rotate(angle);
+            c.fillStyle = 'rgba(255,255,255,0.1)';
+            c.fillRect(-T*0.06, -T*0.28, T*0.12, T*0.56);
+            c.restore();
+          }
+        } else if (theme === 'nuclear') {
+          // Green glow spots
+          if (texRng() < 0.15) {
+            c.globalAlpha = 0.2;
+            c.fillStyle = '#88cc00';
+            c.beginPath(); c.arc(cx2+(texRng()-0.5)*T*0.5, cy2+(texRng()-0.5)*T*0.5, 2, 0, Math.PI*2); c.fill();
+          }
+        } else if (theme === 'omega') {
+          // Circuit pattern
+          if (idx % 3 === 0) {
+            c.save(); c.strokeStyle = 'rgba(220,0,30,0.2)'; c.lineWidth = 0.8;
+            c.beginPath(); c.moveTo(cx2-T*0.3, cy2); c.lineTo(cx2+T*0.3, cy2);
+            c.stroke(); c.restore();
+          }
         }
-      }
-    }
-    if (theme === 'volcanic' || theme === 'hell') {
-      // Embers / cracks on path
-      c.fillStyle = theme === 'hell' ? 'rgba(200,0,0,0.2)' : 'rgba(255,80,0,0.15)';
-      map.path.forEach(([pc,pr]) => {
-        if (rng2() < 0.2) {
-          c.beginPath();
-          c.arc(pc*tileSize+tileSize/2, pr*tileSize+tileSize/2, tileSize*0.12, 0, Math.PI*2);
-          c.fill();
-        }
+        c.globalAlpha = 1;
       });
     }
-    if (theme === 'omega') {
-      // Red circuit lines on path
-      c.strokeStyle = 'rgba(200,0,30,0.25)';
-      c.lineWidth = 1;
-      for (let i = 1; i < map.path.length - 1; i+=2) {
-        const [pc,pr] = map.path[i];
-        const px = pc*tileSize+tileSize/2, py = pr*tileSize+tileSize/2;
-        c.beginPath();
-        c.moveTo(px-tileSize*0.35, py); c.lineTo(px+tileSize*0.35, py);
-        c.stroke();
-      }
-    }
 
-    c.restore();
-
-    // ── 5. Path edge shading (darkens the border of each path tile) ──────────
-    c.save();
-    map.path.forEach(([pc,pr]) => {
-      const px = pc*tileSize, py = pr*tileSize;
-      const eg = c.createRadialGradient(
-        px+tileSize/2, py+tileSize/2, tileSize*0.2,
-        px+tileSize/2, py+tileSize/2, tileSize*0.72
-      );
-      eg.addColorStop(0,   'rgba(0,0,0,0)');
-      eg.addColorStop(1,   'rgba(0,0,0,0.28)');
-      c.fillStyle = eg;
-      c.fillRect(px, py, tileSize, tileSize);
-    });
-    c.restore();
-
-    // ── 6. Decorations on non-path tiles ────────────────────────────────────
+    // ── 6. DECORATIONS on non-path tiles (rich themed art) ──────────────────
     {
       let placed = 0;
-      const decRng = mulberry32(99);
-      for (let row = 0; row < map.rows && placed < 28; row++) {
-        for (let col = 0; col < map.cols && placed < 28; col++) {
+      const decRng = mulberry32(55);
+      const maxDeco = Math.min(40, map.cols * map.rows * 0.12);
+      for (let row = 0; row < map.rows && placed < maxDeco; row++) {
+        for (let col = 0; col < map.cols && placed < maxDeco; col++) {
           if (map.pathSet.has(`${col},${row}`)) continue;
-          if (decRng() < 0.07) {
-            const dx = col*tileSize+tileSize/2, dy = row*tileSize+tileSize/2;
-            c.globalAlpha = 0.45 + decRng()*0.3;
-            if (typeof _drawMapDeco === 'function') {
-              _drawMapDeco(c, theme, dx, dy, tileSize*0.32, decRng);
-            }
+          if (decRng() < 0.09) {
+            const dx = col*T + T/2, dy = row*T + T/2;
+            c.globalAlpha = 0.55 + decRng()*0.35;
+            _drawMapDeco(c, theme, dx, dy, T * 0.38, decRng);
             c.globalAlpha = 1;
             placed++;
           }
@@ -469,33 +582,40 @@ const Game = (() => {
       }
     }
 
-    // ── 7. Fog / atmosphere overlay ─────────────────────────────────────────
+    // ── 7. AMBIENT GLOW OVERLAY ──────────────────────────────────────────────
+    if (th.ambient) {
+      c.fillStyle = th.ambient;
+      c.fillRect(0, 0, w, h);
+    }
+
+    // ── 8. EDGE VIGNETTE ─────────────────────────────────────────────────────
+    const vg = c.createRadialGradient(w/2, h/2, h*0.15, w/2, h/2, h*0.9);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, th.vignette);
+    c.fillStyle = vg;
+    c.fillRect(0, 0, w, h);
+
+    // Fog overlay
     if (th.fog) {
       c.fillStyle = th.fog;
       c.fillRect(0, 0, w, h);
-      // Edge vignette
-      const vg = c.createRadialGradient(w/2, h/2, h*0.2, w/2, h/2, h*0.8);
-      vg.addColorStop(0, 'rgba(0,0,0,0)');
-      vg.addColorStop(1, 'rgba(0,0,0,0.35)');
-      c.fillStyle = vg;
-      c.fillRect(0, 0, w, h);
     }
 
-    // ── 8. Grid lines (very subtle) ─────────────────────────────────────────
-    c.strokeStyle = 'rgba(255,255,255,0.025)';
+    // ── 9. GRID LINES (very subtle) ──────────────────────────────────────────
+    c.strokeStyle = 'rgba(255,255,255,0.02)';
     c.lineWidth = 0.5;
     for (let col = 0; col <= map.cols; col++) {
-      c.beginPath(); c.moveTo(col*tileSize, 0); c.lineTo(col*tileSize, h); c.stroke();
+      c.beginPath(); c.moveTo(col*T, 0); c.lineTo(col*T, h); c.stroke();
     }
     for (let row = 0; row <= map.rows; row++) {
-      c.beginPath(); c.moveTo(0, row*tileSize); c.lineTo(w, row*tileSize); c.stroke();
+      c.beginPath(); c.moveTo(0, row*T); c.lineTo(w, row*T); c.stroke();
     }
 
-    // ── 9. START / END portals ──────────────────────────────────────────────
+    // ── 10. START / END PORTALS ──────────────────────────────────────────────
     const [sc, sr] = map.path[0];
     const [ec, er] = map.path[map.path.length-1];
-    _drawPortal(c, sc*tileSize, sr*tileSize, tileSize, '#27ae60', '#2ecc71', 'START');
-    _drawPortal(c, ec*tileSize, er*tileSize, tileSize, '#c0392b', '#e74c3c', 'END');
+    _drawPortal(c, sc*T, sr*T, T, '#27ae60', '#2ecc71', 'START');
+    _drawPortal(c, ec*T, er*T, T, '#c0392b', '#e74c3c', 'END');
   }
 
   function _drawPortal(c, x, y, s, col1, col2, label) {
@@ -1349,6 +1469,269 @@ const Game = (() => {
     isRunning:   () => !!raf,
   };
 })();
+
+// ── Map Decoration Renderer ───────────────────────────────
+function _drawMapDeco(ctx, theme, x, y, s, rng) {
+  ctx.save();
+  ctx.translate(x, y);
+  const p = rng();
+  const S = s / 10;
+
+  switch (theme) {
+    case 'graveyard': {
+      if (p < 0.33) {
+        const tw = S*8, th2 = S*13;
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.beginPath(); ctx.ellipse(S, S*5, tw*0.5, S*1.5, 0, 0, Math.PI*2); ctx.fill();
+        const sg = ctx.createLinearGradient(-tw/2, -th2/2, tw/2, th2/2);
+        sg.addColorStop(0, '#8a9a8c'); sg.addColorStop(1, '#5a6a5c');
+        ctx.fillStyle = sg;
+        ctx.beginPath(); ctx.roundRect(-tw/2, -th2*0.35, tw, th2*0.85, S*1.5); ctx.fill();
+        ctx.beginPath(); ctx.arc(0, -th2*0.35, tw/2, Math.PI, 0); ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = S*0.8; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(0, -th2*0.2); ctx.lineTo(0, th2*0.25); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-S*2.5, -th2*0.05); ctx.lineTo(S*2.5, -th2*0.05); ctx.stroke();
+        ctx.fillStyle = '#3a6a30'; ctx.globalAlpha = 0.35;
+        ctx.beginPath(); ctx.ellipse(-S*2, -th2*0.28, S*2, S, 0.3, 0, Math.PI*2); ctx.fill();
+        ctx.globalAlpha = 1;
+      } else if (p < 0.66) {
+        ctx.strokeStyle = '#3a2c18'; ctx.lineWidth = S*2.5; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(0, S*12); ctx.lineTo(0, -S*2); ctx.stroke();
+        [[(-S*6), -S*7, -S*2, -S*4], [S*5, -S*6, -S, -S*3], [-S*4, -S*2, -S, S], [S*3, -S, S*0.5, S*2]].forEach(([bx, by, ox, oy]) => {
+          ctx.lineWidth = S*1.2;
+          ctx.beginPath(); ctx.moveTo(ox, oy); ctx.quadraticCurveTo(ox+(bx-ox)*0.5, oy+(by-oy)*0.3+S, bx, by); ctx.stroke();
+        });
+        ctx.lineWidth = S;
+        [[-S*3,S*12],[-S*1.5,S*13],[S*2,S*13],[S*3.5,S*12]].forEach(([rx,ry]) => {
+          ctx.beginPath(); ctx.moveTo(0, S*10); ctx.quadraticCurveTo(rx*0.5, S*11.5, rx, ry); ctx.stroke();
+        });
+      } else {
+        const wg = ctx.createRadialGradient(0, 0, 0, 0, 0, S*8);
+        wg.addColorStop(0, 'rgba(160,220,140,0.5)'); wg.addColorStop(1, 'rgba(100,180,80,0)');
+        ctx.fillStyle = wg; ctx.beginPath(); ctx.arc(0, 0, S*8, 0, Math.PI*2); ctx.fill();
+        for (let m = 0; m < 3; m++) {
+          const mx = (m-1)*S*4, my = S*5;
+          ctx.fillStyle = '#c0392b';
+          ctx.beginPath(); ctx.arc(mx, my-S*2.5, S*2.5, Math.PI, 0); ctx.fill();
+          ctx.fillStyle = '#922b21'; ctx.fillRect(mx-S*0.8, my-S*2.5, S*1.6, S*3);
+          ctx.fillStyle = 'rgba(255,255,255,0.6)';
+          ctx.beginPath(); ctx.arc(mx-S, my-S*3.5, S*0.6, 0, Math.PI*2); ctx.fill();
+        }
+      }
+      break;
+    }
+    case 'urban': {
+      if (p < 0.3) {
+        const bh = S*(6+rng()*6), bw = S*(7+rng()*5);
+        const bg2 = ctx.createLinearGradient(-bw/2, -bh, bw/2, 0);
+        bg2.addColorStop(0, '#4a4a4a'); bg2.addColorStop(1, '#333');
+        ctx.fillStyle = bg2;
+        ctx.beginPath(); ctx.moveTo(-bw/2, S*8); ctx.lineTo(-bw/2, -bh+rng()*S*4); ctx.lineTo(-bw/4, -bh-rng()*S*3);
+        ctx.lineTo(bw/4, -bh+rng()*S*2); ctx.lineTo(bw/2, -bh+rng()*S*4); ctx.lineTo(bw/2, S*8); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        for (let wr = 0; wr < 2; wr++) for (let wc = 0; wc < 2; wc++) {
+          if (rng() < 0.6) ctx.fillRect(-bw/2+S*1.5+wc*S*3.5, -bh*0.7+wr*S*4, S*2.5, S*2.5);
+        }
+      } else if (p < 0.6) {
+        ctx.fillStyle = '#555'; ctx.beginPath(); ctx.roundRect(-S*7, -S*2, S*14, S*6, S*1.5); ctx.fill();
+        ctx.fillStyle = '#444'; ctx.beginPath(); ctx.roundRect(-S*5, -S*5, S*10, S*4, S); ctx.fill();
+        ctx.fillStyle = 'rgba(100,150,180,0.25)';
+        ctx.fillRect(-S*4.5, -S*4.5, S*4, S*3); ctx.fillRect(S*0.5, -S*4.5, S*4, S*3);
+        [[-S*5,S*4],[S*5,S*4]].forEach(([wx,wy]) => {
+          ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(wx,wy,S*2.5,0,Math.PI*2); ctx.fill();
+          ctx.fillStyle='#444'; ctx.beginPath(); ctx.arc(wx,wy,S*1.2,0,Math.PI*2); ctx.fill();
+        });
+      } else {
+        ctx.strokeStyle = '#666'; ctx.lineWidth = S*1.5; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(0, S*12); ctx.lineTo(0, -S*6); ctx.quadraticCurveTo(S, -S*10, S*5, -S*11); ctx.stroke();
+        ctx.fillStyle = rng()<0.5 ? '#ffe082' : '#333';
+        ctx.beginPath(); ctx.ellipse(S*5, -S*11, S*2, S*1.2, 0, 0, Math.PI*2); ctx.fill();
+      }
+      break;
+    }
+    case 'volcanic': {
+      if (p < 0.4) {
+        ctx.fillStyle = '#2a1000';
+        const n = 6+Math.floor(rng()*4);
+        const pts = Array.from({length:n}, (_,i) => { const a=(i/n)*Math.PI*2-Math.PI/2, r2=S*(5+rng()*6); return [Math.cos(a)*r2, Math.sin(a)*r2*0.7-S*2]; });
+        ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]); pts.forEach(([px,py])=>ctx.lineTo(px,py)); ctx.closePath(); ctx.fill();
+        ctx.fillStyle='#4a2000'; ctx.globalAlpha=0.6;
+        ctx.beginPath(); ctx.moveTo(pts[0][0]*0.6,pts[0][1]*0.6); pts.slice(0,3).forEach(([px,py])=>ctx.lineTo(px*0.6,py*0.6)); ctx.closePath(); ctx.fill(); ctx.globalAlpha=1;
+      } else if (p < 0.7) {
+        const lg2 = ctx.createRadialGradient(0,S*2,0,0,S*2,S*8);
+        lg2.addColorStop(0,'#ff8c00'); lg2.addColorStop(0.4,'#dd4400'); lg2.addColorStop(1,'#660000');
+        ctx.fillStyle=lg2; ctx.beginPath(); ctx.ellipse(0,S*3,S*7,S*4,0,0,Math.PI*2); ctx.fill();
+        ctx.strokeStyle='#3a1000'; ctx.lineWidth=S*1.2;
+        ctx.beginPath(); ctx.ellipse(0,S*3,S*7,S*4,0,0,Math.PI*2); ctx.stroke();
+      } else {
+        for (let sp=0; sp<5; sp++) {
+          const sx2=(sp-2)*S*3.5, sh=S*(6+rng()*7);
+          const sg2=ctx.createLinearGradient(sx2-S,S*10,sx2+S,-sh);
+          sg2.addColorStop(0,'#1a0a00'); sg2.addColorStop(1,'#4a2000');
+          ctx.fillStyle=sg2; ctx.beginPath(); ctx.moveTo(sx2,S*10); ctx.lineTo(sx2-S*1.5,-sh*0.3); ctx.lineTo(sx2,-sh); ctx.lineTo(sx2+S*1.5,-sh*0.3); ctx.closePath(); ctx.fill();
+        }
+      }
+      break;
+    }
+    case 'arctic': {
+      if (p < 0.33) {
+        const cols2=['#b3e5fc','#e1f5fe','#81d4fa','#e0f7fa'];
+        for (let cr=0; cr<4; cr++) {
+          const cx2=(cr-1.5)*S*4+(rng()-0.5)*S*2, cy2=(rng()-0.5)*S*3, ch=S*(5+rng()*7);
+          const cg=ctx.createLinearGradient(cx2,cy2,cx2,cy2-ch);
+          cg.addColorStop(0,cols2[cr]+'aa'); cg.addColorStop(1,cols2[(cr+1)%4]+'dd');
+          ctx.fillStyle=cg; ctx.beginPath(); ctx.moveTo(cx2,cy2+S*3); ctx.lineTo(cx2-S*2,cy2); ctx.lineTo(cx2,cy2-ch); ctx.lineTo(cx2+S*2,cy2); ctx.closePath(); ctx.fill();
+        }
+      } else if (p < 0.66) {
+        const smg=ctx.createRadialGradient(0,S*2,0,0,S*4,S*9);
+        smg.addColorStop(0,'#f0f8ff'); smg.addColorStop(0.6,'#d0e8f5'); smg.addColorStop(1,'rgba(160,210,240,0)');
+        ctx.fillStyle=smg; ctx.beginPath(); ctx.ellipse(0,S*5,S*9,S*5,0,Math.PI,0); ctx.fill();
+        ctx.fillStyle='#ffffff';
+        for (let sp=0; sp<5; sp++) { ctx.globalAlpha=0.4+rng()*0.5; ctx.beginPath(); ctx.arc((rng()-0.5)*S*10,S*(2+rng()*5),1+rng()*2,0,Math.PI*2); ctx.fill(); }
+        ctx.globalAlpha=1;
+      } else {
+        ctx.strokeStyle='#4a3a28'; ctx.lineWidth=S*1.5;
+        ctx.beginPath(); ctx.moveTo(0,S*12); ctx.lineTo(0,-S*12); ctx.stroke();
+        [[0,-S*11,S*6],[0,-S*7,S*8],[0,-S*3,S*10],[0,S,S*11]].forEach(([lx,ly,lw]) => {
+          ctx.fillStyle='#2d5a1b'; ctx.globalAlpha=0.9;
+          ctx.beginPath(); ctx.moveTo(lx,ly); ctx.lineTo(lx-lw,ly+S*4); ctx.lineTo(lx+lw,ly+S*4); ctx.closePath(); ctx.fill();
+          ctx.fillStyle='#e8f4ff'; ctx.globalAlpha=0.6;
+          ctx.beginPath(); ctx.moveTo(lx,ly-S); ctx.lineTo(lx-lw*0.85,ly+S*3); ctx.lineTo(lx+lw*0.85,ly+S*3); ctx.closePath(); ctx.fill();
+        });
+        ctx.globalAlpha=1;
+      }
+      break;
+    }
+    case 'hell': {
+      if (p < 0.3) {
+        ctx.fillStyle='#5a0000'; ctx.beginPath(); ctx.arc(0,-S*3,S*7,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#3a0000'; ctx.beginPath(); ctx.roundRect(-S*4,S,S*8,S*6,S); ctx.fill();
+        [[-S*2.5,-S*4],[S*2.5,-S*4]].forEach(([ex,ey]) => {
+          ctx.fillStyle='#000'; ctx.beginPath(); ctx.ellipse(ex,ey,S*2,S*2.5,0,0,Math.PI*2); ctx.fill();
+          ctx.fillStyle='#cc0000'; ctx.globalAlpha=0.7; ctx.beginPath(); ctx.arc(ex,ey,S,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
+        });
+        ctx.fillStyle='#8a7a6a';
+        for (let t=-3; t<=3; t++) { ctx.beginPath(); ctx.moveTo(t*S*1.1,S*2); ctx.lineTo(t*S*1.1-S*0.6,S*5.5); ctx.lineTo(t*S*1.1+S*0.6,S*5.5); ctx.closePath(); ctx.fill(); }
+      } else if (p < 0.65) {
+        for (let fl=0; fl<3; fl++) {
+          const fx=(fl-1)*S*4, fh=S*(8+rng()*6);
+          const fg2=ctx.createLinearGradient(fx,S*8,fx,-fh);
+          fg2.addColorStop(0,'#cc0000'); fg2.addColorStop(0.4,'#ff4400'); fg2.addColorStop(0.7,'#ff8800'); fg2.addColorStop(1,'rgba(255,200,0,0)');
+          ctx.fillStyle=fg2; ctx.beginPath(); ctx.moveTo(fx-S*2.5,S*8); ctx.quadraticCurveTo(fx-S*3,S*2,fx+(rng()-0.5)*S*2,-fh); ctx.quadraticCurveTo(fx+S*3,S*2,fx+S*2.5,S*8); ctx.fill();
+        }
+      } else {
+        ctx.fillStyle='#7a6a58';
+        for (let b=0; b<6; b++) {
+          const bx=(rng()-0.5)*S*12, by=S*(3+rng()*6), bl=S*(4+rng()*5);
+          ctx.save(); ctx.translate(bx,by); ctx.rotate(rng()*Math.PI);
+          ctx.beginPath(); ctx.roundRect(-bl/2,-S*0.7,bl,S*1.4,S*0.7); ctx.fill();
+          ctx.beginPath(); ctx.arc(-bl/2,0,S*1.2,0,Math.PI*2); ctx.fill();
+          ctx.beginPath(); ctx.arc(bl/2,0,S*1.2,0,Math.PI*2); ctx.fill();
+          ctx.restore();
+        }
+      }
+      break;
+    }
+    case 'nuclear': {
+      if (p < 0.3) {
+        const bg3=ctx.createLinearGradient(-S*4,-S*6,S*4,S*8);
+        bg3.addColorStop(0,'#3a5a10'); bg3.addColorStop(1,'#1e3000');
+        ctx.fillStyle=bg3; ctx.beginPath(); ctx.roundRect(-S*4,-S*6,S*8,S*14,S); ctx.fill();
+        ctx.save(); ctx.beginPath(); ctx.roundRect(-S*4,-S*6,S*8,S*14,S); ctx.clip();
+        for (let st=-2; st<4; st++) { ctx.fillStyle=st%2===0?'#ffc107':'#333'; ctx.fillRect(-S*5,-S*6+st*S*3,S*10,S*3); }
+        ctx.restore();
+        const ng=ctx.createRadialGradient(0,0,0,0,0,S*8);
+        ng.addColorStop(0,'rgba(120,220,0,0.25)'); ng.addColorStop(1,'rgba(80,180,0,0)');
+        ctx.fillStyle=ng; ctx.beginPath(); ctx.arc(0,0,S*8,0,Math.PI*2); ctx.fill();
+      } else if (p < 0.65) {
+        ctx.strokeStyle='#2a5800'; ctx.lineWidth=S*1.8; ctx.lineCap='round';
+        ctx.beginPath(); ctx.moveTo(0,S*12); ctx.quadraticCurveTo(S*2,S*5,S*3,-S*2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(S*3,-S*2); ctx.quadraticCurveTo(-S*4,-S*8,-S*7,-S*4); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(S*3,-S*2); ctx.quadraticCurveTo(S*8,-S*6,S*9,-S*2); ctx.stroke();
+        ['#88dd00','#aae800','#66cc00'].forEach((col,i)=>{
+          const px2=[-S*7,S*9,S*3][i],py2=[-S*4,-S*2,-S*2][i];
+          const spg=ctx.createRadialGradient(px2,py2,0,px2,py2,S*3);
+          spg.addColorStop(0,col); spg.addColorStop(1,col+'44');
+          ctx.fillStyle=spg; ctx.beginPath(); ctx.arc(px2,py2,S*3,0,Math.PI*2); ctx.fill();
+        });
+      } else {
+        ctx.fillStyle='#ffc107'; ctx.beginPath(); ctx.moveTo(0,-S*10); ctx.lineTo(S*9,S*4); ctx.lineTo(-S*9,S*4); ctx.closePath(); ctx.fill();
+        ctx.fillStyle='#333'; ctx.font=`bold ${S*7}px monospace`; ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText('☢',0,-S*2);
+      }
+      break;
+    }
+    case 'shadow': {
+      if (p < 0.35) {
+        const vg2=ctx.createRadialGradient(0,0,0,0,0,S*9);
+        vg2.addColorStop(0,'#000000'); vg2.addColorStop(0.3,'#1a0035'); vg2.addColorStop(0.7,'#300060'); vg2.addColorStop(1,'rgba(50,0,100,0)');
+        ctx.fillStyle=vg2; ctx.beginPath(); ctx.arc(0,0,S*9,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#7700dd'; ctx.globalAlpha=0.8;
+        ctx.beginPath(); ctx.ellipse(0,0,S*4,S*5.5,0,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#000'; ctx.globalAlpha=1;
+        ctx.beginPath(); ctx.ellipse(0,0,S*2,S*3.5,0,0,Math.PI*2); ctx.fill();
+        ctx.fillStyle='#cc00ff'; ctx.globalAlpha=0.6;
+        ctx.beginPath(); ctx.arc(S*0.8,-S,S,0,Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
+      } else if (p < 0.65) {
+        ctx.strokeStyle='#2a0055'; ctx.lineWidth=S*2.5; ctx.lineCap='round';
+        for (let t=0; t<3; t++) {
+          const ox=(t-1)*S*4;
+          ctx.beginPath(); ctx.moveTo(ox,S*12); ctx.bezierCurveTo(ox+(rng()-0.5)*S*6,S*6,ox+(rng()-0.5)*S*8,S*2,ox+(rng()-0.5)*S*6,-S*8); ctx.stroke();
+        }
+        const tg=ctx.createRadialGradient(0,-S*4,0,0,-S*4,S*5);
+        tg.addColorStop(0,'rgba(150,0,255,0.3)'); tg.addColorStop(1,'rgba(80,0,180,0)');
+        ctx.fillStyle=tg; ctx.beginPath(); ctx.arc(0,-S*4,S*5,0,Math.PI*2); ctx.fill();
+      } else {
+        ctx.fillStyle='#4a3020'; ctx.beginPath(); ctx.roundRect(-S*2,S*2,S*4,S*10,S*0.5); ctx.fill();
+        const fg2=ctx.createLinearGradient(0,S*2,0,-S*6);
+        fg2.addColorStop(0,'#9900dd'); fg2.addColorStop(0.5,'#cc00ff'); fg2.addColorStop(1,'rgba(200,100,255,0)');
+        ctx.fillStyle=fg2; ctx.beginPath(); ctx.moveTo(-S*1.5,S*2); ctx.quadraticCurveTo(-S*2.5,-S,0,-S*6); ctx.quadraticCurveTo(S*2.5,-S,S*1.5,S*2); ctx.fill();
+        const cg2=ctx.createRadialGradient(0,-S*2,0,0,-S*2,S*7);
+        cg2.addColorStop(0,'rgba(180,0,255,0.3)'); cg2.addColorStop(1,'rgba(100,0,200,0)');
+        ctx.fillStyle=cg2; ctx.beginPath(); ctx.arc(0,-S*2,S*7,0,Math.PI*2); ctx.fill();
+      }
+      break;
+    }
+    case 'omega': {
+      if (p < 0.33) {
+        const og=ctx.createLinearGradient(-S*2,S*12,S*2,-S*12);
+        og.addColorStop(0,'#1a0004'); og.addColorStop(0.5,'#380008'); og.addColorStop(1,'#580010');
+        ctx.fillStyle=og; ctx.beginPath(); ctx.moveTo(-S*3,S*12); ctx.lineTo(-S*2.5,S*2); ctx.lineTo(0,-S*12); ctx.lineTo(S*2.5,S*2); ctx.lineTo(S*3,S*12); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle='#ff0030'; ctx.lineWidth=S*0.7; ctx.globalAlpha=0.7;
+        ctx.beginPath(); ctx.moveTo(-S*1.5,0); ctx.lineTo(S*1.5,0); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0,-S*3); ctx.lineTo(0,S*3); ctx.stroke();
+        ctx.beginPath(); ctx.arc(0,0,S*2,0,Math.PI*2); ctx.stroke(); ctx.globalAlpha=1;
+        const ogl=ctx.createRadialGradient(0,0,0,0,0,S*6);
+        ogl.addColorStop(0,'rgba(255,0,30,0.2)'); ogl.addColorStop(1,'rgba(200,0,20,0)');
+        ctx.fillStyle=ogl; ctx.beginPath(); ctx.arc(0,0,S*6,0,Math.PI*2); ctx.fill();
+      } else if (p < 0.66) {
+        ctx.fillStyle='#1a0005'; ctx.strokeStyle='#cc0020'; ctx.lineWidth=S*0.8;
+        ctx.beginPath(); ctx.roundRect(-S*7,-S*7,S*14,S*14,S); ctx.fill(); ctx.stroke();
+        for (let gc=0; gc<2; gc++) {
+          const gx=(gc*2-1)*S*3, gy=S;
+          ctx.strokeStyle='#880015'; ctx.lineWidth=S*0.5;
+          ctx.beginPath(); ctx.arc(gx,gy,S*2.5,0,Math.PI*2); ctx.stroke();
+          ctx.beginPath(); ctx.arc(gx,gy,S*1.2,0,Math.PI*2); ctx.stroke();
+          for (let t=0; t<8; t++) {
+            const ta=(t/8)*Math.PI*2;
+            ctx.beginPath(); ctx.moveTo(gx+Math.cos(ta)*S*2.5,gy+Math.sin(ta)*S*2.5); ctx.lineTo(gx+Math.cos(ta)*S*3.2,gy+Math.sin(ta)*S*3.2); ctx.stroke();
+          }
+        }
+      } else {
+        ctx.fillStyle='#2a0008';
+        ctx.beginPath(); ctx.roundRect(-S*2,-S*12,S*4,S*22,S); ctx.fill();
+        ctx.beginPath(); ctx.roundRect(-S*7,-S*6,S*14,S*4,S); ctx.fill();
+        const cgl=ctx.createRadialGradient(0,-S*4,0,0,-S*4,S*10);
+        cgl.addColorStop(0,'rgba(220,0,30,0.25)'); cgl.addColorStop(1,'rgba(180,0,20,0)');
+        ctx.fillStyle=cgl; ctx.beginPath(); ctx.arc(0,-S*4,S*10,0,Math.PI*2); ctx.fill();
+      }
+      break;
+    }
+    default:
+      ctx.fillStyle='#444'; ctx.beginPath(); ctx.arc(0,0,S*5,0,Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+}
 
 // ── Simple seedable RNG ───────────────────────────────────
 function mulberry32(seed) {

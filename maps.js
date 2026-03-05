@@ -378,8 +378,12 @@ function drawMapPreview(canvas, map) {
       if (ps.has(`${col},${row}`)) continue;
       if (dRng() < 0.12) {
         const dx = col*tW+tW/2, dy = row*tH+tH/2, sz = tW*0.32;
-        ctx.globalAlpha = 0.38 + dRng()*0.28;
-        _drawPreviewDeco(ctx, map.theme, dx, dy, sz, dRng);
+        ctx.globalAlpha = 0.55 + dRng()*0.32;
+        if (typeof _drawMapDeco === 'function') {
+          _drawMapDeco(ctx, map.theme, dx, dy, Math.min(tW,tH)*0.42, dRng);
+        } else {
+          _drawPreviewDeco(ctx, map.theme, dx, dy, Math.min(tW,tH)*0.42, dRng);
+        }
         placed++;
       }
     }
