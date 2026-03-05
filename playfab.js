@@ -192,14 +192,16 @@ const PF = {
         instanceId: i.ItemInstanceId, itemId: i.ItemId
       }));
     }
-    // After inventory loads, tell Owner module whether to show or hide.
-    // owner_panel item must exist in PlayFab inventory — no item = no panel, ever.
+    // After inventory loads, show the correct panel(s) based on what items exist.
+    // owner_panel → full Owner Console
+    // mod_panel   → Moderator Console
+    // Both can coexist if somehow a player has both (e.g. the owner themselves)
+    // Show the appropriate panel based on inventory items.
+    // Owner.show() internally calls getPanelRole() to decide which panel to display.
+    // It handles both 'owner_panel' and 'mod_panel' — no separate Mod object needed.
     if (typeof Owner !== 'undefined') {
-      if (this.hasOwnerPanel()) {
-        Owner.show();
-      } else {
-        Owner.hide();
-      }
+      const hasPanel = this.inventory.some(i => i.itemId === 'owner_panel' || i.itemId === 'mod_panel');
+      hasPanel ? Owner.show() : Owner.hide();
     }
   },
 
@@ -212,9 +214,18 @@ const PF = {
 
   hasCosmetic(itemId) { return this.inventory.some(i => i.itemId === itemId); },
 
-  // Owner panel: ONLY true if PlayFab inventory contains "owner_panel" item.
+  // Panel access: true if inventory contains "owner_panel" (full owner) OR "mod_panel" (moderator).
   // Nothing in the code shows the panel unless this returns true.
-  hasOwnerPanel() { return this.inventory.some(i => i.itemId === "owner_panel"); },
+  hasOwnerPanel() {
+    return this.inventory.some(i => i.itemId === 'owner_panel' || i.itemId === 'mod_panel');
+  },
+
+  // Returns 'owner', 'moderator', or null
+  getPanelRole() {
+    if (this.inventory.some(i => i.itemId === 'owner_panel')) return 'owner';
+    if (this.inventory.some(i => i.itemId === 'mod_panel'))   return 'moderator';
+    return null;
+  },
 
   ownersTowers() {
     const t = [...(this.playerData.OwnedTowers||[])];

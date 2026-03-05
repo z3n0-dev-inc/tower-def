@@ -45,6 +45,7 @@ const UI = (() => {
     _refreshLeaderboard(currentLbStat);
     _initInfiniteTab();
     _initMapEditor();
+    _initIngameLB();
 
     // Auto-refresh leaderboard
     lbInterval = setInterval(() => _refreshLeaderboard(currentLbStat), 30000);
@@ -95,6 +96,8 @@ const UI = (() => {
     }
     if (name === 'game') {
       Owner.setInGame(true);
+      // Show in-game leaderboard automatically
+      setTimeout(() => _showIngameLB(), 500);
     }
   }
 
@@ -979,6 +982,76 @@ const UI = (() => {
     startGame('custom');
   }
 
+  // ── IN-GAME LEADERBOARD ───────────────────────
+  let _iglInterval = null;
+  let _iglVisible  = false;
+  let _iglStat     = 'HighScore';
+
+  function _initIngameLB() {
+    const toggleBtn = document.getElementById('btnToggleLB');
+    const closeBtn  = document.getElementById('btnCloseIGL');
+    if (toggleBtn) toggleBtn.onclick = toggleIngameLB;
+    if (closeBtn)  closeBtn.onclick  = () => _hideIngameLB();
+  }
+
+  function toggleIngameLB() {
+    _iglVisible ? _hideIngameLB() : _showIngameLB();
+  }
+
+  function _showIngameLB() {
+    const el = document.getElementById('ingameLeaderboard');
+    if (!el) return;
+    el.classList.remove('hidden');
+    _iglVisible = true;
+    _refreshIngameLB();
+    // Auto-refresh every 30s while open
+    clearInterval(_iglInterval);
+    _iglInterval = setInterval(_refreshIngameLB, 30000);
+  }
+
+  function _hideIngameLB() {
+    const el = document.getElementById('ingameLeaderboard');
+    if (el) el.classList.add('hidden');
+    _iglVisible = false;
+    clearInterval(_iglInterval);
+  }
+
+  async function _refreshIngameLB() {
+    const body = document.getElementById('iglBody');
+    if (!body) return;
+    body.innerHTML = '<div class="igl-loading">Loading…</div>';
+    try {
+      const entries = await PF.getLeaderboard(_iglStat, 10);
+      if (!entries.length) {
+        body.innerHTML = '<div class="igl-loading">No scores yet!</div>';
+        return;
+      }
+      const myId = PF.playFabId || '';
+      body.innerHTML = entries.map((e, i) => {
+        const isMe = myId && e.PlayFabId === myId;
+        const medal = i < 3 ? ['🥇','🥈','🥉'][i] : (i+1);
+        const rankClass = i < 3 ? ['rank-1','rank-2','rank-3'][i] : '';
+        const name = (e.DisplayName || e.PlayFabId?.slice(0,8) || 'Player').slice(0, 12);
+        const val  = (e.StatValue || 0).toLocaleString();
+        return `<div class="igl-row${isMe ? ' igl-me' : ''}">
+          <span class="igl-rank ${rankClass}">${medal}</span>
+          <span class="igl-name">${name}</span>
+          <span class="igl-score">${val}</span>
+        </div>`;
+      }).join('');
+    } catch {
+      body.innerHTML = '<div class="igl-loading">Failed to load</div>';
+    }
+  }
+
+  // Call this when entering game screen
+  function showIngameLeaderboard() {
+    _showIngameLB();
+  }
+  function hideIngameLeaderboard() {
+    _hideIngameLB();
+  }
+
   // ── PUBLIC ────────────────────────────────────
   return {
     init, showScreen, startGame,
@@ -987,6 +1060,7 @@ const UI = (() => {
     announceWave, toast, refreshCanAfford,
     addOwnedTower: id => { ownedTowers.add(id); _saveLocalProgress(); },
     get ownedTowers() { return ownedTowers; },
+    toggleIngameLB, showIngameLeaderboard, hideIngameLeaderboard,
   };
 
 })();

@@ -6,7 +6,7 @@
   <title>ZOMBIE TOWER DEFENCE</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=JetBrains+Mono:wght@300;400;700&family=Barlow+Condensed:wght@300;400;500;600;700&family=Russo+One&family=Share+Tech+Mono&family=Exo+2:wght@400;600;700;900&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=Rajdhani:wght@400;500;600;700&family=Barlow+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
@@ -204,6 +204,7 @@
     <div class="hud-controls">
       <button class="hud-btn pulse-green" id="btnStartWave">▶ SEND WAVE</button>
       <button class="hud-btn" id="btnSpeed" title="Change speed">1×</button>
+      <button id="btnToggleLB" title="Toggle Live Leaderboard">🏆 LB</button>
       <button class="hud-btn danger" id="btnBackMenu">✕</button>
     </div>
   </div>
@@ -215,6 +216,20 @@
       <canvas id="gameCanvas"></canvas>
       <div id="dmgLayer"></div>
       <div id="screenFlash"></div>
+
+      <!-- IN-GAME LEADERBOARD -->
+      <div id="ingameLeaderboard" class="hidden">
+        <div class="igl-header">
+          <div class="igl-title">
+            <div class="igl-live-dot"></div>
+            LIVE SCORES
+          </div>
+          <button class="igl-close" id="btnCloseIGL">✕</button>
+        </div>
+        <div class="igl-body" id="iglBody">
+          <div class="igl-loading">Loading scores…</div>
+        </div>
+      </div>
     </div>
 
     <!-- SIDE PANEL -->
@@ -326,23 +341,32 @@
 
 <!-- ═══════════════════ OWNER PANEL ═══════════════════ -->
 
-<!-- Trigger button — bottom right, proximity glow animation -->
+<!-- 👑 Owner trigger — bottom right -->
 <div id="ownerTrigger" class="owner-trigger hidden">
   <div class="ot-pulse-ring"></div>
   <div class="ot-pulse-ring ot-ring-2"></div>
-  <div class="ot-content">
+  <div class="ot-content ot-owner">
     <span class="ot-crown">👑</span>
     <span class="ot-label">OWNER</span>
     <span id="otArrow">▲</span>
   </div>
 </div>
 
-<!-- Owner Panel -->
+<!-- 🛡 Mod trigger — sits just above owner trigger -->
+<div id="modTrigger" class="owner-trigger mod-trigger hidden">
+  <div class="ot-pulse-ring ot-mod-ring"></div>
+  <div class="ot-pulse-ring ot-mod-ring ot-ring-2"></div>
+  <div class="ot-content ot-mod">
+    <span class="ot-crown">🛡</span>
+    <span class="ot-label">MOD</span>
+    <span id="modArrow">▲</span>
+  </div>
+</div>
+
+<!-- ══ OWNER PANEL (full access — owner_panel item) ══ -->
 <div id="ownerPanel" class="owner-panel hidden">
-  <div class="op-corner op-tl"></div>
-  <div class="op-corner op-tr"></div>
-  <div class="op-corner op-bl"></div>
-  <div class="op-corner op-br"></div>
+  <div class="op-corner op-tl"></div><div class="op-corner op-tr"></div>
+  <div class="op-corner op-bl"></div><div class="op-corner op-br"></div>
 
   <div class="op-hdr">
     <div class="op-hdr-left">
@@ -357,14 +381,44 @@
 
   <div class="op-scroll">
 
+    <!-- Your PlayFab ID -->
+    <div class="op-section">
+      <div class="op-section-label">🪪 YOUR PLAYFAB ID</div>
+      <div class="op-playfab-chip">
+        <span id="opMyIdText">— not logged in —</span>
+        <button class="op-copy-id" id="btnCopyMyId" title="Copy ID">📋</button>
+      </div>
+    </div>
+
     <!-- Target player -->
     <div class="op-section">
       <div class="op-section-label">🎯 TARGET PLAYER ID</div>
-      <input type="text" id="ownerTarget" class="td-input" placeholder="PlayFab Player ID (find in dashboard)"/>
+      <input type="text" id="ownerTarget" class="td-input" placeholder="PlayFab Player ID"/>
       <div class="op-hint">Go to PlayFab → Players to find any Player ID</div>
+      <button class="op-btn blue" style="margin-top:6px" data-oa="lookupPlayer">🔍 Look Up Player</button>
+      <div id="ownerPlayerInfo" class="op-player-info hidden"></div>
     </div>
 
-    <!-- Owner Characters (PlayFab catalog) -->
+    <!-- ── MODERATION ── -->
+    <div class="op-section">
+      <div class="op-section-label">🚨 MODERATION</div>
+      <div class="op-row">
+        <input type="text"   id="ownerBanReason" class="td-input" placeholder="Ban reason" style="flex:1"/>
+      </div>
+      <div class="op-row" style="margin-top:4px">
+        <input type="number" id="ownerBanHours"  class="td-input sm" value="0" min="0" title="0 = permanent"/>
+        <span style="font-family:var(--f-mono);font-size:8px;color:var(--txt2);white-space:nowrap">hrs (0=perm)</span>
+        <button class="op-btn red" data-oa="banPlayer">🔨 Ban</button>
+      </div>
+      <div class="op-cmd-grid" style="margin-top:4px">
+        <button class="op-btn green"  data-oa="unbanPlayer">✅ Unban</button>
+        <button class="op-btn amber"  data-oa="warnPlayer">⚠️ Warn</button>
+        <button class="op-btn purple" data-oa="kickPlayer">👢 Kick</button>
+        <button class="op-btn blue"   data-oa="mutePlayer">🔇 Mute 1h</button>
+      </div>
+    </div>
+
+    <!-- Owner Characters -->
     <div class="op-section">
       <div class="op-section-label">🦇 OWNER CHARACTERS</div>
       <div class="op-hint">Granted via PlayFab inventory — appear in-game instantly</div>
@@ -432,6 +486,102 @@
 
   </div><!-- /op-scroll -->
 </div><!-- /ownerPanel -->
+
+<!-- ══ MODERATOR PANEL (mod_panel item — given via /grant in Discord or PlayFab dashboard) ══ -->
+<!-- ══ MODERATOR PANEL ══ -->
+<div id="modPanel" class="owner-panel mod-panel hidden">
+  <div class="op-corner op-tl"></div><div class="op-corner op-tr"></div>
+  <div class="op-corner op-bl"></div><div class="op-corner op-br"></div>
+
+  <div class="op-hdr mod-hdr">
+    <div class="op-hdr-left">
+      <span class="op-hdr-crown">🛡</span>
+      <div>
+        <div class="op-hdr-title">MODERATOR CONSOLE</div>
+        <div class="op-hdr-sub">Zombie Tower Defence</div>
+      </div>
+    </div>
+    <button id="btnCloseMod" class="op-close">✕</button>
+  </div>
+
+  <div class="op-scroll">
+
+    <!-- Your PlayFab ID -->
+    <div class="op-section">
+      <div class="op-section-label">🪪 YOUR PLAYFAB ID</div>
+      <div class="op-hint">Share with owner to receive items via Discord /grant</div>
+      <div class="op-playfab-chip">
+        <span id="modMyIdText">— not logged in —</span>
+        <button class="op-copy-id" id="btnCopyModId" title="Copy ID">📋</button>
+      </div>
+    </div>
+
+    <!-- Target player -->
+    <div class="op-section">
+      <div class="op-section-label">🎯 TARGET PLAYER ID</div>
+      <input type="text" id="modTarget" class="td-input" placeholder="PlayFab Player ID"/>
+      <div class="op-hint">Paste a player's PlayFab ID to run actions on them</div>
+      <button class="op-btn blue" style="margin-top:6px" data-mod="lookupPlayer">🔍 Look Up Player</button>
+      <div id="modPlayerInfo" class="op-player-info hidden"></div>
+    </div>
+
+    <!-- ── MODERATION ── -->
+    <div class="op-section">
+      <div class="op-section-label">🚨 MODERATION</div>
+      <div class="op-row">
+        <input type="text"   id="modBanReason" class="td-input" placeholder="Ban reason" style="flex:1"/>
+      </div>
+      <div class="op-row" style="margin-top:4px">
+        <input type="number" id="modBanHours"  class="td-input sm" value="0" min="0" title="0 = permanent"/>
+        <span style="font-family:var(--f-mono);font-size:8px;color:var(--txt2);white-space:nowrap">hrs (0=perm)</span>
+        <button class="op-btn red" data-mod="banPlayer">🔨 Ban</button>
+      </div>
+      <div class="op-cmd-grid" style="margin-top:4px">
+        <button class="op-btn green"  data-mod="unbanPlayer">✅ Unban</button>
+        <button class="op-btn amber"  data-mod="warnPlayer">⚠️ Warn</button>
+        <button class="op-btn purple" data-mod="kickPlayer">👢 Kick</button>
+        <button class="op-btn blue"   data-mod="mutePlayer">🔇 Mute 1h</button>
+      </div>
+    </div>
+
+    <!-- Inventory controls -->
+    <div class="op-section">
+      <div class="op-section-label">🗼 PLAYER INVENTORY</div>
+      <div class="op-row">
+        <input type="number" id="modCoinAmt" class="td-input sm" value="1000" min="1"/>
+        <button class="op-btn amber" data-mod="giveCoins">💰 Give Coins</button>
+      </div>
+    </div>
+
+    <!-- In-game live commands -->
+    <div class="op-section" id="modIngame">
+      <div class="op-section-label">⚡ LIVE ROUND COMMANDS</div>
+      <div class="op-row">
+        <input type="number" id="modIngameMoney" class="td-input sm" value="1000" min="1"/>
+        <button class="op-btn amber" data-mod="addIngameMoney">💰 Add Money</button>
+      </div>
+      <div class="op-row">
+        <input type="number" id="modLivesAmt" class="td-input sm" value="20" min="1"/>
+        <button class="op-btn green" data-mod="setLives">❤️ Set Lives</button>
+      </div>
+      <div class="op-cmd-grid">
+        <button class="op-btn blue"   data-mod="skipWave">⏭ Skip Wave</button>
+        <button class="op-btn red"    data-mod="nukeEnemies">☢️ Nuke All</button>
+        <button class="op-btn purple" data-mod="freezeAll">❄️ Freeze All</button>
+        <button class="op-btn gold"   data-mod="maxAllTowers">⬆ Max Towers</button>
+      </div>
+    </div>
+
+    <!-- Log -->
+    <div class="op-section">
+      <div class="op-section-label">📋 ACTION LOG</div>
+      <div class="op-log" id="modLog">
+        <div class="op-placeholder">— awaiting commands —</div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /modPanel -->
 
 <script src="playfab.js"></script>
 <script src="maps.js"></script>

@@ -3,27 +3,17 @@
    ═══════════════════════════════════════════════ */
 
 window.addEventListener('DOMContentLoaded', async () => {
-  // Init owner panel wiring (buttons, close, proximity glow)
-  // Panel stays hidden until playfab.js finds "owner_panel" in inventory
+  // Init both panels — they stay hidden until PlayFab inventory
+  // confirms the correct item exists (owner_panel / mod_panel)
   Owner.init();
-
-  // Sync trigger arrow with open/close state
-  const trigger = document.getElementById('ownerTrigger');
-  const panel   = document.getElementById('ownerPanel');
-  if (trigger && panel) {
-    trigger.onclick = () => {
-      const wasOpen = !panel.classList.contains('hidden');
-      Owner.toggle();
-      const arrow = document.getElementById('otArrow');
-      if (arrow) arrow.textContent = wasOpen ? '▲' : '▼';
-      trigger.classList.toggle('open', !wasOpen);
-    };
-  }
+  Mod.init();
 
   // Init UI — handles login, auto-login, leaderboard, shop etc.
-  // playfab.js loadInventory() will call Owner.show() if owner_panel is in inventory
+  // playfab.js loadInventory() calls Owner.show() / Mod.show() as needed
   await UI.init();
 
   console.log('%c🧟 Zombie Tower Defence', 'color:#e74c3c;font-size:18px;font-weight:bold');
   console.log('%cPlayFab Title: 100286 | Catalog: ZTD_Cosmetics_v1', 'color:#2ecc71');
+  console.log('%cPanels: owner_panel → 👑 Owner | mod_panel → 🛡 Mod', 'color:#f5b215');
 });
+

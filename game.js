@@ -1556,7 +1556,7 @@ const Game = (() => {
     for (const d of _dmgNums) {
       const a = Math.max(0, 1 - d.age / d.life);
       ctx.globalAlpha = a;
-      ctx.font = d.isCrit ? "bold 15px 'Barlow Condensed',sans-serif" : "bold 11px 'Barlow Condensed',sans-serif";
+      ctx.font = d.isCrit ? "bold 15px 'Space Mono',monospace" : "bold 11px 'Space Mono',monospace";
       ctx.fillStyle = '#000';
       ctx.fillText(d.text, d.x+1, d.y+1);
       ctx.fillStyle = d.isCrit ? '#fbbf24' : '#f87171';
@@ -1653,7 +1653,11 @@ const Game = (() => {
     if (lu.type === 'tower') UI.updateTowerPalette(map);
   }
 
+  let _lastLevelHudXP = -1;
   function _updateLevelHUD() {
+    const xp = AccountLevel.getXP();
+    if (xp === _lastLevelHudXP) return; // no change, skip DOM writes
+    _lastLevelHudXP = xp;
     const prog = AccountLevel.getProgress();
     const lvlEl = document.getElementById('hudAcctLevel');
     const barEl = document.getElementById('hudXPBar');
