@@ -304,30 +304,30 @@ const Owner = (() => {
 
       // ── Moderation ────────────────────────────────────
       case 'banPlayer': {
-        if (!target) { _logTo(log, 'Enter a target Player ID', 'err'); return; }
+        if (!target) { _logTo(log, 'Enter a username or Player ID', 'err'); return; }
         const reason = document.getElementById('ownerBanReason')?.value?.trim() || 'No reason given';
         const hours  = parseInt(document.getElementById('ownerBanHours')?.value || '0') || 0;
         if (!confirm(`Ban "${target}"?\nReason: ${reason}\nDuration: ${hours > 0 ? hours + 'h' : 'PERMANENT'}`)) return;
-        _logTo(log, `Banning ${target}…`);
+        _logTo(log, `🔨 Banning "${target}"…`);
         const res = await PF.serverCall('banPlayer', { targetPlayerId: target, reason, hours: hours || null });
-        _logTo(log, res.ok ? `✅ ${target} banned${hours > 0 ? ` for ${hours}h` : ' permanently'}` : `✗ ${res.msg}`, res.ok ? 'ok' : 'err');
+        _logTo(log, res.ok ? `✅ "${target}" banned${hours > 0 ? ` for ${hours}h` : ' permanently'}` : `✗ ${res.msg}`, res.ok ? 'ok' : 'err');
         break;
       }
 
       case 'unbanPlayer': {
-        if (!target) { _logTo(log, 'Enter a target Player ID', 'err'); return; }
-        _logTo(log, `Unbanning ${target}…`);
+        if (!target) { _logTo(log, 'Enter a username or Player ID', 'err'); return; }
+        _logTo(log, `✅ Unbanning "${target}"…`);
         const res = await PF.serverCall('unbanPlayer', { targetPlayerId: target });
-        _logTo(log, res.ok ? `✅ ${target} unbanned` : `✗ ${res.msg}`, res.ok ? 'ok' : 'err');
+        _logTo(log, res.ok ? `✅ "${target}" unbanned` : `✗ ${res.msg}`, res.ok ? 'ok' : 'err');
         break;
       }
 
       case 'warnPlayer': {
-        if (!target) { _logTo(log, 'Enter a target Player ID', 'err'); return; }
+        if (!target) { _logTo(log, 'Enter a username or Player ID', 'err'); return; }
         const reason = document.getElementById('ownerBanReason')?.value?.trim() || 'No reason given';
-        _logTo(log, `Warning ${target}…`);
+        _logTo(log, `⚠️ Warning "${target}"…`);
         const res = await PF.serverCall('warnPlayer', { targetPlayerId: target, reason });
-        _logTo(log, res.ok ? `✅ Warning issued to ${target}` : `✗ ${res.msg}`, res.ok ? 'ok' : 'err');
+        _logTo(log, res.ok ? `✅ Warning issued to "${target}"` : `✗ ${res.msg}`, res.ok ? 'ok' : 'err');
         break;
       }
 
@@ -451,46 +451,46 @@ const Owner = (() => {
         break;
 
       case 'banPlayer': {
-        if (!target) { _logTo(log, 'Enter a target Player ID', 'err'); return; }
+        if (!target) { _logTo(log, 'Enter a username or Player ID', 'err'); return; }
         const reason = document.getElementById('modBanReason')?.value?.trim() || 'No reason given';
         const hours  = parseInt(document.getElementById('modBanHours')?.value || '0') || 0;
         if (!confirm(`Ban "${target}"?\nReason: ${reason}\nDuration: ${hours > 0 ? hours + 'h' : 'PERMANENT'}`)) return;
-        _logTo(log, `Banning ${target}…`);
+        _logTo(log, `🔨 Banning "${target}"…`);
         const res = await PF.serverCall('banPlayer', { targetPlayerId: target, reason, hours: hours || null });
-        _logTo(log, res.ok ? `✅ ${target} banned${hours > 0 ? ` for ${hours}h` : ' permanently'}` : `✗ ${res.msg}`, res.ok ? 'ok' : 'err');
+        _logTo(log, res.ok ? `✅ "${target}" banned${hours > 0 ? ` for ${hours}h` : ' permanently'}` : `✗ ${res.msg}`, res.ok ? 'ok' : 'err');
         break;
       }
 
       case 'unbanPlayer': {
-        if (!target) { _logTo(log, 'Enter a target Player ID', 'err'); return; }
-        _logTo(log, `Unbanning ${target}…`);
+        if (!target) { _logTo(log, 'Enter a username or Player ID', 'err'); return; }
+        _logTo(log, `✅ Unbanning "${target}"…`);
         const res = await PF.serverCall('unbanPlayer', { targetPlayerId: target });
-        _logTo(log, res.ok ? `✅ ${target} unbanned` : `✗ ${res.msg}`, res.ok ? 'ok' : 'err');
+        _logTo(log, res.ok ? `✅ "${target}" unbanned` : `✗ ${res.msg}`, res.ok ? 'ok' : 'err');
         break;
       }
 
       case 'warnPlayer': {
-        if (!target) { _logTo(log, 'Enter a target Player ID', 'err'); return; }
+        if (!target) { _logTo(log, 'Enter a username or Player ID', 'err'); return; }
         const reason = document.getElementById('modBanReason')?.value?.trim() || 'No reason given';
-        _logTo(log, `Warning ${target}…`);
+        _logTo(log, `⚠️ Warning "${target}"…`);
         const res = await PF.serverCall('warnPlayer', { targetPlayerId: target, reason });
-        _logTo(log, res.ok ? `✅ Warning issued to ${target}` : `✗ ${res.msg}`, res.ok ? 'ok' : 'err');
+        _logTo(log, res.ok ? `✅ Warning issued to "${target}"` : `✗ ${res.msg}`, res.ok ? 'ok' : 'err');
         break;
       }
 
       case 'kickPlayer': {
-        if (!target) { _logTo(log, 'Enter a target Player ID', 'err'); return; }
-        _logTo(log, `Kicking ${target}…`);
+        if (!target) { _logTo(log, 'Enter a username or Player ID', 'err'); return; }
+        _logTo(log, `👢 Kicking "${target}"…`);
         const res = await PF.serverCall('kickPlayer', { targetPlayerId: target });
-        _logTo(log, res.ok ? `✅ ${target} kicked` : `✗ ${res.msg}`, res.ok ? 'ok' : 'err');
+        _logTo(log, res.ok ? `✅ "${target}" kicked` : `✗ ${res.msg}`, res.ok ? 'ok' : 'err');
         break;
       }
 
       case 'mutePlayer': {
-        if (!target) { _logTo(log, 'Enter a target Player ID', 'err'); return; }
-        _logTo(log, `Muting ${target} for 1h…`);
+        if (!target) { _logTo(log, 'Enter a username or Player ID', 'err'); return; }
+        _logTo(log, `🔇 Muting "${target}" for 1h…`);
         const res = await PF.serverCall('mutePlayer', { targetPlayerId: target, hours: 1 });
-        _logTo(log, res.ok ? `✅ ${target} muted for 1h` : `✗ ${res.msg}`, res.ok ? 'ok' : 'err');
+        _logTo(log, res.ok ? `✅ "${target}" muted for 1h` : `✗ ${res.msg}`, res.ok ? 'ok' : 'err');
         break;
       }
 

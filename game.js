@@ -751,6 +751,14 @@ const Game = (() => {
       // Reset combo on wave end
       _combo = 0; _comboTimer = 0; _updateComboDisplay();
 
+      // Wave achievements
+      if (wave >= 5)  UI.showAchievement('wave_5');
+      if (wave >= 10) UI.showAchievement('wave_10');
+      if (wave >= 20) UI.showAchievement('wave_20');
+      if (wave >= 30) UI.showAchievement('wave_30');
+      // Perfect wave (no lives lost)
+      if (lives >= _livesAtWaveStart) UI.showAchievement('no_damage_wave');
+
       // ── Farm income + simple interest ──────────────────────────────────
       let farmTotal = 0;
       towers.forEach(t => {
@@ -857,6 +865,12 @@ const Game = (() => {
         kills++;
         totalCoinsEarned += e.reward;
 
+        // Achievement triggers
+        if (kills === 1)    UI.showAchievement('first_kill');
+        if (kills === 100)  UI.showAchievement('kills_100');
+        if (kills === 500)  UI.showAchievement('kills_500');
+        if (kills === 1000) UI.showAchievement('kills_1000');
+
         // Combo system
         _combo++;
         _comboTimer = _COMBO_DECAY;
@@ -871,8 +885,11 @@ const Game = (() => {
           _screenFlash('gold');
           _addKillFeedEntry(`💥 ${e.name} DESTROYED!`, true);
           _floatText(`${e.name} DESTROYED! +${e.reward}`, 'gold');
+          UI.showAchievement('boss_kill');
         } else {
           // Combo milestones
+          if (_combo === 10) UI.showAchievement('combo_10');
+          if (_combo === 25) UI.showAchievement('combo_25');
           if (_combo > 0 && _combo % 25 === 0) {
             _spawnStreakPop(`🔥 ${_combo}× COMBO!`);
             _screenFlash('gold');

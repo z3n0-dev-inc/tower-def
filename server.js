@@ -182,3 +182,166 @@ app.listen(PORT, () => {
   console.log(`   Catalog Version:  ${CATALOG_VERSION}`);
   console.log(`   Endpoints:        /owner/*\n`);
 });
+
+// ── Resolve PlayFab ID from username OR ID ────────────────
+async function resolvePlayFabId(nameOrId) {
+  // If it looks like a PlayFab ID (hex, ~16 chars), use directly
+  if (/^[0-9A-Fa-f]{16}$/.test(nameOrId)) return { ok: true, playFabId: nameOrId };
+  // Otherwise look up by username
+  const r = await pfServer('/Server/GetUserAccountInfo', { Username: nameOrId });
+  if (r.ok && r.data?.UserInfo?.PlayFabId) return { ok: true, playFabId: r.data.UserInfo.PlayFabId };
+  // Try DisplayName lookup via leaderboard isn't great; try direct account lookup
+  return { ok: false, msg: `Player "${nameOrId}" not found. Try their PlayFab ID instead.` };
+}
+
+// ── Lookup player profile (for mod panel) ─────────────────
+app.post('/owner/lookupPlayer', async (req, res) => {
+  const { callerSession, targetPlayerId } = req.body;
+  if (!callerSession) return res.json({ ok: false, msg: 'Not authenticated' });
+  // Verify caller has at least mod access
+  const auth = await pfServer('/Server/AuthenticateSessionTicket', { SessionTicket: callerSession });
+  if (!auth.ok) return res.json({ ok: false, msg: 'Invalid session' });
+  const callerId = auth.data.UserInfo.PlayFabId;
+  const callerData = await pfServer('/Server/GetUserData', { PlayFabId: callerId, Keys: ['IsOwner', 'IsMod'] });
+  const callerD = callerData.data?.Data || {};
+  const isOwnerOrMod = callerD.IsOwner?.Value === 'true' || callerD.IsMod?.Value === 'true';
+  if (!isOwnerOrMod) return res.json({ ok: false, msg: 'Not authorized' });
+
+  const resolved = await resolvePlayFabId(targetPlayerId);
+  if (!resolved.ok) return res.json({ ok: false, msg: resolved.msg });
+  const pfId = resolved.playFabId;
+
+  const [profileRes, statsRes, banRes] = await Promise.all([
+    pfServer('/Server/GetUserAccountInfo', { PlayFabId: pfId }),
+    pfServer('/Server/GetPlayerStatistics', { PlayFabId: pfId }),
+    pfServer('/Server/GetUserBans', { PlayFabId: pfId }),
+  ]);
+
+  const profile = profileRes.data?.UserInfo || {};
+  const statsArr = statsRes.data?.Statistics || [];
+  const stats = {};
+  statsArr.forEach(s => { stats[s.StatisticName] = s.Value; });
+
+  const now = new Date();
+  const activeBan = (banRes.data?.BanData || []).find(b => !b.Expires || new Date(b.Expires) > now);
+
+  res.json({
+    ok: true,
+    playFabId: pfId,
+    profile: {
+      DisplayName: profile.TitleInfo?.DisplayName || profile.Username || pfId,
+      Username: profile.Username,
+      Created: profile.TitleInfo?.Created,
+      LastLogin: profile.TitleInfo?.LastLogin,
+      BannedUntil: activeBan?.Expires || null,
+    },
+    stats,
+  });
+});
+
+// ── Ban player (by name or ID) ─────────────────────────────
+app.post('/owner/banPlayer', async (req, res) => {
+  const { callerSession, targetPlayerId, reason, hours } = req.body;
+  const auth = await verifyOwner(callerSession);
+  if (!auth.ok) {
+    // Allow mods too — verify mod access
+    const authAny = await pfServer('/Server/AuthenticateSessionTicket', { SessionTicket: callerSession });
+    if (!authAny.ok) return res.json({ ok: false, msg: 'Invalid session' });
+    const callerId = authAny.data.UserInfo.PlayFabId;
+    const callerData = await pfServer('/Server/GetUserData', { PlayFabId: callerId, Keys: ['IsMod'] });
+    if (callerData.data?.Data?.IsMod?.Value !== 'true') return res.json({ ok: false, msg: 'Not authorized' });
+  }
+
+  const resolved = await resolvePlayFabId(targetPlayerId);
+  if (!resolved.ok) return res.json({ ok: false, msg: resolved.msg });
+  const pfId = resolved.playFabId;
+
+  const banReq = {
+    Bans: [{
+      PlayFabId: pfId,
+      Reason: reason || 'No reason given',
+      ...(hours && hours > 0 ? { DurationInHours: parseInt(hours) } : {}),
+    }]
+  };
+  const r = await pfServer('/Server/BanUsers', banReq);
+  if (r.ok) {
+    // Also store ban flag in user data for in-game checks
+    await pfServer('/Server/UpdateUserData', { PlayFabId: pfId, Data: { IsBanned: 'true', BanReason: reason || 'Banned' } });
+  }
+  res.json({ ok: r.ok, msg: r.ok ? `Player banned${hours > 0 ? ` for ${hours}h` : ' permanently'}` : (r.msg || 'Ban failed') });
+});
+
+// ── Unban player ──────────────────────────────────────────
+app.post('/owner/unbanPlayer', async (req, res) => {
+  const { callerSession, targetPlayerId } = req.body;
+  const auth = await verifyOwner(callerSession);
+  if (!auth.ok) {
+    const authAny = await pfServer('/Server/AuthenticateSessionTicket', { SessionTicket: callerSession });
+    if (!authAny.ok) return res.json({ ok: false, msg: 'Invalid session' });
+    const callerId = authAny.data.UserInfo.PlayFabId;
+    const callerData = await pfServer('/Server/GetUserData', { PlayFabId: callerId, Keys: ['IsMod'] });
+    if (callerData.data?.Data?.IsMod?.Value !== 'true') return res.json({ ok: false, msg: 'Not authorized' });
+  }
+
+  const resolved = await resolvePlayFabId(targetPlayerId);
+  if (!resolved.ok) return res.json({ ok: false, msg: resolved.msg });
+  const pfId = resolved.playFabId;
+
+  // Get active bans first
+  const banRes = await pfServer('/Server/GetUserBans', { PlayFabId: pfId });
+  const activeBans = (banRes.data?.BanData || []).filter(b => !b.Expires || new Date(b.Expires) > new Date());
+  if (!activeBans.length) return res.json({ ok: false, msg: 'No active bans found' });
+
+  const r = await pfServer('/Server/RevokeBans', { BanIds: activeBans.map(b => b.BanId) });
+  if (r.ok) {
+    await pfServer('/Server/UpdateUserData', { PlayFabId: pfId, Data: { IsBanned: 'false', BanReason: '' } });
+  }
+  res.json({ ok: r.ok, msg: r.ok ? 'Player unbanned' : (r.msg || 'Unban failed') });
+});
+
+// ── Warn player ───────────────────────────────────────────
+app.post('/owner/warnPlayer', async (req, res) => {
+  const { callerSession, targetPlayerId, reason } = req.body;
+  const authAny = await pfServer('/Server/AuthenticateSessionTicket', { SessionTicket: callerSession });
+  if (!authAny.ok) return res.json({ ok: false, msg: 'Invalid session' });
+
+  const resolved = await resolvePlayFabId(targetPlayerId);
+  if (!resolved.ok) return res.json({ ok: false, msg: resolved.msg });
+  const pfId = resolved.playFabId;
+
+  const existing = await pfServer('/Server/GetUserData', { PlayFabId: pfId, Keys: ['Warnings'] });
+  const warnings = JSON.parse(existing.data?.Data?.Warnings?.Value || '[]');
+  warnings.push({ reason: reason || 'No reason', date: new Date().toISOString() });
+
+  const r = await pfServer('/Server/UpdateUserData', { PlayFabId: pfId, Data: { Warnings: JSON.stringify(warnings) } });
+  res.json({ ok: r.ok, msg: r.ok ? `Warning issued (total: ${warnings.length})` : (r.msg || 'Failed') });
+});
+
+// ── Kick player (flag for forced logout) ──────────────────
+app.post('/owner/kickPlayer', async (req, res) => {
+  const { callerSession, targetPlayerId } = req.body;
+  const authAny = await pfServer('/Server/AuthenticateSessionTicket', { SessionTicket: callerSession });
+  if (!authAny.ok) return res.json({ ok: false, msg: 'Invalid session' });
+
+  const resolved = await resolvePlayFabId(targetPlayerId);
+  if (!resolved.ok) return res.json({ ok: false, msg: resolved.msg });
+  const pfId = resolved.playFabId;
+
+  const r = await pfServer('/Server/UpdateUserData', { PlayFabId: pfId, Data: { ForceKick: Date.now().toString() } });
+  res.json({ ok: r.ok, msg: r.ok ? 'Kick signal sent' : (r.msg || 'Failed') });
+});
+
+// ── Mute player ───────────────────────────────────────────
+app.post('/owner/mutePlayer', async (req, res) => {
+  const { callerSession, targetPlayerId, hours } = req.body;
+  const authAny = await pfServer('/Server/AuthenticateSessionTicket', { SessionTicket: callerSession });
+  if (!authAny.ok) return res.json({ ok: false, msg: 'Invalid session' });
+
+  const resolved = await resolvePlayFabId(targetPlayerId);
+  if (!resolved.ok) return res.json({ ok: false, msg: resolved.msg });
+  const pfId = resolved.playFabId;
+
+  const muteUntil = new Date(Date.now() + (hours || 1) * 3600000).toISOString();
+  const r = await pfServer('/Server/UpdateUserData', { PlayFabId: pfId, Data: { MutedUntil: muteUntil } });
+  res.json({ ok: r.ok, msg: r.ok ? `Muted until ${muteUntil}` : (r.msg || 'Failed') });
+});

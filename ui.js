@@ -475,30 +475,49 @@ const UI = (() => {
   function _bindLbTabs() {
     document.querySelectorAll('.lbt').forEach(btn => {
       btn.onclick = () => {
+        if (btn.id === 'btnRefreshLB') { _refreshLeaderboard(currentLbStat); return; }
         document.querySelectorAll('.lbt').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         currentLbStat = btn.dataset.lb;
         _refreshLeaderboard(currentLbStat);
       };
     });
+    document.getElementById('btnRefreshLB').onclick = () => _refreshLeaderboard(currentLbStat);
   }
 
   async function _refreshLeaderboard(stat) {
     const wrap = document.getElementById('lbWrap');
     if (!wrap) return;
-    wrap.innerHTML = '<p class="lb-loading">Loading…</p>';
-    const entries = await PF.getLeaderboard(stat, 25);
-    if (!entries.length) {
-      wrap.innerHTML = '<p class="lb-loading">No data yet — play a game first!</p>';
-      return;
+    wrap.innerHTML = '<p class="lb-loading">⏳ Loading leaderboard…</p>';
+    // Show login hint if not logged in
+    const hint = document.getElementById('lbLoginHint');
+    if (hint) hint.style.display = PF.isLoggedIn() ? 'none' : 'block';
+    try {
+      const entries = await PF.getLeaderboard(stat, 100);
+      if (!entries.length) {
+        wrap.innerHTML = '<p class="lb-loading">No scores yet — be the first to play!</p>';
+        return;
+      }
+      const isMod = PF.getPanelRole && (PF.getPanelRole() === 'owner' || PF.getPanelRole() === 'moderator');
+      const myId  = PF.playFabId || '';
+      wrap.innerHTML = entries.map((e, i) => {
+        const isMe   = myId && e.PlayFabId === myId;
+        const medal  = i < 3 ? ['🥇','🥈','🥉'][i] : (i + 1);
+        const name   = (e.DisplayName || e.PlayFabId?.slice(0,8) || 'Player');
+        const pfChip = isMod
+          ? `<span class="lb-pfid" title="Click to copy PlayFab ID" onclick="navigator.clipboard.writeText('${e.PlayFabId}').then(()=>UI.toast('ID copied!','green'))">[${(e.PlayFabId||'').slice(0,8)}]</span>`
+          : '';
+        return `
+          <div class="lb-row${isMe ? ' lb-me' : ''}">
+            <span class="lb-rank rank-${Math.min(i+1,4)}">${medal}</span>
+            <span class="lb-name">${name}${pfChip}</span>
+            <span class="lb-val">${(e.StatValue||0).toLocaleString()}</span>
+          </div>`;
+      }).join('');
+    } catch(err) {
+      wrap.innerHTML = `<p class="lb-loading" style="color:var(--red2)">Failed to load leaderboard. Check console.</p>`;
+      console.error('[LB]', err);
     }
-    wrap.innerHTML = entries.map((e, i) => `
-      <div class="lb-row">
-        <span class="lb-rank rank-${i+1}">${i < 3 ? ['🥇','🥈','🥉'][i] : i+1}</span>
-        <span class="lb-name">${e.DisplayName || e.PlayFabId?.slice(0,8) || 'Player'}</span>
-        <span class="lb-val">${(e.StatValue||0).toLocaleString()}</span>
-        <span class="lb-towers">🗼 —</span>
-      </div>`).join('');
   }
 
   // ── AUTH / PROFILE ────────────────────────────
@@ -1048,6 +1067,44 @@ const UI = (() => {
     _hideIngameLB();
   }
 
+  // ── ACHIEVEMENT POPUPS ────────────────────────
+  const _ACHIEVEMENTS = {
+    first_kill:    { icon:'⚔️', title:'FIRST BLOOD',      desc:'Kill your first zombie'             },
+    kills_100:     { icon:'💀', title:'CENTURY KILLER',   desc:'100 total kills'                    },
+    kills_500:     { icon:'☠️', title:'MASS EXTERMINATOR',desc:'500 total kills'                    },
+    kills_1000:    { icon:'🔱', title:'ZOMBIE NIGHTMARE', desc:'1,000 total kills'                  },
+    wave_5:        { icon:'🌊', title:'WAVE SURVIVOR',    desc:'Survive wave 5'                     },
+    wave_10:       { icon:'🏄', title:'RIDING THE STORM', desc:'Survive wave 10'                    },
+    wave_20:       { icon:'⚡', title:'VETERAN DEFENDER', desc:'Survive wave 20'                    },
+    wave_30:       { icon:'🔥', title:'LEGENDARY STAND',  desc:'Survive wave 30'                    },
+    combo_10:      { icon:'🔥', title:'COMBO MASTER',     desc:'10× kill combo'                     },
+    combo_25:      { icon:'💥', title:'UNSTOPPABLE',      desc:'25× kill combo'                     },
+    boss_kill:     { icon:'👑', title:'BOSS SLAYER',      desc:'Defeat a boss'                      },
+    all_towers:    { icon:'🗼', title:'TOWER COLLECTOR',  desc:'Build 10 towers in one game'        },
+    no_damage_wave:{ icon:'🛡', title:'PERFECT DEFENSE',  desc:'Complete a wave without losing lives'},
+  };
+  const _shownAchievements = new Set(JSON.parse(localStorage.getItem('ztd_achievements') || '[]'));
+
+  function showAchievement(id) {
+    const a = _ACHIEVEMENTS[id];
+    if (!a || _shownAchievements.has(id)) return;
+    _shownAchievements.add(id);
+    localStorage.setItem('ztd_achievements', JSON.stringify([..._shownAchievements]));
+
+    const el = document.createElement('div');
+    el.className = 'achievement-pop';
+    el.innerHTML = `
+      <div class="ach-icon">${a.icon}</div>
+      <div class="ach-text">
+        <div class="ach-label">ACHIEVEMENT UNLOCKED</div>
+        <div class="ach-title">${a.title}</div>
+        <div class="ach-desc">${a.desc}</div>
+      </div>`;
+    document.body.appendChild(el);
+    setTimeout(() => el.classList.add('ach-show'), 50);
+    setTimeout(() => { el.classList.remove('ach-show'); setTimeout(() => el.remove(), 500); }, 3500);
+  }
+
   // ── PUBLIC ────────────────────────────────────
   return {
     init, showScreen, startGame,
@@ -1057,6 +1114,7 @@ const UI = (() => {
     addOwnedTower: id => { ownedTowers.add(id); _saveLocalProgress(); },
     get ownedTowers() { return ownedTowers; },
     toggleIngameLB, showIngameLeaderboard, hideIngameLeaderboard,
+    showAchievement,
   };
 
 })();

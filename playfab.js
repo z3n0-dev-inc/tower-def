@@ -236,10 +236,17 @@ const PF = {
   },
 
   // ── Leaderboard ───────────────────────────────
-  async getLeaderboard(stat, max=25) {
-    const r = await this._post('/Client/GetLeaderboard',
-      { StatisticName:stat, StartPosition:0, MaxResultsCount:max });
-    return r.code===200 ? r.data.Leaderboard||[] : [];
+  async function getLeaderboard(stat, max=100) {
+    try {
+      const r = await this._post('/Client/GetLeaderboard',
+        { StatisticName:stat, StartPosition:0, MaxResultsCount:Math.min(max,100) });
+      if (r.code === 200) return r.data?.Leaderboard || [];
+      console.warn('[PF] Leaderboard error:', r.errorMessage);
+      return [];
+    } catch(e) {
+      console.error('[PF] getLeaderboard failed:', e);
+      return [];
+    }
   },
 
   // ── Shop ──────────────────────────────────────

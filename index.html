@@ -131,6 +131,10 @@
         <button class="lbt active" data-lb="HighScore">HIGH SCORE</button>
         <button class="lbt" data-lb="BestWave">BEST WAVE</button>
         <button class="lbt" data-lb="TotalKills">TOTAL KILLS</button>
+        <button id="btnRefreshLB" class="lbt" title="Refresh leaderboard" style="margin-left:auto">↻</button>
+      </div>
+      <div id="lbLoginHint" style="display:none;font-family:var(--f-mono);font-size:9px;color:var(--amber3);text-align:center;padding:8px;background:rgba(245,178,21,0.06);border-radius:6px;margin-bottom:8px">
+        ⚠ Log in to appear on the leaderboard!
       </div>
       <div id="lbWrap" class="lb-wrap"><p class="lb-loading">Fetching leaderboard…</p></div>
     </div>
@@ -393,8 +397,8 @@
     <!-- Target player -->
     <div class="op-section">
       <div class="op-section-label">🎯 TARGET PLAYER ID</div>
-      <input type="text" id="ownerTarget" class="td-input" placeholder="PlayFab Player ID"/>
-      <div class="op-hint">Go to PlayFab → Players to find any Player ID</div>
+      <input type="text" id="ownerTarget" class="td-input" placeholder="Username or PlayFab ID"/>
+      <div class="op-hint">Enter username or paste PlayFab ID</div>
       <button class="op-btn blue" style="margin-top:6px" data-oa="lookupPlayer">🔍 Look Up Player</button>
       <div id="ownerPlayerInfo" class="op-player-info hidden"></div>
     </div>
@@ -519,8 +523,8 @@
     <!-- Target player -->
     <div class="op-section">
       <div class="op-section-label">🎯 TARGET PLAYER ID</div>
-      <input type="text" id="modTarget" class="td-input" placeholder="PlayFab Player ID"/>
-      <div class="op-hint">Paste a player's PlayFab ID to run actions on them</div>
+      <input type="text" id="modTarget" class="td-input" placeholder="Username or PlayFab ID"/>
+      <div class="op-hint">Enter username or paste PlayFab ID</div>
       <button class="op-btn blue" style="margin-top:6px" data-mod="lookupPlayer">🔍 Look Up Player</button>
       <div id="modPlayerInfo" class="op-player-info hidden"></div>
     </div>
