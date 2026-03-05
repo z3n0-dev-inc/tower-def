@@ -476,12 +476,19 @@ const Game = (() => {
       gTiles.push(gt);
     }
 
-    // Draw ground tiles
+    // Draw ground tiles with subtle 3D depth edge highlights
     for (let row = 0; row < map.rows; row++) {
       for (let col = 0; col < map.cols; col++) {
         if (map.pathSet.has(`${col},${row}`)) continue;
         const vi = Math.floor(rng() * VARIANTS);
         c.drawImage(gTiles[vi], col*T, row*T);
+        // Subtle top/left edge highlight for isometric depth feel
+        c.fillStyle = 'rgba(255,255,255,0.04)';
+        c.fillRect(col*T, row*T, T, 1);        // top edge
+        c.fillRect(col*T, row*T, 1, T);        // left edge
+        c.fillStyle = 'rgba(0,0,0,0.06)';
+        c.fillRect(col*T, row*T+T-1, T, 1);   // bottom edge
+        c.fillRect(col*T+T-1, row*T, 1, T);   // right edge
       }
     }
 
@@ -520,6 +527,21 @@ const Game = (() => {
     const tileCache = {};
     ['h','v','tl','tr','bl','br'].forEach(type => {
       tileCache[type] = _makePathTile(T, type, theme);
+    });
+
+    // 3D DEPTH PASS: draw raised ground shadows BEFORE path tiles
+    // This makes the path look like it's elevated/recessed into the terrain
+    const depthH = Math.floor(T * 0.12);
+    map.path.forEach(([pc, pr]) => {
+      // Cast a shadow below and to the right (3D depth illusion)
+      c.fillStyle = 'rgba(0,0,0,0.38)';
+      c.fillRect(pc*T + depthH, pr*T + T, T, depthH); // bottom shadow
+      c.fillRect(pc*T + T, pr*T + depthH, depthH, T);  // right shadow
+
+      // Left and top lighter face for raised-road look  
+      c.fillStyle = 'rgba(255,255,255,0.06)';
+      c.fillRect(pc*T, pr*T, depthH, T); // left highlight
+      c.fillRect(pc*T, pr*T, T, depthH); // top highlight
     });
 
     // First pass: draw path tiles (corners are transparent outside arc)
@@ -794,10 +816,10 @@ const Game = (() => {
           let livesLost;
           if (e.def.isBlimp) {
             // Blimps cost serious lives based on tier
-            livesLost = Math.max(10, (e.def.tier - 11) * 4);
+            livesLost = Math.max(15, (e.def.tier - 11) * 6);
           } else {
-            // Regular balloons cost their tier (red=1, pink=5, purple=8, etc.)
-            livesLost = e.def.tier || 1;
+            // Regular balloons cost double their tier for brutal punishment
+            livesLost = Math.max(1, (e.def.tier || 1) * 2);
           }
           lives -= livesLost;
           shakeAmount = e.isBoss ? 18 : 8;
@@ -1926,22 +1948,22 @@ function _getPathTileType(path, idx) {
   // Corner: determine the OUTER pivot (opposite of inner) to match the arc pivot coords
   // The arc is drawn from the corner pivot outward, so pivot = outer corner of the turn
   const fd = fromDir, td = toDir;
-  // → then ↓ (right then down): outer corner is top-left → 'tl'
-  if (fd.dc===1  && td.dr===1)  return 'tl';
-  // ← then ↓ (left then down): outer corner is top-right → 'tr'
-  if (fd.dc===-1 && td.dr===1)  return 'tr';
-  // → then ↑ (right then up): outer corner is bottom-left → 'bl'
-  if (fd.dc===1  && td.dr===-1) return 'bl';
-  // ← then ↑ (left then up): outer corner is bottom-right → 'br'
-  if (fd.dc===-1 && td.dr===-1) return 'br';
-  // ↓ then → (down then right): outer corner is top-left → 'tl'
-  if (fd.dr===1  && td.dc===1)  return 'tl';
-  // ↓ then ← (down then left): outer corner is top-right → 'tr'
-  if (fd.dr===1  && td.dc===-1) return 'tr';
-  // ↑ then → (up then right): outer corner is bottom-left → 'bl'
-  if (fd.dr===-1 && td.dc===1)  return 'bl';
-  // ↑ then ← (up then left): outer corner is bottom-right → 'br'
-  if (fd.dr===-1 && td.dc===-1) return 'br';
+  // → then ↓ (right then down): enter left, exit bottom → 'bl'
+  if (fd.dc===1  && td.dr===1)  return 'bl';
+  // ← then ↓ (left then down): enter right, exit bottom → 'br'
+  if (fd.dc===-1 && td.dr===1)  return 'br';
+  // → then ↑ (right then up): enter left, exit top → 'tl'
+  if (fd.dc===1  && td.dr===-1) return 'tl';
+  // ← then ↑ (left then up): enter right, exit top → 'tr'
+  if (fd.dc===-1 && td.dr===-1) return 'tr';
+  // ↓ then → (down then right): enter top, exit right → 'tr'
+  if (fd.dr===1  && td.dc===1)  return 'tr';
+  // ↓ then ← (down then left): enter top, exit left → 'tl'
+  if (fd.dr===1  && td.dc===-1) return 'tl';
+  // ↑ then → (up then right): enter bottom, exit right → 'br'
+  if (fd.dr===-1 && td.dc===1)  return 'br';
+  // ↑ then ← (up then left): enter bottom, exit left → 'bl'
+  if (fd.dr===-1 && td.dc===-1) return 'bl';
   return 'h';
 }
 

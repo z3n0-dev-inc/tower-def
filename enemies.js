@@ -319,39 +319,42 @@ function generateWaves(mapId, totalWaves, waveModifier, isInfinite) {
     if (isPhantom) {
       wave.isBossWave=true;
       wave.enemies.push({type:'phantom', count:1,                       interval:0});
-      wave.enemies.push({type:'bad',     count:2+Math.floor(w/80),      interval:1.2});
-      wave.enemies.push({type:'zomg',    count:3+Math.floor(w/40),      interval:0.8});
-      wave.enemies.push({type:'ceramic', count:15+Math.floor(w/5),      interval:0.15});
+      wave.enemies.push({type:'bad',     count:1+Math.floor(w/80),      interval:2.0});
+      wave.enemies.push({type:'zomg',    count:2+Math.floor(w/40),      interval:1.5});
+      wave.enemies.push({type:'ceramic', count:6+Math.floor(w/8),       interval:0.4});
     } else if (isBad) {
       wave.isBossWave=true;
-      wave.enemies.push({type:'bad',     count:1+Math.floor(w/50),      interval:0});
-      wave.enemies.push({type:'zomg',    count:2+Math.floor(w/40),      interval:1.0});
-      wave.enemies.push({type:'bfb',     count:Math.floor(w/20),        interval:0.7});
-      wave.enemies.push({type:'ceramic', count:10+Math.floor(w/6),      interval:0.18});
+      wave.enemies.push({type:'bad',     count:1+Math.floor(w/60),      interval:0});
+      wave.enemies.push({type:'zomg',    count:1+Math.floor(w/40),      interval:1.8});
+      wave.enemies.push({type:'bfb',     count:Math.max(1,Math.floor(w/25)), interval:1.2});
+      wave.enemies.push({type:'ceramic', count:4+Math.floor(w/8),       interval:0.35});
     } else if (isZomg) {
       wave.isBossWave=true;
-      wave.enemies.push({type:'zomg',    count:1+Math.floor(w/25),      interval:0});
-      wave.enemies.push({type:'bfb',     count:1+Math.floor(w/15),      interval:0.9});
-      wave.enemies.push({type:'moab',    count:Math.floor(w/10),        interval:0.5});
-      wave.enemies.push({type:'ceramic', count:6+Math.floor(w/6),       interval:0.18});
+      wave.enemies.push({type:'zomg',    count:1+Math.floor(w/30),      interval:0});
+      wave.enemies.push({type:'bfb',     count:1+Math.floor(w/20),      interval:1.5});
+      wave.enemies.push({type:'moab',    count:Math.max(1,Math.floor(w/12)), interval:0.9});
+      wave.enemies.push({type:'ceramic', count:3+Math.floor(w/8),       interval:0.35});
     } else if (isBfb) {
       wave.isBossWave=true;
-      wave.enemies.push({type:'bfb',     count:1+Math.floor(w/15),      interval:0.6});
-      wave.enemies.push({type:'moab',    count:2+Math.floor(w/8),       interval:0.4});
-      wave.enemies.push({type:'rainbow', count:6+Math.floor(w/4),       interval:0.15});
-      wave.enemies.push({type:'ceramic', count:3+Math.floor(w/5),       interval:0.2});
+      wave.enemies.push({type:'bfb',     count:1+Math.floor(w/20),      interval:1.0});
+      wave.enemies.push({type:'moab',    count:1+Math.floor(w/10),      interval:0.7});
+      wave.enemies.push({type:'rainbow', count:3+Math.floor(w/6),       interval:0.3});
+      wave.enemies.push({type:'ceramic', count:2+Math.floor(w/8),       interval:0.4});
     } else if (isMoab) {
       wave.isBossWave=true;
-      wave.enemies.push({type:'moab',    count:1+Math.floor(w/10),      interval:0.5});
-      wave.enemies.push({type:'ceramic', count:3+Math.floor(w/4),       interval:0.18});
-      wave.enemies.push({type:'rainbow', count:4+Math.floor(w/3),       interval:0.16});
+      wave.enemies.push({type:'moab',    count:1+Math.floor(w/12),      interval:0.9});
+      wave.enemies.push({type:'ceramic', count:2+Math.floor(w/6),       interval:0.35});
+      wave.enemies.push({type:'rainbow', count:2+Math.floor(w/4),       interval:0.3});
     } else {
       const avail = _availableTypes(w);
-      const totalCount = Math.floor((20 + w*5.2) * (waveModifier||1));
-      const groups = Math.min(6, 2+Math.floor(w/3));
+      // REDUCED COUNT: fewer but stronger enemies instead of hordes
+      const totalCount = Math.floor((6 + w*1.8) * (waveModifier||1));
+      const groups = Math.min(4, 1+Math.floor(w/4));
       for (let g2=0;g2<groups;g2++) {
-        const type = avail[Math.floor(Math.random()*avail.length)];
-        const interval = Math.max(0.1, 0.35 - w*0.004 - Math.random()*0.1);
+        // Bias toward higher-tier types to keep count low but difficulty high
+        const eligibles = avail.slice(Math.max(0, avail.length - 4));
+        const type = eligibles[Math.floor(Math.random()*eligibles.length)];
+        const interval = Math.max(0.28, 0.7 - w*0.01 - Math.random()*0.1);
         wave.enemies.push({type, count:Math.ceil(totalCount/groups), interval});
       }
     }
@@ -363,20 +366,20 @@ function generateWaves(mapId, totalWaves, waveModifier, isInfinite) {
 }
 
 function _availableTypes(wave) {
-  // Aggressive early escalation — hard types much sooner
+  // Very aggressive early escalation — hard types appear quickly
   return [
     {type:'red',     min:1},
-    {type:'blue',    min:2},
-    {type:'green',   min:3},
-    {type:'yellow',  min:4},   // was 5
-    {type:'pink',    min:5},   // was 7
-    {type:'black',   min:6},   // was 8
-    {type:'white',   min:6},   // was 8
-    {type:'purple',  min:8},   // was 10
-    {type:'lead',    min:9},   // was 12
-    {type:'zebra',   min:11},  // was 14
-    {type:'rainbow', min:12},  // was 15
-    {type:'ceramic', min:14},  // was 17
+    {type:'blue',    min:1},
+    {type:'green',   min:2},
+    {type:'yellow',  min:3},
+    {type:'pink',    min:4},
+    {type:'black',   min:5},
+    {type:'white',   min:5},
+    {type:'purple',  min:6},
+    {type:'lead',    min:7},
+    {type:'zebra',   min:9},
+    {type:'rainbow', min:10},
+    {type:'ceramic', min:12},
   ].filter(e=>e.min<=wave).map(e=>e.type);
 }
 
@@ -389,11 +392,11 @@ class Enemy {
     this.isBoss = !!(def.isBoss || def.isBlimp);
     this.immunities = def.immunities || [];
 
-    const ws = Math.pow(1.28, Math.max(0, waveNum-1)) * (waveModifier||1);
-    this.maxHp = def.hp===1 ? 1 : Math.floor(def.hp * ws);
+    const ws = Math.pow(1.42, Math.max(0, waveNum-1)) * (waveModifier||1);
+    this.maxHp = def.hp===1 ? 1 : Math.floor(def.hp * ws * 2.5);
     this.hp = this.maxHp;
 
-    const speedScale = 1 + waveNum * 0.022 + Math.pow(waveNum * 0.008, 1.4);
+    const speedScale = 1 + waveNum * 0.035 + Math.pow(waveNum * 0.012, 1.6);
     this.speed = (def.speed||65) * (0.9 + Math.random()*0.2) * speedScale;
     this.baseSpeed = this.speed;
     this.reward = Math.floor((def.reward||1) * Math.sqrt(ws));

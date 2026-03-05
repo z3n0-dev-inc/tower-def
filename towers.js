@@ -2523,32 +2523,91 @@ class Tower {
       // Drop shadow under aircraft
       ctx.fillStyle = 'rgba(0,0,0,0.18)';
       ctx.beginPath(); ctx.ellipse(cx + s*0.08, this.tileY*s+s*0.85, s*0.32, s*0.08, 0, 0, Math.PI*2); ctx.fill();
-    } else if (this.auraBuff > 1.0) {
-      const ag = ctx.createRadialGradient(cx,cy,s*0.1,cx,cy,s*0.55);
-      ag.addColorStop(0,'rgba(241,196,15,0.25)');
-      ag.addColorStop(1,'rgba(241,196,15,0.04)');
-      ctx.fillStyle = ag;
-      ctx.beginPath(); ctx.roundRect(tx+pad, ty+pad, s-pad*2, s-pad*2, 4); ctx.fill();
-    } else if (this.selected) {
-      ctx.fillStyle = 'rgba(241,196,15,0.16)';
-      ctx.beginPath(); ctx.roundRect(tx+pad, ty+pad, s-pad*2, s-pad*2, 4); ctx.fill();
-    } else {
-      ctx.fillStyle = 'rgba(0,0,0,0.5)';
-      ctx.beginPath(); ctx.roundRect(tx+pad, ty+pad, s-pad*2, s-pad*2, 4); ctx.fill();
-    }
+    } else if (!isAir) {
+      // ── 3D ISOMETRIC PLATFORM BASE ─────────────────────────────────────
+      const p3 = pad + 2;
+      const pw = s - p3*2;
+      const ph = s - p3*2;
+      const depth = Math.floor(s * 0.18); // 3D extrusion depth
+      const bx = tx + p3, by = ty + p3;
 
-    if (!isAir) {
-      // Rarity-colored border
-      const borderCol = this.selected ? '#f1c40f' : rarityCol + (this.def.rarity==='legendary'?'55':'33');
+      // Right face (dark)
+      const rfCol = this.selected ? 'rgba(180,130,0,0.9)' : (rarityCol + 'cc');
+      ctx.fillStyle = rfCol;
+      ctx.beginPath();
+      ctx.moveTo(bx+pw,       by+depth);
+      ctx.lineTo(bx+pw+depth, by);
+      ctx.lineTo(bx+pw+depth, by+ph);
+      ctx.lineTo(bx+pw,       by+ph+depth);
+      ctx.closePath(); ctx.fill();
+      // Darken right face
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath();
+      ctx.moveTo(bx+pw,       by+depth);
+      ctx.lineTo(bx+pw+depth, by);
+      ctx.lineTo(bx+pw+depth, by+ph);
+      ctx.lineTo(bx+pw,       by+ph+depth);
+      ctx.closePath(); ctx.fill();
+
+      // Bottom face (darker)
+      ctx.fillStyle = this.selected ? 'rgba(160,110,0,0.9)' : 'rgba(0,0,0,0.5)';
+      ctx.beginPath();
+      ctx.moveTo(bx,          by+ph+depth);
+      ctx.lineTo(bx+pw,       by+ph+depth);
+      ctx.lineTo(bx+pw+depth, by+ph);
+      ctx.lineTo(bx+depth,    by+ph);
+      ctx.closePath(); ctx.fill();
+
+      // Top face (main platform surface)
+      const topCol = this.auraBuff > 1.0 ? 'rgba(60,45,0,0.92)' : (this.selected ? 'rgba(60,45,0,0.92)' : 'rgba(28,38,52,0.92)');
+      ctx.fillStyle = topCol;
+      ctx.beginPath();
+      ctx.moveTo(bx,          by+depth);
+      ctx.lineTo(bx+pw,       by+depth);
+      ctx.lineTo(bx+pw+depth, by);
+      ctx.lineTo(bx+depth,    by);
+      ctx.closePath(); ctx.fill();
+
+      // Aura glow on top face
+      if (this.auraBuff > 1.0) {
+        const ag = ctx.createRadialGradient(cx,cy-depth/2,s*0.05,cx,cy-depth/2,s*0.42);
+        ag.addColorStop(0,'rgba(241,196,15,0.35)');
+        ag.addColorStop(1,'rgba(241,196,15,0.04)');
+        ctx.fillStyle = ag;
+        ctx.beginPath();
+        ctx.moveTo(bx,by+depth); ctx.lineTo(bx+pw,by+depth); ctx.lineTo(bx+pw+depth,by); ctx.lineTo(bx+depth,by);
+        ctx.closePath(); ctx.fill();
+      }
+
+      // Rarity border on top face
+      const borderCol = this.selected ? '#f1c40f' : rarityCol + (this.def.rarity==='legendary'?'88':'44');
       ctx.strokeStyle = borderCol;
       ctx.lineWidth = this.selected ? 2 : (this.def.rarity === 'legendary' ? 1.5 : 1);
-      ctx.beginPath(); ctx.roundRect(tx+pad, ty+pad, s-pad*2, s-pad*2, 4); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(bx,by+depth); ctx.lineTo(bx+pw,by+depth); ctx.lineTo(bx+pw+depth,by); ctx.lineTo(bx+depth,by);
+      ctx.closePath(); ctx.stroke();
+
+      // Edge outline
+      ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(bx,by+depth);
+      ctx.lineTo(bx+pw,by+depth);
+      ctx.lineTo(bx+pw,by+ph+depth);
+      ctx.lineTo(bx,by+ph+depth);
+      ctx.closePath(); ctx.stroke();
+    } else {
+      // Air: simple flat pad
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath(); ctx.roundRect(tx+pad, ty+pad, s-pad*2, s-pad*2, 4); ctx.fill();
     }
     ctx.restore();
 
     // ── Draw tower sprite ────────────────────────────────────────────────
+    // Shift sprite slightly up to appear "on top of" the 3D platform
+    const spriteOffsetY = isAir ? 0 : -Math.floor(s * 0.09);
     const artFn = TowerArt[this.def.id] || TowerArt._default;
-    artFn(ctx, cx, cy, s, this.angle, flash, typeof _animTime !== 'undefined' ? _animTime : 0);
+    artFn(ctx, cx, cy + spriteOffsetY, s, this.angle, flash, typeof _animTime !== 'undefined' ? _animTime : 0);
 
     // Level upgrade pips (glowing dots — drawn above sprite)
     if (this.level > 0) {
