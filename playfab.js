@@ -236,12 +236,15 @@ const PF = {
   },
 
   // ── Leaderboard ───────────────────────────────
-  async function getLeaderboard(stat, max=100) {
+  async getLeaderboard(stat, max=100) {
     try {
       const r = await this._post('/Client/GetLeaderboard',
         { StatisticName:stat, StartPosition:0, MaxResultsCount:Math.min(max,100) });
+      console.log('[PF LB]', stat, '→ code:', r.code, 'entries:', r.data?.Leaderboard?.length, 'err:', r.errorMessage);
       if (r.code === 200) return r.data?.Leaderboard || [];
-      console.warn('[PF] Leaderboard error:', r.errorMessage);
+      // Code 1003 = stat doesn't exist yet in PlayFab dashboard
+      // Code 1074 = statistics not enabled for title
+      if (r.code === 1003) console.warn('[PF LB] Statistic "' + stat + '" not found. Go to PlayFab Dashboard → Leaderboards → Add Statistic: ' + stat);
       return [];
     } catch(e) {
       console.error('[PF] getLeaderboard failed:', e);

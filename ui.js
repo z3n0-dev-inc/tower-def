@@ -495,7 +495,15 @@ const UI = (() => {
     try {
       const entries = await PF.getLeaderboard(stat, 100);
       if (!entries.length) {
-        wrap.innerHTML = '<p class="lb-loading">No scores yet — be the first to play!</p>';
+        wrap.innerHTML = `
+          <div style="text-align:center;padding:24px;font-family:var(--f-mono)">
+            <div style="font-size:28px;margin-bottom:10px">📊</div>
+            <div style="color:var(--txt2);font-size:10px;margin-bottom:6px">No scores yet.</div>
+            <div style="color:var(--txt3);font-size:9px;line-height:1.7">
+              Make sure the statistic <strong style="color:var(--amber3)">${stat}</strong> is created in your PlayFab Dashboard.<br>
+              Dashboard → Leaderboards → New Statistic → name it exactly: <strong style="color:var(--cyan3)">${stat}</strong>
+            </div>
+          </div>`;
         return;
       }
       const isMod = PF.getPanelRole && (PF.getPanelRole() === 'owner' || PF.getPanelRole() === 'moderator');
