@@ -189,18 +189,8 @@
     <div class="hud-pill">💰 <span id="hudMoney">100</span></div>
     <div class="hud-pill">❤️ <span id="hudLives">20</span></div>
     <div class="hud-wave-badge">WAVE <span id="hudWave">1</span></div>
-    <div class="hud-threat" id="hudThreat" title="Threat Level">
-      <span class="threat-label">THREAT</span>
-      <div class="threat-bars">
-        <div class="threat-bar" id="tb1"></div>
-        <div class="threat-bar" id="tb2"></div>
-        <div class="threat-bar" id="tb3"></div>
-        <div class="threat-bar" id="tb4"></div>
-        <div class="threat-bar" id="tb5"></div>
-      </div>
-    </div>
     <div class="hud-pill">💀 <span id="hudKills">0</span></div>
-    <div class="hud-pill">⭐ <span id="hudScore">0</span></div>
+    <div class="hud-pill" style="display:none">⭐ <span id="hudScore">0</span></div>
     <!-- XP strip -->
     <div class="hud-xp-strip">
       <span class="hud-xp-level" id="hudAcctLevel">1</span>
@@ -212,9 +202,9 @@
       </div>
     </div>
     <div class="hud-controls">
-      <button class="hud-btn pulse-green" id="btnStartWave">▶ START WAVE</button>
+      <button class="hud-btn pulse-green" id="btnStartWave">▶ SEND WAVE</button>
       <button class="hud-btn" id="btnSpeed" title="Change speed">1×</button>
-      <button class="hud-btn danger" id="btnBackMenu">✕ QUIT</button>
+      <button class="hud-btn danger" id="btnBackMenu">✕</button>
     </div>
   </div>
 
@@ -271,10 +261,7 @@
     </aside>
   </div>
 
-  <!-- KILL FEED PANEL -->
-  <div id="killFeedPanel"></div>
-
-  <!-- COMBO DISPLAY -->
+  <!-- COMBO DISPLAY (hidden) -->
   <div id="comboDisplay" class="combo-display hidden">
     <div class="combo-number" id="comboCount">0×</div>
     <div class="combo-label">COMBO</div>

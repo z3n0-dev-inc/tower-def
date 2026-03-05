@@ -403,8 +403,8 @@ body::after {
   100% { opacity: 0; transform: translateX(-50%) translateY(-52px); }
 }
 
-/* Side panel */
-.side-panel {
+/* combo hidden */
+.combo-display { display: none !important; }
   width: 206px; flex-shrink: 0;
   background: var(--bg1); border-left: 1px solid rgba(6,182,212,0.1);
   overflow-y: auto; display: flex; flex-direction: column;
@@ -1559,8 +1559,64 @@ kbd { font-size: 9px; min-width: 30px; }
   font-size: 11px; font-weight: 700;
   font-family: 'Barlow Condensed', sans-serif;
 }
-.tp-item.cant-afford { opacity: 0.45; }
-.tp-item.cant-afford .tp-cost { color: var(--red2); }
+/* ── CAN'T AFFORD: clearly blocked ── */
+.tp-item.cant-afford {
+  opacity: 0.52;
+  filter: grayscale(55%) brightness(0.7);
+  cursor: not-allowed !important;
+  border-color: rgba(239,68,68,0.35) !important;
+  box-shadow: inset 0 0 10px rgba(239,68,68,0.12);
+}
+.tp-item.cant-afford:hover:not(.locked) {
+  transform: none;
+  box-shadow: inset 0 0 12px rgba(239,68,68,0.2), 0 0 0 1px rgba(239,68,68,0.4);
+  animation: shake-cost 0.35s ease;
+}
+.tp-item.cant-afford .tp-cost {
+  color: #ef4444 !important;
+  font-weight: 800;
+}
+.tp-item.cant-afford .tp-icon {
+  filter: grayscale(60%);
+}
+
+/* ── JUST BECAME AFFORDABLE: celebratory glow pulse ── */
+@keyframes afford-unlock {
+  0%   { box-shadow: 0 0 0px rgba(74,222,128,0); transform: scale(1); }
+  25%  { box-shadow: 0 0 22px rgba(74,222,128,0.9), 0 0 40px rgba(74,222,128,0.4); transform: scale(1.08); }
+  55%  { box-shadow: 0 0 14px rgba(74,222,128,0.6), 0 0 24px rgba(74,222,128,0.25); transform: scale(1.04); }
+  100% { box-shadow: 0 0 0px rgba(74,222,128,0); transform: scale(1); }
+}
+.tp-item.just-affordable {
+  animation: afford-unlock 0.65s cubic-bezier(0.22,1,0.36,1) forwards;
+  border-color: rgba(74,222,128,0.7) !important;
+}
+
+/* ── COST SHAKE when hover + can't afford ── */
+@keyframes shake-cost {
+  0%  { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-3px); }
+  80% { transform: translateX(2px); }
+  100%{ transform: translateX(0); }
+}
+.tp-item.cant-afford:hover .tp-cost {
+  display: inline-block;
+  animation: shake-cost 0.35s ease;
+}
+
+/* ── AFFORDABLE: subtle ready glow on items you can buy ── */
+.tp-item.affordable:not(.cant-afford) {
+  border-color: rgba(74,222,128,0.22);
+}
+.tp-item.affordable:not(.cant-afford):hover {
+  border-color: rgba(74,222,128,0.55);
+  box-shadow: 0 0 14px rgba(74,222,128,0.25), 0 6px 20px rgba(0,0,0,0.5);
+}
+.tp-item.affordable:not(.cant-afford) .tp-cost {
+  color: #4ade80 !important;
+}
 
 /* ── UPGRADE BUTTON: SATISFYING ── */
 #btnUpgrade {
@@ -2273,4 +2329,259 @@ kbd {
 .rarity-advanced  { color: #80c8e8; }
 .rarity-special   { color: #c890f0; }
 .rarity-legendary { color: #f8c040; text-shadow: none; }
+
+
+/* ── ECONOMY TOWER UI ── */
+.eco-stat {
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: var(--f-mono); font-size: 10px;
+  padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+  color: var(--txt2);
+}
+.eco-stat strong { font-size: 11px; }
+
+/* Bank fill bar */
+.bank-bar-wrap {
+  position: relative; height: 8px; background: rgba(0,0,0,0.4);
+  border-radius: 4px; overflow: hidden; margin: 5px 0 4px;
+  border: 1px solid rgba(74,222,128,0.2);
+}
+.bank-bar-fill {
+  height: 100%; background: linear-gradient(90deg, #16a34a, #4ade80);
+  border-radius: 4px; transition: width 0.4s ease;
+}
+.bank-bar-pct {
+  position: absolute; right: 4px; top: -1px;
+  font-size: 8px; font-family: var(--f-mono); color: #fff; opacity: 0.8;
+  line-height: 8px;
+}
+
+/* Withdraw button */
+.withdraw-btn {
+  width: 100%; margin-top: 5px; padding: 5px 8px;
+  background: linear-gradient(135deg, rgba(22,163,74,0.25), rgba(22,163,74,0.12));
+  border: 1px solid rgba(74,222,128,0.5); border-radius: 4px;
+  color: #4ade80; font-family: var(--f-mono); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.5px; cursor: pointer; transition: all 0.15s;
+}
+.withdraw-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(22,163,74,0.45), rgba(22,163,74,0.22));
+  box-shadow: 0 0 14px rgba(74,222,128,0.3); transform: translateY(-1px);
+}
+.withdraw-btn:active { transform: scale(0.97); }
+
+/* Farm/Bank palette indicator chip */
+.tp-eco-chip {
+  position: absolute; bottom: 2px; right: 3px;
+  font-size: 8px; font-family: var(--f-mono); font-weight: 700;
+  color: #4ade80; background: rgba(22,163,74,0.2);
+  border: 1px solid rgba(74,222,128,0.4); border-radius: 3px;
+  padding: 0 3px; line-height: 12px; pointer-events: none;
+}
+.tp-item { position: relative; }
+
+/* ═══════════════════════════════════════════════════
+   v16 CLEAN OVERRIDES — applied last to win specificity
+   ═══════════════════════════════════════════════════ */
+
+/* ── Hide clutter ── */
+.combo-display,
+#killFeedPanel { display: none !important; }
+
+/* ── HUD: minimal, readable ── */
+.hud-top {
+  height: 44px !important;
+  background: rgba(6,8,14,0.98) !important;
+  border-bottom: 1px solid rgba(255,255,255,0.07) !important;
+  box-shadow: 0 1px 12px rgba(0,0,0,0.6) !important;
+  gap: 6px !important;
+  padding: 0 12px !important;
+}
+.hud-top::after { display: none !important; }
+
+.hud-pill {
+  background: rgba(12,18,28,0.9) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 5px !important;
+  padding: 4px 11px !important;
+  font-family: var(--f-mono) !important;
+  font-size: 11px !important;
+  gap: 5px !important;
+}
+.hud-pill span { font-size: 13px !important; color: #fff !important; font-weight: 700 !important; }
+
+.hud-wave-badge {
+  background: rgba(220,38,38,0.14) !important;
+  border: 1px solid rgba(220,38,38,0.35) !important;
+  box-shadow: none !important;
+  font-size: 9px !important;
+  padding: 4px 13px !important;
+  letter-spacing: 2px !important;
+}
+.hud-wave-badge span { font-size: 15px !important; }
+
+/* XP strip - compact */
+.hud-xp-strip {
+  gap: 5px !important;
+  padding: 0 8px !important;
+}
+.hud-xp-level { font-size: 13px !important; width: 22px !important; height: 22px !important; line-height: 22px !important; }
+.hud-xp-info { gap: 2px !important; }
+.hud-xp-title { font-size: 8px !important; }
+.hud-xp-track { height: 3px !important; width: 64px !important; }
+
+/* ── Side panel: cleaner ── */
+.side-panel {
+  width: 192px !important;
+  background: rgba(8,11,18,0.98) !important;
+  border-left: 1px solid rgba(255,255,255,0.06) !important;
+}
+.sp-block { padding: 8px 9px !important; }
+.sp-title {
+  font-size: 9px !important;
+  letter-spacing: 2.5px !important;
+  margin-bottom: 6px !important;
+  padding-bottom: 4px !important;
+  color: rgba(100,116,139,0.7) !important;
+}
+
+/* ── Tower palette items: clean, clear ── */
+.tower-palette { gap: 3px !important; }
+.tp-item {
+  background: rgba(14,20,32,0.95) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-radius: 4px !important;
+  padding: 6px 3px !important;
+  transition: all 0.12s !important;
+}
+.tp-item:hover:not(.locked):not(.cant-afford) {
+  background: rgba(20,28,44,0.95) !important;
+  border-color: rgba(255,255,255,0.18) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.4) !important;
+}
+.tp-item.selected {
+  border-color: rgba(251,191,36,0.6) !important;
+  background: rgba(40,32,8,0.95) !important;
+  box-shadow: 0 0 10px rgba(251,191,36,0.12) !important;
+}
+.tp-icon { font-size: 16px !important; }
+.tp-name { font-size: 7.5px !important; letter-spacing: 0.5px !important; color: rgba(148,163,184,0.75) !important; }
+.tp-cost { font-size: 9.5px !important; }
+
+/* Rarity separator */
+.tp-sep {
+  font-size: 7.5px !important;
+  letter-spacing: 2px !important;
+  color: rgba(100,116,139,0.55) !important;
+  padding: 5px 2px 2px !important;
+}
+
+/* ── Damage numbers: cleaner ── */
+.dmg-num {
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  color: #fbbf24 !important;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.95), 0 0 12px rgba(0,0,0,0.8) !important;
+  letter-spacing: 0.5px !important;
+}
+.dmg-num.crit {
+  font-size: 17px !important;
+  color: #fff !important;
+  text-shadow: 0 0 14px rgba(251,191,36,0.9), 0 1px 4px rgba(0,0,0,0.9) !important;
+}
+
+/* ── Float text: less noise ── */
+.interest-float { font-size: 12px !important; letter-spacing: 1px !important; opacity: 0.7; }
+
+/* ── Selected tower panel ── */
+#selPanel { background: rgba(10,14,24,0.98) !important; }
+.si-name { font-size: 11px !important; letter-spacing: 1.5px !important; }
+
+/* ── Buttons: cleaner ── */
+.hud-btn {
+  font-size: 9px !important;
+  padding: 4px 12px !important;
+  letter-spacing: 1.5px !important;
+}
+.td-btn {
+  font-size: 10px !important;
+  padding: 6px 10px !important;
+  letter-spacing: 1px !important;
+}
+
+/* ── Wave announce: less chunky ── */
+.wa-wave, .wa-number {
+  font-size: 72px !important;
+}
+.wa-sub, .wa-tagline {
+  font-size: 18px !important;
+  letter-spacing: 8px !important;
+}
+
+/* ── Boss bar: clean ── */
+#bossBar {
+  bottom: 20px !important;
+  padding: 6px 12px !important;
+  border-radius: 6px !important;
+}
+
+/* ── Float text: consolidated ── */
+.float-text {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+}
+
+/* ── Streak pop: subtle ── */
+.streak-pop {
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  letter-spacing: 2px !important;
+}
+
+/* ── Screen flash: less intense ── */
+#screenFlash.flash-red   { background: rgba(220,38,38,0.12) !important; }
+#screenFlash.flash-gold  { background: rgba(251,191,36,0.08) !important; }
+#screenFlash.flash-green { background: rgba(34,197,94,0.08) !important; }
+
+/* ── Economy tower CSS ── */
+.eco-stat {
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: var(--f-mono); font-size: 10px; padding: 2px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--txt2);
+}
+.tp-eco-chip {
+  position: absolute; bottom: 2px; right: 2px;
+  font-size: 7px; font-family: var(--f-mono); font-weight: 700;
+  color: #4ade80; background: rgba(22,163,74,0.18);
+  border: 1px solid rgba(74,222,128,0.3); border-radius: 2px;
+  padding: 0 2px; line-height: 11px; pointer-events: none;
+}
+
+/* ── Can't afford: clean states ── */
+.tp-item.cant-afford {
+  opacity: 0.46 !important;
+  filter: grayscale(50%) brightness(0.68) !important;
+  cursor: not-allowed !important;
+  border-color: rgba(239,68,68,0.28) !important;
+  box-shadow: none !important;
+}
+.tp-item.cant-afford:hover:not(.locked) {
+  transform: none !important;
+  box-shadow: inset 0 0 8px rgba(239,68,68,0.15) !important;
+}
+.tp-item.cant-afford .tp-cost { color: #ef4444 !important; }
+.tp-item.affordable:not(.cant-afford) .tp-cost { color: #86efac !important; }
+
+@keyframes afford-unlock {
+  0%   { box-shadow: 0 0 0 rgba(74,222,128,0); }
+  30%  { box-shadow: 0 0 18px rgba(74,222,128,0.85), 0 0 32px rgba(74,222,128,0.3); transform: scale(1.06); }
+  100% { box-shadow: 0 0 0 rgba(74,222,128,0); transform: scale(1); }
+}
+.tp-item.just-affordable { animation: afford-unlock 0.6s cubic-bezier(0.22,1,0.36,1) forwards; }
+
+@keyframes shake-cost {
+  0%,100%{transform:translateX(0)} 25%{transform:translateX(-3px)} 75%{transform:translateX(3px)}
+}
+.tp-item.cant-afford:hover .tp-cost { animation: shake-cost 0.3s ease; display: inline-block; }
 

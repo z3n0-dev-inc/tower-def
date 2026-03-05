@@ -232,10 +232,24 @@ const UI = (() => {
     items.forEach(item => {
       const def = TOWER_DEFS.find(d => d.id === item.dataset.id);
       if (!def) return;
-      if (money < def.cost) {
+      const couldAffordBefore = !item.classList.contains('cant-afford');
+      const canAffordNow = money >= def.cost;
+
+      if (!canAffordNow) {
         item.classList.add('cant-afford');
+        item.classList.remove('affordable', 'just-affordable');
       } else {
+        // Was cant-afford, now can afford → fire the unlock glow animation
+        if (!couldAffordBefore) {
+          item.classList.remove('just-affordable');
+          // Force reflow to restart animation
+          void item.offsetWidth;
+          item.classList.add('just-affordable');
+          // Remove after animation completes so it can re-trigger next time
+          setTimeout(() => item.classList.remove('just-affordable'), 700);
+        }
         item.classList.remove('cant-afford');
+        item.classList.add('affordable');
       }
     });
   }
@@ -249,21 +263,27 @@ const UI = (() => {
 
     const costColor = isOwnerItem ? def.color : '';
     const dps = (def.damage * def.fireRate).toFixed(1);
+    const ecoChip = def.isEconomy
+      ? (def.isFarm ? `<div class="tp-eco-chip">$${def.incomePerRound}/rd</div>`
+                    : `<div class="tp-eco-chip">BANK</div>`)
+      : '';
 
     item.innerHTML = `
       <div class="tp-icon">${def.icon}${def.isAir ? '<span class="tp-air-badge">AIR</span>' : ''}</div>
       <div class="tp-name">${def.name}</div>
       <div class="tp-cost" style="color:${costColor}">${owned ? '💰'+def.cost : '🔒'}</div>
+      ${ecoChip}
       ${!owned ? '<div class="tp-locked-icon">🔒</div>' : ''}
       ${owned ? `<div class="tp-tip">
         <div class="tp-tip-name">${def.name}</div>
         <div class="tp-tip-desc">${def.desc || ''}</div>
+        ${def.isEconomy ? `<div class="tp-tip-stat"><span>${def.isFarm?'Income/Round':'Bank Cap'}</span><strong>${def.isFarm?'$'+def.incomePerRound+'/rd':'$'+(def.bankCap||7000).toLocaleString()}</strong></div>` : `
         <div class="tp-tip-stat"><span>DMG</span><strong>${def.damage}</strong></div>
         <div class="tp-tip-stat"><span>RNG</span><strong>${def.range}</strong></div>
         <div class="tp-tip-stat"><span>DPS</span><strong>${dps}</strong></div>
         ${def.splash>0?`<div class="tp-tip-stat"><span>SPLASH</span><strong>${def.splash}</strong></div>`:''}
         ${def.slow>0?`<div class="tp-tip-stat"><span>SLOW</span><strong>${Math.round(def.slow*100)}%</strong></div>`:''}
-        ${def.chain>0?`<div class="tp-tip-stat"><span>CHAIN</span><strong>×${def.chain}</strong></div>`:''}
+        ${def.chain>0?`<div class="tp-tip-stat"><span>CHAIN</span><strong>×${def.chain}</strong></div>`:''}`}
       </div>` : ''}
     `;
     if (owned) item.onclick = () => Game.selectTowerToPlace(def.id);
@@ -271,7 +291,6 @@ const UI = (() => {
     palette.appendChild(item);
   }
 
-  // ── TOWER INFO ────────────────────────────────
   // ── TOWER INFO ────────────────────────────────
   function showTowerInfo(tower) {
     const panel  = document.getElementById('selPanel');
@@ -281,13 +300,8 @@ const UI = (() => {
     panel.style.display = 'block';
 
     const upgCost = tower.getUpgradeCost();
-    const upgName = tower.level < tower.def.maxUpgrade
-      ? tower.def.upgrades[tower.level].name : 'MAX LEVEL';
-    const auraMult = tower.auraBuff || 1;
-    const effDmg = Math.floor(tower.damage * auraMult);
-    const dps = (tower.damage * tower.fireRate * auraMult).toFixed(1);
-    const effRate = (tower.fireRate * auraMult).toFixed(2);
-    const buffed = auraMult > 1.0;
+    const nextUpg = tower.level < tower.def.maxUpgrade ? tower.def.upgrades[tower.level] : null;
+    const upgName = nextUpg ? nextUpg.name : 'MAX LEVEL';
 
     // Upgrade path nodes
     const maxUp = tower.def.maxUpgrade;
@@ -295,41 +309,91 @@ const UI = (() => {
     for (let i = 0; i < maxUp; i++) {
       if (i > 0) upgPath += `<div class="upg-line${i <= tower.level ? ' done' : ''}"></div>`;
       const cls = i < tower.level ? 'done' : (i === tower.level ? 'current' : 'future');
-      const label = i < tower.def.upgrades.length ? (i+1) : (i+1);
       upgPath += `<div class="upg-node ${cls}" title="${tower.def.upgrades[i]?.name||''}">${i+1}</div>`;
     }
     upgPath += '</div>';
 
-    // Stat bars
-    const maxDmg = 600, maxRange = 350, maxDps = 200;
-    const statBar = (label, val, maxVal, color) => `
-      <div class="sbar-row">
-        <span class="sbar-lbl">${label}</span>
-        <div class="sbar-track"><div class="sbar-fill" style="width:${Math.min(100,val/maxVal*100).toFixed(1)}%;background:${color}"></div></div>
-        <span class="sbar-val">${val}</span>
-      </div>`;
+    // Economy tower display
+    if (tower.isEconomy) {
+      const isBankMode = tower.isBank || tower.bankMode;
+      const pct = isBankMode && tower.bankCap > 0 ? Math.round(tower.bankBalance / tower.bankCap * 100) : 0;
+      const nextDesc = nextUpg?.desc || '';
 
-    info.innerHTML = `
-      <div class="si-name">${tower.def.icon} ${tower.def.name}</div>
-      <div style="margin-bottom:4px">
-        <span class="rarity-${tower.def.rarity}">${tower.def.rarity.toUpperCase()}</span>
-        &nbsp;<span style="color:var(--txt2);font-size:10px">Lv ${tower.level}/${maxUp}</span>
-        ${buffed ? ' <span style="color:#f1c40f;font-size:9px;letter-spacing:1px">⬆ BUFFED</span>' : ''}
-      </div>
-      ${maxUp > 0 ? upgPath : ''}
-      ${statBar('DMG', effDmg, maxDmg, 'var(--red2)')}
-      ${statBar('RNG', Math.floor(tower.range), maxRange, 'var(--cyan2)')}
-      ${statBar('DPS', parseFloat(dps), maxDps, 'var(--amber2)')}
-      ${tower.splash>0 ? statBar('SPLASH', Math.floor(tower.splash), 200, '#f97316') : ''}
-      ${tower.slow>0   ? statBar('SLOW', Math.floor(tower.slow*100)+'%', '100%', '#60a5fa') : ''}
-      ${tower.chain>0  ? `<div style="font-size:10px;color:var(--txt2);font-family:var(--f-mono)">CHAIN: <strong style="color:var(--cyan3)">×${tower.chain}</strong></div>` : ''}
-      ${tower.burn>0   ? `<div style="font-size:10px;color:var(--txt2);font-family:var(--f-mono)">BURN: <strong style="color:#f97316">${tower.burn}/s</strong></div>` : ''}
-      <div style="border-top:1px solid rgba(255,255,255,0.06);margin-top:6px;padding-top:5px;font-family:var(--f-mono);font-size:10px;color:var(--txt2)">
-        SELL <strong style="color:var(--amber3)">💰${tower.getSellValue()}</strong>
-        <span style="opacity:0.45;margin-left:3px">[S]</span>
-      </div>
-      ${upgCost ? `<div style="color:var(--amber3);font-size:10px;margin-top:3px;font-family:var(--f-mono)">⬆ ${upgName} <span style="opacity:0.45">[G]</span></div>` : ''}
-    `;
+      info.innerHTML = `
+        <div class="si-name">${tower.def.icon} ${tower.def.name}</div>
+        <div style="margin-bottom:4px">
+          <span class="rarity-${tower.def.rarity}">${tower.def.rarity.toUpperCase()}</span>
+          &nbsp;<span style="color:var(--txt2);font-size:10px">Lv ${tower.level}/${maxUp}</span>
+        </div>
+        ${maxUp > 0 ? upgPath : ''}
+        ${tower.isFarm && !tower.bankMode ? `
+          <div class="eco-stat"><span>💰 Income/Round</span><strong style="color:#4ade80">$${tower.incomePerRound}</strong></div>
+          <div class="eco-stat"><span>📈 Total Earned</span><strong style="color:#fbbf24">$${tower.totalEarned}</strong></div>
+        ` : ''}
+        ${isBankMode ? `
+          <div class="eco-stat"><span>🏦 Balance</span><strong style="color:#4ade80">$${tower.bankBalance.toLocaleString()}</strong></div>
+          <div class="eco-stat"><span>📊 Cap</span><strong style="color:var(--txt2)">$${tower.bankCap.toLocaleString()}</strong></div>
+          <div class="eco-stat"><span>💹 Rate</span><strong style="color:#4ade80">${Math.round((tower.bankRate||0.15)*100)}%/round</strong></div>
+          <div class="bank-bar-wrap"><div class="bank-bar-fill" style="width:${pct}%"></div><span class="bank-bar-pct">${pct}%</span></div>
+          <button id="btnWithdraw" class="withdraw-btn" style="${tower.bankBalance>0?'':'opacity:0.4;cursor:not-allowed'}" ${tower.bankBalance<=0?'disabled':''}>
+            💸 WITHDRAW $${tower.bankBalance.toLocaleString()}
+          </button>
+        ` : ''}
+        ${nextDesc ? `<div style="font-size:10px;color:var(--txt2);margin-top:4px;font-style:italic">Next: ${nextDesc}</div>` : ''}
+        <div style="border-top:1px solid rgba(255,255,255,0.06);margin-top:6px;padding-top:5px;font-family:var(--f-mono);font-size:10px;color:var(--txt2)">
+          SELL <strong style="color:var(--amber3)">💰${tower.getSellValue()}</strong>
+          <span style="opacity:0.45;margin-left:3px">[S]</span>
+        </div>
+        ${upgCost ? `<div style="color:var(--amber3);font-size:10px;margin-top:3px;font-family:var(--f-mono)">⬆ ${upgName} <span style="opacity:0.45">[G]</span></div>` : ''}
+      `;
+
+      // Wire withdraw button
+      const wBtn = document.getElementById('btnWithdraw');
+      if (wBtn) {
+        wBtn.onclick = () => {
+          if (tower.bankBalance <= 0) return;
+          if (typeof Game !== 'undefined') {
+            Game.withdrawBank(tower);
+            showTowerInfo(tower);
+          }
+        };
+      }
+    } else {
+      const auraMult = tower.auraBuff || 1;
+      const effDmg = Math.floor(tower.damage * auraMult);
+      const dps = (tower.damage * tower.fireRate * auraMult).toFixed(1);
+      const buffed = auraMult > 1.0;
+
+      const statBar = (label, val, maxVal, color) => `
+        <div class="sbar-row">
+          <span class="sbar-lbl">${label}</span>
+          <div class="sbar-track"><div class="sbar-fill" style="width:${Math.min(100,val/maxVal*100).toFixed(1)}%;background:${color}"></div></div>
+          <span class="sbar-val">${val}</span>
+        </div>`;
+
+      info.innerHTML = `
+        <div class="si-name">${tower.def.icon} ${tower.def.name}</div>
+        <div style="margin-bottom:4px">
+          <span class="rarity-${tower.def.rarity}">${tower.def.rarity.toUpperCase()}</span>
+          &nbsp;<span style="color:var(--txt2);font-size:10px">Lv ${tower.level}/${maxUp}</span>
+          ${buffed ? ' <span style="color:#f1c40f;font-size:9px;letter-spacing:1px">⬆ BUFFED</span>' : ''}
+        </div>
+        ${maxUp > 0 ? upgPath : ''}
+        ${statBar('DMG', effDmg, 600, 'var(--red2)')}
+        ${statBar('RNG', Math.floor(tower.range), 350, 'var(--cyan2)')}
+        ${statBar('DPS', parseFloat(dps), 200, 'var(--amber2)')}
+        ${tower.splash>0 ? statBar('SPLASH', Math.floor(tower.splash), 200, '#f97316') : ''}
+        ${tower.slow>0   ? statBar('SLOW', Math.floor(tower.slow*100)+'%', '100%', '#60a5fa') : ''}
+        ${tower.chain>0  ? `<div style="font-size:10px;color:var(--txt2);font-family:var(--f-mono)">CHAIN: <strong style="color:var(--cyan3)">×${tower.chain}</strong></div>` : ''}
+        ${tower.burn>0   ? `<div style="font-size:10px;color:var(--txt2);font-family:var(--f-mono)">BURN: <strong style="color:#f97316">${tower.burn}/s</strong></div>` : ''}
+        <div style="border-top:1px solid rgba(255,255,255,0.06);margin-top:6px;padding-top:5px;font-family:var(--f-mono);font-size:10px;color:var(--txt2)">
+          SELL <strong style="color:var(--amber3)">💰${tower.getSellValue()}</strong>
+          <span style="opacity:0.45;margin-left:3px">[S]</span>
+        </div>
+        ${upgCost ? `<div style="color:var(--amber3);font-size:10px;margin-top:3px;font-family:var(--f-mono)">⬆ ${upgName} <span style="opacity:0.45">[G]</span></div>` : ''}
+      `;
+    }
+
     if (upgCost) {
       upgBtn.style.display = 'block';
       price.textContent    = '💰' + upgCost;

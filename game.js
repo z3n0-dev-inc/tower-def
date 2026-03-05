@@ -142,7 +142,7 @@ const Game = (() => {
   let canvas, ctx, map, tileSize;
   let towers = [], enemies = [], bullets = [];
   let waves = [], currentWaveIndex = 0;
-  let waveActive = false, waveSpawnQueue = [], spawnTimer = 0;
+  let waveActive = false, waveSpawnQueue = [], waveSpawnIdx = 0, spawnTimer = 0;
   let money, lives, score, kills, wave;
   let _livesAtWaveStart = 0;
   let _killsAtWaveStart = 0;
@@ -169,6 +169,10 @@ const Game = (() => {
 
   // Interest income accumulator
   let interestAccum = 0;
+
+  // Reusable buffer — avoids array allocation every frame
+  const _liveEnemiesBuf = [];
+  let _lastAuraTowerCount = -1;
 
   // Map render cache
   let mapCanvas = null, mapCtx = null;
@@ -201,7 +205,7 @@ const Game = (() => {
     _updateLevelHUD();
     score  = 0; kills = 0; wave = 0;
     towers = []; enemies = []; bullets = [];
-    waveActive = false; waveSpawnQueue = []; spawnTimer = 0;
+    waveActive = false; waveSpawnQueue = []; waveSpawnIdx = 0; spawnTimer = 0;
     currentWaveIndex = 0; gameOver = false; victory = false;
     godMode = false; selectedTower = null; placingTower = null;
     totalCoinsEarned = 0; shakeAmount = 0; killFeed = [];
@@ -627,9 +631,7 @@ const Game = (() => {
     c.font = `bold ${Math.floor(s*0.28)}px monospace`;
     c.textAlign = 'center'; c.textBaseline = 'middle';
     c.fillStyle = '#fff';
-    c.shadowBlur = 6; c.shadowColor = '#000';
     c.fillText(label, cx, cy);
-    c.shadowBlur = 0;
     c.restore();
   }
 
@@ -719,10 +721,6 @@ const Game = (() => {
     if (_combo > 0 && waveActive) {
       _comboTimer -= rawDt;
       if (_comboTimer <= 0) { _combo = 0; _comboTimer = 0; _updateComboDisplay(); }
-      else {
-        const bar = document.getElementById('comboBar');
-        if (bar) bar.style.width = Math.max(0, (_comboTimer / _COMBO_DECAY) * 100) + '%';
-      }
     }
 
     // Kill feed age-out (age first, then filter — avoids double pass)
@@ -732,21 +730,19 @@ const Game = (() => {
     }
 
     // Spawn queue
-    if (waveActive && waveSpawnQueue.length > 0) {
+    if (waveActive && waveSpawnIdx < waveSpawnQueue.length) {
       spawnTimer -= dt;
       if (spawnTimer <= 0) {
-        const e = waveSpawnQueue.shift();
+        const e = waveSpawnQueue[waveSpawnIdx++];
         if (e) {
           enemies.push(new Enemy(e.type, map.path, tileSize, wave, map.waveModifier));
           spawnTimer = Math.max(0.12, (e.interval || 0.5) * 0.75);
-        } else {
-          spawnTimer = 0.5;
         }
       }
     }
 
     // Wave complete check (not infinite)
-    if (!map.isInfinite && waveActive && waveSpawnQueue.length === 0 && enemies.length === 0) {
+    if (!map.isInfinite && waveActive && waveSpawnIdx >= waveSpawnQueue.length && enemies.length === 0) {
       waveActive = false;
 
       // Round summary popup
@@ -755,11 +751,24 @@ const Game = (() => {
       // Reset combo on wave end
       _combo = 0; _comboTimer = 0; _updateComboDisplay();
 
-      // Interest income between waves (5% of current gold, min 10)
-      const interest = Math.max(8, Math.floor(money * 0.03));
+      // ── Farm income + simple interest ──────────────────────────────────
+      let farmTotal = 0;
+      towers.forEach(t => {
+        if (t.isFarm && !t.bankMode && t.incomePerRound > 0) {
+          money += t.incomePerRound;
+          farmTotal += t.incomePerRound;
+          t.totalEarned += t.incomePerRound;
+        }
+      });
+      if (farmTotal > 0) {
+        _floatText(`🍌 +$${farmTotal} FARM INCOME`, 'gold');
+        _flashPill('hudMoney', 'money-gain');
+      }
+      // Global interest on hand cash
+      const interest = Math.max(5, Math.floor(money * 0.015));
       money += interest;
       _updateHUD();
-      _floatText(`+${interest} INTEREST EARNED`, 'gold');
+      _floatText(`+$${interest} INTEREST`, 'gold');
 
       if (currentWaveIndex >= waves.length) {
         _triggerVictory();
@@ -828,7 +837,6 @@ const Game = (() => {
           _combo = 0; _comboTimer = 0; _updateComboDisplay(); // reset combo on life lost
           if (lives <= 0) { lives = 0; _triggerGameOver(); return; }
         }
-        _updateHUD();
       }
     }
 
@@ -854,12 +862,9 @@ const Game = (() => {
         _comboTimer = _COMBO_DECAY;
         _updateComboDisplay();
 
-        // Satisfying crit flash for high-value kills
+        // Only show reward numbers for valuable kills (blimps + ceramics) - reduce clutter
         const isCrit = e.isBoss || e.def.tier >= 12;
-        _spawnDmgNum(e.x, e.y, `+${e.reward}`, isCrit);
-
-        // Money pill flash
-        _flashPill('hudMoney', 'money-gain');
+        if (isCrit) _spawnDmgNum(e.x, e.y, `+${e.reward}`, true);
 
         if (e.isBoss) {
           shakeAmount = 22;
@@ -886,24 +891,25 @@ const Game = (() => {
           const children = e.getSpawnChildren(wave, map.waveModifier);
           children.forEach(c => _newChildren.push(c));
         }
-        _updateHUD();
       }
     }
     if (_newChildren.length > 0) enemies.push(..._newChildren);
 
-    // Only reallocate array if something actually died
-    let anyDead = false;
-    for (let i = 0; i < enemies.length; i++) { if (enemies[i].dead || enemies[i].reachedEnd) { anyDead = true; break; } }
-    if (anyDead) enemies = enemies.filter(e => !e.dead && !e.reachedEnd);
+    // In-place remove dead/reached enemies — no new array allocation
+    let w2 = 0;
+    for (let i = 0; i < enemies.length; i++) {
+      if (!enemies[i].dead && !enemies[i].reachedEnd) enemies[w2++] = enemies[i];
+    }
+    enemies.length = w2;
 
     // Infinite mode: never end
-    if (map && map.isInfinite && waveActive && waveSpawnQueue.length===0 && enemies.length===0) {
+    if (map && map.isInfinite && waveActive && waveSpawnIdx >= waveSpawnQueue.length && enemies.length===0) {
       // auto-load next infinite wave
       if (currentWaveIndex < waves.length) {
         const waveData = waves[currentWaveIndex];
         wave = waveData.number;
         currentWaveIndex++;
-        waveSpawnQueue = [];
+        waveSpawnQueue = []; waveSpawnIdx = 0;
         waveData.enemies.forEach(group => {
           for (let ii=0;ii<group.count;ii++) waveSpawnQueue.push({type:group.type,interval:group.interval});
         });
@@ -921,7 +927,9 @@ const Game = (() => {
     // Simple O(n²) but towers are few, skip if no aura towers
     let hasAura = false;
     for (let i = 0; i < towers.length; i++) { if (towers[i].def && towers[i].def.aura) { hasAura = true; break; } }
-    if (hasAura) {
+    // Aura towers: only recompute when tower count changes
+    if (hasAura && towers.length !== _lastAuraTowerCount) {
+      _lastAuraTowerCount = towers.length;
       for (let i = 0; i < towers.length; i++) towers[i].auraBuff = 1.0;
       for (let i = 0; i < towers.length; i++) {
         const t = towers[i];
@@ -937,24 +945,38 @@ const Game = (() => {
       }
     }
 
-    // Build live enemy list once (avoid repeated filter calls inside tower.update)
-    const liveEnemies = [];
-    for (let i = 0; i < enemies.length; i++) { if (!enemies[i].dead) liveEnemies.push(enemies[i]); }
+    // Reuse pre-allocated array for live enemies (no GC pressure)
+    _liveEnemiesBuf.length = 0;
+    for (let i = 0; i < enemies.length; i++) { if (!enemies[i].dead) _liveEnemiesBuf.push(enemies[i]); }
+    const liveEnemies = _liveEnemiesBuf;
 
-    // Update towers
-    for (let i = 0; i < towers.length; i++) {
-      const t = towers[i];
-      t.targetMode = targetMode;
-      t.update(dt, liveEnemies);
-      while (t.bullets.length > 0) bullets.push(t.bullets.shift());
+    // PERF: hard cap on simultaneous enemies
+    const MAX_ENEMIES = 45;
+    if (enemies.length > MAX_ENEMIES) {
+      enemies.sort((a,b) => b.pathProgress - a.pathProgress);
+      enemies.length = MAX_ENEMIES;
     }
 
-    // Update bullets (reverse loop so we can splice safely, but filter at end)
-    for (let i = bullets.length - 1; i >= 0; i--) bullets[i].update(dt);
-    // Filter dead bullets - only allocate new array if needed
-    let anyDeadBullets = false;
-    for (let i = 0; i < bullets.length; i++) { if (bullets[i].dead) { anyDeadBullets = true; break; } }
-    if (anyDeadBullets) bullets = bullets.filter(b => !b.dead);
+    // Update towers (skip combat logic for economy-only towers)
+    for (let i = 0; i < towers.length; i++) {
+      const t = towers[i];
+      if (t.isEconomy) continue;
+      t.targetMode = targetMode;
+      t.update(dt, liveEnemies);
+      // Transfer new bullets — push is O(1), no shift needed
+      const tb = t.bullets;
+      if (tb.length > 0) { for (let j = 0; j < tb.length; j++) bullets.push(tb[j]); tb.length = 0; }
+    }
+
+    // Update bullets - reverse loop for in-place removal
+    for (let i = bullets.length - 1; i >= 0; i--) {
+      bullets[i].update(dt);
+      if (bullets[i].dead) { bullets[i] = bullets[bullets.length-1]; bullets.length--; }
+    }
+    if (bullets.length > 200) bullets.length = 200;
+    _updateHUD(); // single HUD update per frame
+    _tickFloats(rawDt);
+    _tickDmgNums(rawDt);
   }
 
   function _draw() {
@@ -970,27 +992,62 @@ const Game = (() => {
     if (placingTower && hoverTile) {
       const [col, row] = hoverTile;
       const canPlace = _canPlace(col, row);
+      const canAffordPlace = money >= placingTower.cost;
 
-      ctx.fillStyle = canPlace ? 'rgba(39,174,96,0.32)' : 'rgba(192,57,43,0.32)';
+      // Tile fill — red tinted if can't afford too
+      const tileCol = !canAffordPlace
+        ? 'rgba(239,68,68,0.38)'
+        : (canPlace ? 'rgba(39,174,96,0.32)' : 'rgba(192,57,43,0.32)');
+      ctx.fillStyle = tileCol;
       ctx.fillRect(col*tileSize, row*tileSize, tileSize, tileSize);
+
+      // Can't afford overlay: diagonal stripes
+      if (!canAffordPlace) {
+        ctx.save();
+        ctx.globalAlpha = 0.18;
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 3;
+        for (let si = -tileSize; si < tileSize*2; si += 10) {
+          ctx.beginPath();
+          ctx.moveTo(col*tileSize + si, row*tileSize);
+          ctx.lineTo(col*tileSize + si + tileSize, row*tileSize + tileSize);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
 
       // Range circle
       ctx.beginPath();
       ctx.arc(col*tileSize+tileSize/2, row*tileSize+tileSize/2, placingTower.range, 0, Math.PI*2);
-      ctx.strokeStyle = canPlace ? 'rgba(39,174,96,0.55)' : 'rgba(192,57,43,0.55)';
-      ctx.fillStyle   = canPlace ? 'rgba(39,174,96,0.06)' : 'rgba(192,57,43,0.06)';
+      ctx.strokeStyle = !canAffordPlace ? 'rgba(239,68,68,0.5)' : (canPlace ? 'rgba(39,174,96,0.55)' : 'rgba(192,57,43,0.55)');
+      ctx.fillStyle   = !canAffordPlace ? 'rgba(239,68,68,0.05)' : (canPlace ? 'rgba(39,174,96,0.06)' : 'rgba(192,57,43,0.06)');
       ctx.lineWidth = 1.5;
       ctx.fill();
       ctx.stroke();
 
-      ctx.globalAlpha = 0.7;
+      ctx.globalAlpha = canAffordPlace ? 0.7 : 0.35;
       const previewFn = (typeof TowerArt !== 'undefined' && TowerArt[placingTower.id]) || null;
       if (previewFn) previewFn(ctx, col*tileSize+tileSize/2, row*tileSize+tileSize/2, tileSize, placingTower.color);
       ctx.globalAlpha = 1;
-      ctx.font = `bold ${Math.floor(tileSize*0.28)}px sans-serif`;
+
+      // Cost badge — prominent
+      const badgeY = row*tileSize + tileSize*0.84;
+      const badgeX = col*tileSize + tileSize/2;
+      ctx.font = `bold ${Math.floor(tileSize*0.3)}px 'Barlow Condensed', sans-serif`;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillStyle = money >= placingTower.cost ? '#2ecc71' : '#e74c3c';
-      ctx.fillText(`$${placingTower.cost}`, col*tileSize+tileSize/2, row*tileSize+tileSize*0.82);
+      if (!canAffordPlace) {
+        // Draw cost badge with red background
+        const needed = placingTower.cost - money;
+        ctx.fillStyle = 'rgba(0,0,0,0.72)';
+        ctx.beginPath(); ctx.roundRect(badgeX-tileSize*0.42, badgeY-tileSize*0.14, tileSize*0.84, tileSize*0.28, 4); ctx.fill();
+        ctx.fillStyle = '#ef4444';
+        ctx.fillText(`-$${needed} SHORT`, badgeX, badgeY);
+      } else {
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.beginPath(); ctx.roundRect(badgeX-tileSize*0.32, badgeY-tileSize*0.13, tileSize*0.64, tileSize*0.26, 4); ctx.fill();
+        ctx.fillStyle = '#4ade80';
+        ctx.fillText(`$${placingTower.cost}`, badgeX, badgeY);
+      }
       if (placingTower.isAir) {
         ctx.font = `bold ${Math.floor(tileSize*0.22)}px 'Barlow Condensed', sans-serif`;
         ctx.fillStyle = '#00e5ff';
@@ -1045,11 +1102,15 @@ const Game = (() => {
       ctx.strokeRect(col*tileSize+0.5, row*tileSize+0.5, tileSize-1, tileSize-1);
     }
 
-    _drawKillFeed(ctx);
+    _drawFloats(ctx);
+    _drawDmgNums(ctx);
     ctx.restore();
-    _updateBossBar();
-    _drawMinimap();
+    // Throttle DOM-heavy updates: boss bar every 100ms, minimap every 150ms
+    const now = performance.now();
+    if (!_lastBossBarUpdate || now - _lastBossBarUpdate > 100) { _updateBossBar(); _lastBossBarUpdate = now; }
+    if (!_lastMinimapUpdate || now - _lastMinimapUpdate > 150) { _drawMinimap(); _lastMinimapUpdate = now; }
   }
+  let _lastBossBarUpdate = 0, _lastMinimapUpdate = 0;
 
   function _spawnStreakPop(text) {
     const el = document.createElement('div');
@@ -1291,6 +1352,24 @@ const Game = (() => {
   function selectTowerToPlace(towerId) {
     const def = getTowerDef(towerId);
     if (!def) return;
+    // Block selection if can't afford — shake the cost label and toast
+    if (money < def.cost) {
+      const item = document.querySelector(`.tp-item[data-id="${towerId}"]`);
+      if (item) {
+        item.classList.remove('just-affordable');
+        void item.offsetWidth;
+        item.style.animation = 'none';
+        void item.offsetWidth;
+        item.style.animation = '';
+        // Pulse red border briefly
+        item.style.outline = '2px solid #ef4444';
+        item.style.outlineOffset = '2px';
+        setTimeout(() => { item.style.outline = ''; item.style.outlineOffset = ''; }, 500);
+      }
+      const shortage = def.cost - money;
+      UI.toast(`Need $${shortage} more for ${def.name}!`, 'red');
+      return;
+    }
     deselectTower();
     if (placingTower?.id === towerId) { _cancelPlacement(); return; }
     placingTower = def;
@@ -1323,6 +1402,31 @@ const Game = (() => {
     UI.toast(`SOLD FOR $${val}`, 'gold');
   }
 
+  // ── Bank withdraw: pulls stored cash out of a bank tower ──
+  function withdrawBank(tower) {
+    if (!tower || tower.bankBalance <= 0) return;
+    const amount = tower.bankBalance;
+    tower.bankBalance = 0;
+    money += amount;
+    _updateHUD();
+    _spawnDmgNum(tower.x, tower.y, `WITHDRAWN $${amount}`, true);
+    UI.toast(`💸 Withdrew $${amount.toLocaleString()} from bank!`, 'green');
+    _floatText(`💸 +$${amount.toLocaleString()} WITHDRAWN`, 'gold');
+  }
+
+  // ── Deposit to bank: click bank during prep to deposit cash ──
+  function depositToBank(tower, amount) {
+    if (!tower || (!tower.isBank && !tower.bankMode)) return;
+    const cap = tower.bankCap || 0;
+    const room = cap - tower.bankBalance;
+    const deposit = Math.min(amount, room, money);
+    if (deposit <= 0) { UI.toast('Bank is full!', 'red'); return; }
+    tower.bankBalance += deposit;
+    money -= deposit;
+    _updateHUD();
+    UI.toast(`🏦 Deposited $${deposit} (Balance: $${tower.bankBalance})`, 'green');
+  }
+
   function deselectTower() {
     towers.forEach(t => t.selected = false);
     selectedTower = null;
@@ -1348,7 +1452,7 @@ const Game = (() => {
     wave = waveData.number;
     currentWaveIndex++;
 
-    waveSpawnQueue = [];
+    waveSpawnQueue = []; waveSpawnIdx = 0;
     waveData.enemies.forEach(group => {
       for (let i = 0; i < group.count; i++) {
         waveSpawnQueue.push({ type: group.type, interval: group.interval });
@@ -1432,62 +1536,83 @@ const Game = (() => {
     }, 800);
   }
 
+  // Damage numbers — drawn on canvas, zero DOM/layout cost
+  const _dmgNums = [];
   function _spawnDmgNum(x, y, text, isCrit) {
-    const el = document.createElement('div');
-    el.className = 'dmg-num' + (isCrit ? ' crit' : '');
-    el.textContent = text;
-    const rect   = canvas.getBoundingClientRect();
-    const scaleX = rect.width  / canvas.width;
-    const scaleY = rect.height / canvas.height;
-    const parent = canvas.parentElement.getBoundingClientRect();
-    el.style.left = (x * scaleX + rect.left - parent.left) + 'px';
-    el.style.top  = (y * scaleY + rect.top  - parent.top) + 'px';
-    document.getElementById('dmgLayer').appendChild(el);
-    setTimeout(() => el.remove(), 950);
+    if (_dmgNums.length >= 12) return; // hard cap
+    _dmgNums.push({ x, y: y - 8, text, isCrit, age: 0, life: 0.9 });
+  }
+  function _tickDmgNums(dt) {
+    for (let i = _dmgNums.length - 1; i >= 0; i--) {
+      _dmgNums[i].age += dt;
+      _dmgNums[i].y -= dt * 38;
+      if (_dmgNums[i].age >= _dmgNums[i].life) _dmgNums.splice(i, 1);
+    }
+  }
+  function _drawDmgNums(ctx) {
+    if (_dmgNums.length === 0) return;
+    ctx.save();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (const d of _dmgNums) {
+      const a = Math.max(0, 1 - d.age / d.life);
+      ctx.globalAlpha = a;
+      ctx.font = d.isCrit ? "bold 15px 'Barlow Condensed',sans-serif" : "bold 11px 'Barlow Condensed',sans-serif";
+      ctx.fillStyle = '#000';
+      ctx.fillText(d.text, d.x+1, d.y+1);
+      ctx.fillStyle = d.isCrit ? '#fbbf24' : '#f87171';
+      ctx.fillText(d.text, d.x, d.y);
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
   }
 
+  // Float text pool — draw on canvas, zero DOM cost
+  const _floats = [];
   function _floatText(msg, type = '') {
-    const colors = { gold:'var(--amber3)', red:'var(--red2)', green:'var(--grn2)', '':'var(--txt)' };
-    const el = document.createElement('div');
-    el.style.cssText = `
-      position:fixed; top:80px; left:50%; transform:translateX(-50%);
-      font-family:'Barlow Condensed',sans-serif; font-size:22px; font-weight:700; letter-spacing:4px;
-      color:${colors[type]||colors['']}; text-shadow:0 2px 8px rgba(0,0,0,0.8);
-      pointer-events:none; z-index:9000;
-      animation:floatUp 1.8s ease-out forwards;
-    `;
-    el.textContent = msg;
-    document.body.appendChild(el);
-    setTimeout(() => el.remove(), 1900);
-    if (!document.getElementById('_floatKf')) {
-      const s = document.createElement('style'); s.id = '_floatKf';
-      s.textContent = `@keyframes floatUp{from{opacity:1;transform:translateX(-50%) translateY(0)}to{opacity:0;transform:translateX(-50%) translateY(-55px)}}`;
-      document.head.appendChild(s);
+    const colorMap = { gold:'#fbbf24', red:'#ef4444', green:'#22c55e', '#00e5ff':'#00e5ff', '#4ade80':'#4ade80', '':'#cbd5e1' };
+    _floats.push({ msg, color: colorMap[type] || colorMap[''], life: 1.6, age: 0, y: canvas.height * 0.18 });
+    if (_floats.length > 6) _floats.shift(); // cap
+  }
+  function _drawFloats(ctx) {
+    if (_floats.length === 0) return;
+    ctx.save();
+    ctx.font = "700 18px 'Barlow Condensed',sans-serif";
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const cx = canvas.width / 2;
+    for (let i = _floats.length - 1; i >= 0; i--) {
+      const f = _floats[i];
+      const a = Math.max(0, 1 - f.age / f.life);
+      ctx.globalAlpha = a * 0.9;
+      ctx.fillStyle = '#000';
+      ctx.fillText(f.msg, cx+1, f.y+1);
+      ctx.fillStyle = f.color;
+      ctx.fillText(f.msg, cx, f.y);
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+  function _tickFloats(dt) {
+    for (let i = _floats.length - 1; i >= 0; i--) {
+      _floats[i].age += dt;
+      _floats[i].y -= dt * 28;
+      if (_floats[i].age >= _floats[i].life) _floats.splice(i, 1);
     }
   }
 
+  // Cached HUD values — only write DOM when value actually changes
+  let _hud = { money:-1, lives:-1, wave:-1, kills:-1 };
   function _updateHUD() {
-    document.getElementById('hudMoney').textContent = money;
-    document.getElementById('hudLives').textContent = lives;
-    document.getElementById('hudWave').textContent  = wave || '—';
-    document.getElementById('hudKills').textContent = kills;
-    document.getElementById('hudScore').textContent = score.toLocaleString();
-    _updateLevelHUD();
-    _updateThreatLevel();
-    UI.refreshCanAfford(money);
-
-    // Lives danger pulse
-    const livesPill = document.getElementById('hudLives').parentElement;
-    if (lives <= 3) {
-      livesPill.classList.add('lives-danger');
-      livesPill.style.borderColor = '';
-    } else if (lives <= 8) {
-      livesPill.classList.remove('lives-danger');
-      livesPill.style.borderColor = 'rgba(251,191,36,0.5)';
-    } else {
-      livesPill.classList.remove('lives-danger');
-      livesPill.style.borderColor = '';
+    if (money !== _hud.money) { document.getElementById('hudMoney').textContent = money; _hud.money = money; UI.refreshCanAfford(money); }
+    if (lives !== _hud.lives) {
+      document.getElementById('hudLives').textContent = lives; _hud.lives = lives;
+      const livesPill = document.getElementById('hudLives').parentElement;
+      if (lives <= 3)      { livesPill.classList.add('lives-danger'); livesPill.style.borderColor=''; }
+      else if (lives <= 8) { livesPill.classList.remove('lives-danger'); livesPill.style.borderColor='rgba(251,191,36,0.5)'; }
+      else                 { livesPill.classList.remove('lives-danger'); livesPill.style.borderColor=''; }
     }
+    if (wave !== _hud.wave)   { document.getElementById('hudWave').textContent = wave || '—'; _hud.wave = wave; }
+    if (kills !== _hud.kills) { document.getElementById('hudKills').textContent = kills; _hud.kills = kills; }
+    _updateLevelHUD();
   }
 
   function _updateThreatLevel() {
@@ -1584,7 +1709,7 @@ const Game = (() => {
 
   function ownerSkipWave() {
     enemies = []; bullets = [];
-    waveActive = false; waveSpawnQueue = [];
+    waveActive = false; waveSpawnQueue = []; waveSpawnIdx = 0;
     _floatText('WAVE SKIPPED', 'green');
   }
 
@@ -1595,7 +1720,7 @@ const Game = (() => {
     bullets = [];
     _floatText('NUKE ACTIVATED', 'red');
     setTimeout(() => {
-      enemies = []; waveActive = false; waveSpawnQueue = [];
+      enemies = []; waveActive = false; waveSpawnQueue = []; waveSpawnIdx = 0;
     }, 100);
   }
 
@@ -1653,7 +1778,7 @@ const Game = (() => {
 
   return {
     init, stopGame, selectTowerToPlace,
-    upgradeTower, sellTower, deselectTower,
+    upgradeTower, sellTower, deselectTower, withdrawBank, depositToBank,
     startNextWave, toggleSpeed,
     ownerAddMoney, ownerSkipWave, ownerNukeEnemies, ownerGodMode,
     ownerFreezeAll, ownerSpeedHack, ownerSpawnBoss, ownerMaxAllTowers, ownerSetLives,
