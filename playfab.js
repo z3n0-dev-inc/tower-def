@@ -242,15 +242,32 @@ const PF = {
   },
 
   // ── Leaderboard ───────────────────────────────
+  // Uses server-side endpoint (no login required) if available,
+  // falls back to client API when session is active.
   async getLeaderboard(stat, max=100) {
+    // Try the public server endpoint first — works even when logged out
+    try {
+      const r = await fetch(`${this.SERVER_URL}/leaderboard/${encodeURIComponent(stat)}?max=${Math.min(max,100)}`);
+      const j = await r.json();
+      if (j.ok && j.leaderboard) {
+        console.log('[PF LB server]', stat, '→', j.leaderboard.length, 'entries');
+        return j.leaderboard;
+      }
+      console.warn('[PF LB server] returned no data, trying client API…', j.msg);
+    } catch (e) {
+      console.warn('[PF LB] server unreachable, falling back to client API:', e.message);
+    }
+    // Fallback: client API (requires login)
+    if (!this.sessionTicket) {
+      console.warn('[PF LB] not logged in and server unreachable — no leaderboard data');
+      return [];
+    }
     try {
       const r = await this._post('/Client/GetLeaderboard',
         { StatisticName:stat, StartPosition:0, MaxResultsCount:Math.min(max,100) });
-      console.log('[PF LB]', stat, '→ code:', r.code, 'entries:', r.data?.Leaderboard?.length, 'err:', r.errorMessage);
+      console.log('[PF LB client]', stat, '→ code:', r.code, 'entries:', r.data?.Leaderboard?.length, 'err:', r.errorMessage);
       if (r.code === 200) return r.data?.Leaderboard || [];
-      // Code 1003 = stat doesn't exist yet in PlayFab dashboard
-      // Code 1074 = statistics not enabled for title
-      if (r.code === 1003) console.warn('[PF LB] Statistic "' + stat + '" not found. Go to PlayFab Dashboard → Leaderboards → Add Statistic: ' + stat);
+      if (r.code === 1003) console.warn('[PF LB] Statistic "' + stat + '" not found in PlayFab Dashboard → Leaderboards.');
       return [];
     } catch(e) {
       console.error('[PF] getLeaderboard failed:', e);

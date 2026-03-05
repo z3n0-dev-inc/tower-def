@@ -58,6 +58,19 @@ async function verifyOwner(sessionTicket) {
 // Health check
 app.get('/', (req, res) => res.json({ status: 'ZTD Server online', title: TITLE_ID }));
 
+// ── Public leaderboard — no login required ────────────────────────
+app.get('/leaderboard/:stat', async (req, res) => {
+  const stat = req.params.stat;
+  const max  = Math.min(parseInt(req.query.max) || 100, 100);
+  try {
+    const r = await pfServer('/Server/GetLeaderboard', {
+      StatisticName: stat, StartPosition: 0, MaxResultsCount: max,
+    });
+    res.json({ ok: true, leaderboard: r.data?.Leaderboard || [] });
+  } catch (e) { res.json({ ok: false, msg: e.message, leaderboard: [] }); }
+});
+
+
 // ── Grant catalog item (cosmetics) ───────────────────────
 // This is the primary cosmetic grant method.
 // All cosmetics live in the PlayFab catalog (ZTD_Cosmetics_v1).

@@ -422,18 +422,32 @@ const UI = (() => {
         const owned = allOwned.has(def.id);
         const card  = document.createElement('div');
         card.className = 'shop-card' + (owned ? ' owned' : '');
+
+        // Rarity colour for the label
+        const rarityColors = { basic:'#8cb2c8', advanced:'#3dd6f5', special:'#9b59b6', legendary:'#f5b215' };
+        const rarityCol = rarityColors[def.rarity] || '#8cb2c8';
+
+        // Build tooltip stats
+        const statRows = def.isEconomy
+          ? (def.isFarm
+              ? `<div class="sc-tip-stat"><span>Income</span><strong>$${def.incomePerRound}/rd</strong></div>`
+              : `<div class="sc-tip-stat"><span>Bank Cap</span><strong>$${(def.bankCap||7000).toLocaleString()}</strong></div>`)
+          : `<div class="sc-tip-stat"><span>Damage</span><strong>${def.damage}</strong></div>
+             <div class="sc-tip-stat"><span>Range</span><strong>${def.range}</strong></div>
+             <div class="sc-tip-stat"><span>Fire Rate</span><strong>${def.fireRate}/s</strong></div>
+             ${def.splash>0 ? `<div class="sc-tip-stat"><span>Splash</span><strong>${def.splash}</strong></div>` : ''}
+             ${def.slow>0   ? `<div class="sc-tip-stat"><span>Slow</span><strong>${Math.round(def.slow*100)}%</strong></div>` : ''}`;
+
         card.innerHTML = `
-          <div class="sc-rarity rarity-${def.rarity}">${def.rarity.toUpperCase()}</div>
+          <div class="sc-rarity" style="color:${rarityCol}">${def.rarity.toUpperCase()}</div>
           <div class="sc-icon">${def.icon}</div>
           <div class="sc-name">${def.name}</div>
-          <div class="sc-desc" style="font-family:var(--f-body);font-size:11.5px;font-weight:400">${def.desc}</div>
-          <div class="sc-stats">
-            <div class="sc-stat"><span>Damage</span><strong>${def.damage}</strong></div>
-            <div class="sc-stat"><span>Range</span><strong>${def.range}</strong></div>
-            <div class="sc-stat"><span>Fire Rate</span><strong>${def.fireRate}/s</strong></div>
-            ${def.splash>0?`<div class="sc-stat"><span>Splash</span><strong>${def.splash}</strong></div>`:''}
+          <div class="sc-price">${owned ? '✓ OWNED' : '💰 ' + def.shopCost.toLocaleString()}</div>
+          <div class="sc-tip">
+            <div class="sc-tip-name">${def.name}</div>
+            <div class="sc-tip-desc">${def.desc || ''}</div>
+            ${statRows}
           </div>
-          <div class="sc-price">${owned ? '✓ OWNED' : '💰 ' + def.shopCost}</div>
         `;
         if (!owned) card.onclick = () => _buyTower(def);
         grid.appendChild(card);
