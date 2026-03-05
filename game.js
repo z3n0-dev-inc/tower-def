@@ -243,22 +243,23 @@ const Game = (() => {
 
     // ── GROUND PALETTES ──────────────────────────────────────────────────────
     const GP = {
-      graveyard: { g:['#2a4a1a','#2e5020','#264418','#334e1c','#203c14'],
-                   dark:'#1a3010', light:'#3c6028', fog:'rgba(160,210,130,0.06)' },
-      urban:     { g:['#282828','#303030','#242424','#2c2c2c','#1e1e1e'],
-                   dark:'#181818', light:'#404040', fog:null },
-      volcanic:  { g:['#200800','#280a00','#1c0600','#2c0c00','#180400'],
-                   dark:'#100300', light:'#380e00', fog:'rgba(255,60,0,0.05)' },
-      arctic:    { g:['#c4ddf0','#cce4f8','#bcd4e8','#d4ecff','#b0c8dc'],
-                   dark:'#98b8d0', light:'#e0f4ff', fog:'rgba(200,230,255,0.08)' },
-      hell:      { g:['#1e0000','#260000','#1a0000','#2a0000','#160000'],
-                   dark:'#100000', light:'#360000', fog:'rgba(200,0,0,0.06)' },
-      nuclear:   { g:['#1c2e00','#223600','#182800','#283e00','#142000'],
-                   dark:'#0e1800', light:'#304a00', fog:'rgba(120,200,0,0.05)' },
-      shadow:    { g:['#060614','#08081c','#040410','#0a0a20','#020208'],
-                   dark:'#020208', light:'#10102c', fog:'rgba(80,0,200,0.06)' },
-      omega:     { g:['#080008','#0c000c','#060006','#100010','#040004'],
-                   dark:'#020002', light:'#140014', fog:'rgba(180,0,200,0.06)' },
+      graveyard: { g:['#2d5c1a','#347022','#265218','#3a5c20','#224816','#406828'],
+                   dark:'#1c3a10', light:'#4a7830', fog:'rgba(160,210,130,0.07)',
+                   grass:true },
+      urban:     { g:['#2e2e2e','#363636','#282828','#303030','#222222','#3a3a3a'],
+                   dark:'#1a1a1a', light:'#484848', fog:null },
+      volcanic:  { g:['#220a00','#2c0e00','#1e0600','#300e00','#1a0400','#381200'],
+                   dark:'#120300', light:'#3c1000', fog:'rgba(255,60,0,0.05)' },
+      arctic:    { g:['#c8e4f4','#d4eeff','#bcd8ec','#daf0ff','#b4cce0','#e2f4ff'],
+                   dark:'#9ab8d0', light:'#e8f8ff', fog:'rgba(200,230,255,0.08)' },
+      hell:      { g:['#220000','#2c0000','#1c0000','#300000','#180000','#380000'],
+                   dark:'#120000', light:'#3c0000', fog:'rgba(200,0,0,0.06)' },
+      nuclear:   { g:['#1e3000','#263c00','#1a2c00','#2c4200','#162200','#304e00'],
+                   dark:'#101c00', light:'#385200', fog:'rgba(120,200,0,0.05)' },
+      shadow:    { g:['#070716','#09091e','#05050e','#0c0c22','#030310','#10102c'],
+                   dark:'#030310', light:'#12122e', fog:'rgba(80,0,200,0.06)' },
+      omega:     { g:['#0a000a','#0e000e','#080008','#120012','#060006','#160016'],
+                   dark:'#040004', light:'#180018', fog:'rgba(180,0,200,0.06)' },
     };
     const gp = GP[theme] || GP.graveyard;
 
@@ -290,47 +291,81 @@ const Game = (() => {
       gg.globalAlpha = 1;
 
       if (theme === 'graveyard') {
-        // Rich grass blades in clusters
-        const bCols = ['#2a5018','#336820','#1e4010','#3c7025','#285a18','#448028'];
-        for (let b = 0; b < 16; b++) {
-          const bx = gr()*T, by = T*(0.5+gr()*0.5);
-          const bh = T*(0.1+gr()*0.22);
-          const lean = (gr()-0.5)*T*0.1;
+        // Rich multi-layer grass
+        const bCols = ['#2a5018','#347020','#1e4010','#3e7828','#285a18','#4a8830','#206418','#56a038'];
+        // Darker ground base variation
+        gg.fillStyle = gp.g[v % gp.g.length];
+        gg.globalAlpha = 0.3 + gr() * 0.3;
+        gg.beginPath(); gg.ellipse(gr()*T, gr()*T, T*(0.2+gr()*0.4), T*(0.15+gr()*0.3), gr()*Math.PI, 0, Math.PI*2); gg.fill();
+        gg.globalAlpha = 1;
+        // Dense grass blades in clusters
+        for (let b = 0; b < 28; b++) {
+          const bx = gr()*T, by = T*(0.4+gr()*0.6);
+          const bh = T*(0.12+gr()*0.28);
+          const lean = (gr()-0.5)*T*0.14;
           gg.strokeStyle = bCols[Math.floor(gr()*bCols.length)];
-          gg.lineWidth = 1 + gr()*1.5; gg.lineCap = 'round';
-          gg.globalAlpha = 0.5 + gr()*0.45;
+          gg.lineWidth = 0.8 + gr()*1.8; gg.lineCap = 'round';
+          gg.globalAlpha = 0.55 + gr()*0.45;
           gg.beginPath(); gg.moveTo(bx, by);
-          gg.quadraticCurveTo(bx+lean*0.5, by-bh*0.6, bx+lean, by-bh);
+          gg.quadraticCurveTo(bx+lean*0.5, by-bh*0.55, bx+lean, by-bh);
           gg.stroke();
         }
-        // Small wildflowers
-        if (gr() < 0.3) {
-          const fx = T*0.15+gr()*T*0.7, fy = T*0.15+gr()*T*0.55;
-          const fCols = ['#ffe566','#ff9999','#ffccee','#ffffc0','#99ffcc'];
+        // Taller background blades
+        for (let b = 0; b < 8; b++) {
+          const bx = gr()*T, by = T*(0.3+gr()*0.5);
+          const bh = T*(0.25+gr()*0.4);
+          gg.strokeStyle = bCols[Math.floor(gr()*bCols.length)];
+          gg.lineWidth = 0.5; gg.lineCap = 'round';
+          gg.globalAlpha = 0.3 + gr()*0.35;
+          gg.beginPath(); gg.moveTo(bx, by);
+          gg.quadraticCurveTo(bx+(gr()-0.5)*T*0.1, by-bh*0.6, bx+(gr()-0.5)*T*0.15, by-bh);
+          gg.stroke();
+        }
+        // Wildflowers (more frequent)
+        if (gr() < 0.45) {
+          const fx = T*0.1+gr()*T*0.8, fy = T*0.1+gr()*T*0.65;
+          const fCols = ['#ffe566','#ff8899','#ffccee','#ffffc0','#99ffcc','#ffaacc','#ccffaa'];
           const fc = fCols[Math.floor(gr()*fCols.length)];
+          const petals = 4 + Math.floor(gr()*3);
+          for (let pet = 0; pet < petals; pet++) {
+            const pa = (pet/petals)*Math.PI*2;
+            const pr2 = T*0.038 + gr()*T*0.015;
+            gg.fillStyle = fc; gg.globalAlpha = 0.85;
+            gg.beginPath(); gg.ellipse(fx+Math.cos(pa)*pr2*1.5, fy+Math.sin(pa)*pr2*1.5, pr2, pr2*0.5, pa, 0, Math.PI*2); gg.fill();
+          }
+          gg.fillStyle = '#ffd700'; gg.globalAlpha = 1;
+          gg.beginPath(); gg.arc(fx, fy, T*0.025, 0, Math.PI*2); gg.fill();
+        }
+        // Second flower cluster sometimes
+        if (gr() < 0.2) {
+          const fx2 = T*0.1+gr()*T*0.8, fy2 = T*0.1+gr()*T*0.65;
+          gg.fillStyle = '#ffffff'; gg.globalAlpha = 0.6;
           for (let pet = 0; pet < 5; pet++) {
             const pa = (pet/5)*Math.PI*2;
-            const pr2 = T*0.04;
-            gg.fillStyle = fc; gg.globalAlpha = 0.8;
-            gg.beginPath(); gg.ellipse(fx+Math.cos(pa)*pr2*1.4, fy+Math.sin(pa)*pr2*1.4, pr2, pr2*0.6, pa, 0, Math.PI*2); gg.fill();
+            gg.beginPath(); gg.ellipse(fx2+Math.cos(pa)*T*0.04, fy2+Math.sin(pa)*T*0.04, T*0.03, T*0.018, pa, 0, Math.PI*2); gg.fill();
           }
           gg.fillStyle = '#ffe566'; gg.globalAlpha = 1;
-          gg.beginPath(); gg.arc(fx, fy, T*0.022, 0, Math.PI*2); gg.fill();
+          gg.beginPath(); gg.arc(fx2, fy2, T*0.02, 0, Math.PI*2); gg.fill();
         }
-        // Small rocks
-        if (gr() < 0.18) {
+        // Small rocks (more detailed)
+        if (gr() < 0.25) {
           const rx = T*0.1+gr()*T*0.8, ry = T*0.2+gr()*T*0.65;
-          const rCols = ['#788070','#6a7060','#888880','#7a7870'];
+          const rCols = ['#7a8275','#6c7465','#8a8c7e','#7c8270'];
+          const rw = T*0.06+gr()*T*0.07, rh = T*0.04+gr()*T*0.05;
+          gg.fillStyle = 'rgba(0,0,0,0.2)';
+          gg.beginPath(); gg.ellipse(rx+rw*0.3, ry+rh*0.4, rw*0.7, rh*0.4, 0, 0, Math.PI*2); gg.fill();
           gg.fillStyle = rCols[Math.floor(gr()*rCols.length)];
-          gg.globalAlpha = 0.65;
-          gg.beginPath(); gg.ellipse(rx, ry, T*0.05+gr()*T*0.055, T*0.033+gr()*T*0.038, gr()*Math.PI, 0, Math.PI*2); gg.fill();
-          gg.fillStyle = 'rgba(255,255,255,0.2)'; // highlight
-          gg.beginPath(); gg.ellipse(rx-T*0.01, ry-T*0.01, T*0.025, T*0.015, 0, 0, Math.PI*2); gg.fill();
+          gg.globalAlpha = 0.75;
+          gg.beginPath(); gg.ellipse(rx, ry, rw, rh, gr()*Math.PI, 0, Math.PI*2); gg.fill();
+          gg.fillStyle = 'rgba(255,255,255,0.22)';
+          gg.beginPath(); gg.ellipse(rx-rw*0.2, ry-rh*0.25, rw*0.3, rh*0.28, 0, 0, Math.PI*2); gg.fill();
         }
         gg.globalAlpha = 1;
-        // Subtle mossy patches
-        gg.fillStyle = '#3a6020'; gg.globalAlpha = 0.15;
-        gg.beginPath(); gg.ellipse(gr()*T, gr()*T, T*0.2+gr()*T*0.2, T*0.12+gr()*T*0.12, gr()*Math.PI, 0, Math.PI*2); gg.fill();
+        // Mossy patches
+        for (let m = 0; m < 2; m++) {
+          gg.fillStyle = m === 0 ? '#3a6820' : '#2a5818'; gg.globalAlpha = 0.12 + gr()*0.1;
+          gg.beginPath(); gg.ellipse(gr()*T, gr()*T, T*(0.18+gr()*0.22), T*(0.1+gr()*0.14), gr()*Math.PI, 0, Math.PI*2); gg.fill();
+        }
         gg.globalAlpha = 1;
 
       } else if (theme === 'arctic') {
@@ -1407,38 +1442,39 @@ function _makePathTile(T, type, theme) {
   const g = oc.getContext('2d');
 
   const TC = {
-    graveyard: { road:'#8c7448', roadB:'#a08a58', roadC:'#7a6238', border:'#3a2810',
-                 curb:'#b09868', curbD:'#584020', stones:['#7a7060','#8a8070','#686050'],
-                 edgeShadow:'rgba(0,0,0,0.5)', innerGlow:'rgba(180,160,110,0.12)' },
+    graveyard: { road:'#a08050', roadB:'#b89060', roadC:'#8a6c40', border:'#4a3218',
+                 curb:'#c8a870', curbD:'#6a4c28', stones:['#9a9080','#8a8070','#787060','#aa9878'],
+                 edgeShadow:'rgba(0,0,0,0.45)', innerGlow:'rgba(200,175,120,0.15)',
+                 midLine:'rgba(180,155,100,0.2)' },
     urban:     { road:'#6e6e6e', roadB:'#808080', roadC:'#5a5a5a', border:'#282828',
                  curb:'#9a9a9a', curbD:'#404040', stones:['#666','#777','#555'],
                  edgeShadow:'rgba(0,0,0,0.55)', innerGlow:'rgba(200,200,200,0.07)' },
-    volcanic:  { road:'#5c2a00', roadB:'#703400', roadC:'#481e00', border:'#200800',
-                 curb:'#aa4400', curbD:'#2a1000', stones:['#4a3020','#3a2010','#5a2808'],
-                 edgeShadow:'rgba(0,0,0,0.6)', innerGlow:'rgba(255,80,0,0.1)' },
+    volcanic:  { road:'#6a3400', roadB:'#803e00', roadC:'#542800', border:'#220a00',
+                 curb:'#c05000', curbD:'#301200', stones:['#4a3020','#3a2010','#5a2808','#6a3c14'],
+                 edgeShadow:'rgba(0,0,0,0.6)', innerGlow:'rgba(255,80,0,0.12)' },
     arctic:    { road:'#b8d4e8', roadB:'#cce4f4', roadC:'#a0c0d8', border:'#6080a0',
                  curb:'#dceeff', curbD:'#7090b0', stones:['#c0d8ec','#d0e8f8','#a8c0d8'],
                  edgeShadow:'rgba(0,10,30,0.4)', innerGlow:'rgba(220,240,255,0.18)' },
-    hell:      { road:'#780000', roadB:'#900000', roadC:'#620000', border:'#2a0000',
-                 curb:'#cc2200', curbD:'#380000', stones:['#4a1010','#3a0808','#5a1818'],
-                 edgeShadow:'rgba(0,0,0,0.65)', innerGlow:'rgba(255,20,0,0.1)' },
-    nuclear:   { road:'#567800', roadB:'#6a9200', roadC:'#446000', border:'#202e00',
-                 curb:'#88b800', curbD:'#2a3e00', stones:['#485a20','#384810','#586030'],
-                 edgeShadow:'rgba(0,0,0,0.5)', innerGlow:'rgba(140,220,0,0.1)' },
-    shadow:    { road:'#2c0058', roadB:'#3a0070', roadC:'#200048', border:'#0a0020',
-                 curb:'#8800dd', curbD:'#140030', stones:['#2a1050','#1a0840','#38186a'],
-                 edgeShadow:'rgba(0,0,0,0.7)', innerGlow:'rgba(150,0,255,0.1)' },
-    omega:     { road:'#420008', roadB:'#580010', roadC:'#300006', border:'#140002',
-                 curb:'#dd0020', curbD:'#1c0004', stones:['#3a1018','#281008','#4a1820'],
-                 edgeShadow:'rgba(0,0,0,0.7)', innerGlow:'rgba(255,0,25,0.12)' },
+    hell:      { road:'#880000', roadB:'#aa0000', roadC:'#6e0000', border:'#2e0000',
+                 curb:'#dd2200', curbD:'#3e0000', stones:['#4a1010','#3a0808','#5a1818'],
+                 edgeShadow:'rgba(0,0,0,0.65)', innerGlow:'rgba(255,20,0,0.12)' },
+    nuclear:   { road:'#5e8800', roadB:'#72a400', roadC:'#4c6e00', border:'#222e00',
+                 curb:'#90c000', curbD:'#2e4400', stones:['#485a20','#384810','#586030'],
+                 edgeShadow:'rgba(0,0,0,0.5)', innerGlow:'rgba(140,220,0,0.12)' },
+    shadow:    { road:'#320068', roadB:'#420080', roadC:'#26004e', border:'#0c0025',
+                 curb:'#9800ee', curbD:'#180038', stones:['#2a1050','#1a0840','#38186a'],
+                 edgeShadow:'rgba(0,0,0,0.7)', innerGlow:'rgba(170,0,255,0.12)' },
+    omega:     { road:'#4e000c', roadB:'#660012', roadC:'#3a0008', border:'#160004',
+                 curb:'#ee0025', curbD:'#200006', stones:['#3a1018','#281008','#4a1820'],
+                 edgeShadow:'rgba(0,0,0,0.7)', innerGlow:'rgba(255,0,30,0.14)' },
   };
   const t = TC[theme] || TC.graveyard;
 
-  // Road occupies 80% of tile width (10% margin each side)
-  const MARGIN = T * 0.10;
-  const ROAD_W = T - MARGIN * 2;  // 80% of T
-  const BORDER = T * 0.055;  // border strip width
-  const CURB   = T * 0.04;   // curb highlight width
+  // Road occupies 85% of tile width (7.5% margin each side)
+  const MARGIN = T * 0.075;
+  const ROAD_W = T - MARGIN * 2;  // 85% of T
+  const BORDER = T * 0.04;   // border strip width
+  const CURB   = T * 0.035;  // curb highlight width
   const pRng   = mulberry32(type.charCodeAt(0)*77 + Math.floor(T));
 
   const isCorner = ['tl','tr','bl','br'].includes(type);
@@ -1461,31 +1497,53 @@ function _makePathTile(T, type, theme) {
     };
 
     drawStrip(R0, R5, t.border);         // outer border (dark)
-    drawStrip(R1, R4, t.curb);           // curb highlight
-    drawStrip(R2, R3, t.road);           // main road surface
-    // Center lighter band
-    const mid0 = T*0.35, mid1 = T*0.65;
-    drawStrip(mid0, mid1, t.roadB);
-    // Subtle center sheen
-    const sh0 = T*0.46, sh1 = T*0.54;
-    drawStrip(sh0, sh1, t.innerGlow.replace('rgba(','rgba(').replace(')',',1)'), 0.15);
-    drawStrip(sh0, sh1, 'rgba(255,255,255,0.06)');
+    drawStrip(R1, R4, t.road);           // main road surface
+    // Gradient overlay for depth
+    const roadGrad = isH
+      ? g.createLinearGradient(0, R1, 0, R4)
+      : g.createLinearGradient(R1, 0, R4, 0);
+    roadGrad.addColorStop(0, t.curbD + '80');
+    roadGrad.addColorStop(0.2, 'rgba(0,0,0,0)');
+    roadGrad.addColorStop(0.8, 'rgba(0,0,0,0)');
+    roadGrad.addColorStop(1, t.curbD + '80');
+    g.fillStyle = roadGrad;
+    if (isH) g.fillRect(0, R1, T, R4-R1); else g.fillRect(R1, 0, R4-R1, T);
+
+    // Curb highlights at edges
+    drawStrip(R1, R2, t.curb, 0.7);
+    drawStrip(R3, R4, t.curb, 0.7);
     // Inner curb shadow lines
-    g.globalAlpha = 0.7;
-    drawStrip(R2, R2+T*0.022, t.curbD);
-    drawStrip(R3-T*0.022, R3, t.curbD);
+    g.globalAlpha = 0.65;
+    drawStrip(R2, R2+T*0.018, t.curbD);
+    drawStrip(R3-T*0.018, R3, t.curbD);
     g.globalAlpha = 1;
 
-    // Road surface texture — pebbles/stones/details
-    for (let s = 0; s < 10; s++) {
+    // Center lighter band
+    const mid0 = T*0.38, mid1 = T*0.62;
+    drawStrip(mid0, mid1, t.roadB, 0.7);
+    // Subtle center sheen
+    const sh0 = T*0.47, sh1 = T*0.53;
+    drawStrip(sh0, sh1, 'rgba(255,255,255,0.07)');
+
+    // Road surface texture — many pebbles/dirt grains for realistic look
+    for (let s = 0; s < 22; s++) {
       const sx = pRng()*T, sy = pRng()*T;
       const inRoad = isH ? (sy > R2 && sy < R3) : (sx > R2 && sx < R3);
       if (!inRoad) continue;
-      g.globalAlpha = 0.18 + pRng()*0.28;
+      g.globalAlpha = 0.12 + pRng()*0.22;
       g.fillStyle = t.stones[Math.floor(pRng()*t.stones.length)];
       g.beginPath();
-      g.ellipse(sx, sy, 1.5+pRng()*4, 1+pRng()*2.5, pRng()*Math.PI, 0, Math.PI*2);
+      g.ellipse(sx, sy, 1+pRng()*3.5, 0.8+pRng()*2.2, pRng()*Math.PI, 0, Math.PI*2);
       g.fill();
+    }
+    // Wheel track grooves (two subtle parallel lines)
+    if (theme === 'graveyard' || theme === 'urban' || theme === 'volcanic') {
+      g.globalAlpha = 0.18;
+      g.fillStyle = t.curbD;
+      const track1a = T*0.28, track1b = T*0.33, track2a = T*0.67, track2b = T*0.72;
+      if (isH) { g.fillRect(0,track1a,T,track1b-track1a); g.fillRect(0,track2a,T,track2b-track2a); }
+      else     { g.fillRect(track1a,0,track1b-track1a,T); g.fillRect(track2a,0,track2b-track2a,T); }
+      g.globalAlpha = 1;
     }
     g.globalAlpha = 1;
 
@@ -1586,15 +1644,15 @@ function _makePathTile(T, type, theme) {
     // Center sheen
     drawArcBand((band_in+band_out)/2 - T*0.04, (band_in+band_out)/2 + T*0.04, 'rgba(255,255,255,0.06)');
 
-    // Surface pebbles on the arc road
-    for (let s = 0; s < 8; s++) {
+    // Surface pebbles on the arc road — more of them
+    for (let s = 0; s < 16; s++) {
       const angle = a0 + pRng()*(a1-a0);
       const radius = R_inner + BORDER + CURB + pRng()*(R_outer - R_inner - 2*(BORDER+CURB));
       const sx = pvx + Math.cos(angle)*radius;
       const sy = pvy + Math.sin(angle)*radius;
-      g.globalAlpha = 0.2 + pRng()*0.25;
+      g.globalAlpha = 0.14 + pRng()*0.22;
       g.fillStyle = t.stones[Math.floor(pRng()*t.stones.length)];
-      g.beginPath(); g.ellipse(sx, sy, 1.5+pRng()*3.5, 1+pRng()*2, pRng()*Math.PI, 0, Math.PI*2); g.fill();
+      g.beginPath(); g.ellipse(sx, sy, 1+pRng()*3, 0.8+pRng()*2, pRng()*Math.PI, 0, Math.PI*2); g.fill();
     }
     g.globalAlpha = 1;
 
