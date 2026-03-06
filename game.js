@@ -210,6 +210,7 @@ const Game = (() => {
     godMode = false; selectedTower = null; placingTower = null;
     totalCoinsEarned = 0; shakeAmount = 0; killFeed = [];
     interestAccum = 0; lastPlaced = null;
+    _particles.length = 0;
 
     waves = generateWaves(map.id, map.waves, map.waveModifier, !!map.isInfinite);
 
@@ -736,7 +737,7 @@ const Game = (() => {
         const e = waveSpawnQueue[waveSpawnIdx++];
         if (e) {
           enemies.push(new Enemy(e.type, map.path, tileSize, wave, map.waveModifier));
-          spawnTimer = Math.max(0.12, (e.interval || 0.5) * 0.75);
+          spawnTimer = Math.max(0.08, (e.interval || 0.4) * 0.65);
         }
       }
     }
@@ -772,8 +773,8 @@ const Game = (() => {
         _floatText(`🍌 +$${farmTotal} FARM INCOME`, 'gold');
         _flashPill('hudMoney', 'money-gain');
       }
-      // Global interest on hand cash
-      const interest = Math.max(5, Math.floor(money * 0.015));
+      // Global interest on hand cash — generous rate
+      const interest = Math.max(10, Math.floor(money * 0.025));
       money += interest;
       _updateHUD();
       _floatText(`+$${interest} INTEREST`, 'gold');
@@ -794,6 +795,8 @@ const Game = (() => {
       const waveBtn = document.getElementById('btnStartWave');
       waveBtn.textContent = '▶ SEND WAVE';
       waveBtn.classList.add('pulse-green');
+      // Auto-send next wave if enabled
+      if (Game._triggerAutoWave) Game._triggerAutoWave();
     }
 
     // Update enemies + collect pending boss spawns
@@ -832,11 +835,12 @@ const Game = (() => {
           // Lives lost per balloon reaching end — brutal scaling
           let livesLost;
           if (e.def.isBlimp) {
-            // Blimps cost serious lives based on tier
-            livesLost = Math.max(15, (e.def.tier - 11) * 6);
+            // Blimps cost lives scaled by tier — MOAB=10, BFB=20, ZOMG=30, BAD=50, PHANTOM=75
+            const blimpLives = { moab:10, bfb:20, zomg:30, bad:50, phantom:75 };
+            livesLost = blimpLives[e.type] || Math.max(10, (e.def.tier - 11) * 8);
           } else {
-            // Regular balloons cost double their tier for brutal punishment
-            livesLost = Math.max(1, (e.def.tier || 1) * 2);
+            // Regular balloons: 1 life per tier (tier 1-5 = 1-5 lives)
+            livesLost = Math.max(1, e.def.tier || 1);
           }
           lives -= livesLost;
           shakeAmount = e.isBoss ? 18 : 8;
@@ -852,58 +856,66 @@ const Game = (() => {
     const _newChildren = [];
     for (let i = enemies.length - 1; i >= 0; i--) {
       const e = enemies[i];
-      if (e.dead && !e.reachedEnd && !e._rewarded) {
+      if (e.dead && !e._rewarded) {
         e._rewarded = true;
-        const prevMoney = money;
-        money += e.reward;
-        score += e.reward * (e.isBoss ? 10 : 1);
-        const _killXP = e.isBoss
-          ? AccountLevel.XP_TABLE.bossKill
-          : AccountLevel.XP_TABLE.kill;
-        const _luKill = AccountLevel.awardXP(_killXP);
-        _luKill.forEach(lu => _handleLevelUp(lu));
-        kills++;
-        totalCoinsEarned += e.reward;
+        // Only reward money/score/XP for enemies killed (not leaked)
+        if (!e.reachedEnd) {
+          money += e.reward;
+          score += e.reward * (e.isBoss ? 10 : 1);
+          totalCoinsEarned += e.reward;
+          kills++;
 
-        // Achievement triggers
-        if (kills === 1)    UI.showAchievement('first_kill');
-        if (kills === 100)  UI.showAchievement('kills_100');
-        if (kills === 500)  UI.showAchievement('kills_500');
-        if (kills === 1000) UI.showAchievement('kills_1000');
+          const _killXP = e.isBoss
+            ? AccountLevel.XP_TABLE.bossKill
+            : AccountLevel.XP_TABLE.kill;
+          const _luKill = AccountLevel.awardXP(_killXP);
+          _luKill.forEach(lu => _handleLevelUp(lu));
 
-        // Combo system
-        _combo++;
-        _comboTimer = _COMBO_DECAY;
-        _updateComboDisplay();
+          // Achievement triggers
+          if (kills === 1)    UI.showAchievement('first_kill');
+          if (kills === 100)  UI.showAchievement('kills_100');
+          if (kills === 500)  UI.showAchievement('kills_500');
+          if (kills === 1000) UI.showAchievement('kills_1000');
 
-        // Only show reward numbers for valuable kills (blimps + ceramics) - reduce clutter
-        const isCrit = e.isBoss || e.def.tier >= 12;
-        if (isCrit) _spawnDmgNum(e.x, e.y, `+${e.reward}`, true);
+          // Combo
+          _combo++;
+          _comboTimer = _COMBO_DECAY;
+          _updateComboDisplay();
 
-        if (e.isBoss) {
-          shakeAmount = 22;
-          _screenFlash('gold');
-          _addKillFeedEntry(`💥 ${e.name} DESTROYED!`, true);
-          _floatText(`${e.name} DESTROYED! +${e.reward}`, 'gold');
-          UI.showAchievement('boss_kill');
-        } else {
-          // Combo milestones
-          if (_combo === 10) UI.showAchievement('combo_10');
-          if (_combo === 25) UI.showAchievement('combo_25');
-          if (_combo > 0 && _combo % 25 === 0) {
-            _spawnStreakPop(`🔥 ${_combo}× COMBO!`);
+          const isCrit = e.isBoss || e.def.tier >= 12;
+          if (isCrit) _spawnDmgNum(e.x, e.y, `+${e.reward}`, true);
+
+          if (e.isBoss) {
+            shakeAmount = 22;
             _screenFlash('gold');
-          } else if (_combo > 0 && _combo % 10 === 0) {
-            _screenFlash('green');
+            _addKillFeedEntry(`💥 ${e.name} DESTROYED!`, true);
+            _floatText(`${e.name} DESTROYED! +${e.reward}`, 'gold');
+            UI.showAchievement('boss_kill');
+            _spawnExplosion(e.x, e.y, '#ffd700', 18, 80);
+            _spawnExplosion(e.x, e.y, '#ff4400', 12, 60);
+          } else {
+            if (_combo === 10) UI.showAchievement('combo_10');
+            if (_combo === 25) UI.showAchievement('combo_25');
+            if (_combo > 0 && _combo % 25 === 0) {
+              _spawnStreakPop(`🔥 ${_combo}× COMBO!`);
+              _screenFlash('gold');
+            } else if (_combo > 0 && _combo % 10 === 0) {
+              _screenFlash('green');
+            }
+            // Small pop particles on kill
+            if (e.def.isBlimp) {
+              _spawnExplosion(e.x, e.y, e.color || '#3498db', 10, 40);
+            }
+            if (kills % 50 === 0) {
+              _addKillFeedEntry(`🎈 ${kills} total pops!`, false);
+              _spawnStreakPop(`🎈 ${kills} POPS!`);
+            } else if (kills % 25 === 0) {
+              _addKillFeedEntry(`💀 ${kills} kills!`, false);
+            }
           }
-          if (kills % 50 === 0) {
-            _addKillFeedEntry(`🎈 ${kills} total pops!`, false);
-            _spawnStreakPop(`🎈 ${kills} POPS!`);
-          } else if (kills % 25 === 0) {
-            _addKillFeedEntry(`💀 ${kills} kills!`, false);
-          }
-        }
-        // Spawn inner balloon children (BTD6-style)
+        } // end if (!e.reachedEnd)
+
+        // Spawn children regardless of how they died (blimps leak → release inner bloons)
         if (e.getSpawnChildren) {
           const children = e.getSpawnChildren(wave, map.waveModifier);
           children.forEach(c => _newChildren.push(c));
@@ -928,7 +940,10 @@ const Game = (() => {
         currentWaveIndex++;
         waveSpawnQueue = []; waveSpawnIdx = 0;
         waveData.enemies.forEach(group => {
-          for (let ii=0;ii<group.count;ii++) waveSpawnQueue.push({type:group.type,interval:group.interval});
+          for (let ii=0;ii<group.count;ii++) {
+            const isGFirst = ii === 0 && gi > 0;
+            waveSpawnQueue.push({type:group.type, interval: isGFirst ? Math.max(group.interval, 1.2) : group.interval});
+          }
         });
         spawnTimer = 2.5; // brief pause between waves
         _livesAtWaveStart = lives;
@@ -940,19 +955,24 @@ const Game = (() => {
       }
     }
 
-    // Aura towers: only recompute when tower count changes (cache it)
-    // Simple O(n²) but towers are few, skip if no aura towers
+    // Aura towers: recompute every tick (towers < 30, O(n²) is fine)
+    // Must recompute every tick since upgrades change auraBonus mid-game
     let hasAura = false;
     for (let i = 0; i < towers.length; i++) { if (towers[i].def && towers[i].def.aura) { hasAura = true; break; } }
-    // Aura towers: only recompute when tower count changes
-    if (hasAura && towers.length !== _lastAuraTowerCount) {
-      _lastAuraTowerCount = towers.length;
+    if (hasAura) {
       for (let i = 0; i < towers.length; i++) towers[i].auraBuff = 1.0;
       for (let i = 0; i < towers.length; i++) {
         const t = towers[i];
         if (!t.def.aura) continue;
-        const rSq = (t.range * 0.8) * (t.range * 0.8);
-        const bonus = 1.0 + (t.def.auraBonus || 0.5);
+        // Use tower's CURRENT range (upgraded) and aura bonus
+        const auraRange = t.range * 0.9;
+        const rSq = auraRange * auraRange;
+        // auraBonus accumulates via upgrade(), so read from tower instance not def
+        const towerAuraBonus = t.def.auraBonus || 0.4;
+        const upgradedBonus  = (t.level > 0 && t.def.upgrades)
+          ? t.def.upgrades.slice(0, t.level).reduce((acc, u) => acc + (u.auraBonus || 0), towerAuraBonus)
+          : towerAuraBonus;
+        const bonus = 1.0 + upgradedBonus;
         for (let j = 0; j < towers.length; j++) {
           if (i === j) continue;
           const o = towers[j];
@@ -967,11 +987,11 @@ const Game = (() => {
     for (let i = 0; i < enemies.length; i++) { if (!enemies[i].dead) _liveEnemiesBuf.push(enemies[i]); }
     const liveEnemies = _liveEnemiesBuf;
 
-    // PERF: hard cap on simultaneous enemies
-    const MAX_ENEMIES = 45;
-    if (enemies.length > MAX_ENEMIES) {
-      enemies.sort((a,b) => b.pathProgress - a.pathProgress);
-      enemies.length = MAX_ENEMIES;
+    // PERF: soft cap — reduce spawn rate if too many enemies on field
+    // Never delete live enemies; just pause spawning temporarily
+    const MAX_ENEMIES = 180;
+    if (enemies.length >= MAX_ENEMIES) {
+      spawnTimer = Math.max(spawnTimer, 0.3); // slow down spawning, don't kill enemies
     }
 
     // Update towers (skip combat logic for economy-only towers)
@@ -990,10 +1010,11 @@ const Game = (() => {
       bullets[i].update(dt);
       if (bullets[i].dead) { bullets[i] = bullets[bullets.length-1]; bullets.length--; }
     }
-    if (bullets.length > 200) bullets.length = 200;
+    if (bullets.length > 350) bullets.length = 350;
     _updateHUD(); // single HUD update per frame
     _tickFloats(rawDt);
     _tickDmgNums(rawDt);
+    _tickParticles(rawDt);
   }
 
   function _draw() {
@@ -1121,6 +1142,7 @@ const Game = (() => {
 
     _drawFloats(ctx);
     _drawDmgNums(ctx);
+    _drawParticles(ctx);
     ctx.restore();
     // Throttle DOM-heavy updates: boss bar every 100ms, minimap every 150ms
     const now = performance.now();
@@ -1249,6 +1271,21 @@ const Game = (() => {
 
     document.getElementById('btnStartWave').onclick = startNextWave;
     document.getElementById('btnSpeed').onclick     = toggleSpeed;
+    // Auto-send wave toggle
+    let _autoWave = false;
+    const _autoBtn = document.getElementById('btnAutoWave');
+    if (_autoBtn) {
+      _autoBtn.onclick = () => {
+        _autoWave = !_autoWave;
+        _autoBtn.textContent = _autoWave ? '⚡AUTO ON' : 'AUTO';
+        _autoBtn.style.background = _autoWave ? 'rgba(39,174,96,0.5)' : 'rgba(0,0,0,0.3)';
+        _autoBtn.style.borderColor = _autoWave ? '#27ae60' : '';
+        if (_autoWave) startNextWave();
+      };
+      // Store ref so wave-complete can check it
+      Game._autoWave = () => _autoWave;
+      Game._triggerAutoWave = () => { if (_autoWave && !waveActive) setTimeout(startNextWave, 1200); };
+    }
     document.getElementById('btnBackMenu').onclick  = () => {
       if (confirm('Return to menu? Progress will be saved.')) {
         stopGame(); UI.showScreen('menu');
@@ -1470,9 +1507,14 @@ const Game = (() => {
     currentWaveIndex++;
 
     waveSpawnQueue = []; waveSpawnIdx = 0;
-    waveData.enemies.forEach(group => {
+    waveData.enemies.forEach((group, gi) => {
       for (let i = 0; i < group.count; i++) {
-        waveSpawnQueue.push({ type: group.type, interval: group.interval });
+        // First enemy of each group (except first group) gets a longer gap
+        const isGroupFirst = i === 0 && gi > 0;
+        const interval = isGroupFirst
+          ? Math.max(group.interval, 1.2)   // gap between groups
+          : group.interval;
+        waveSpawnQueue.push({ type: group.type, interval });
       }
     });
 
@@ -1553,7 +1595,53 @@ const Game = (() => {
     }, 800);
   }
 
-  // Damage numbers — drawn on canvas, zero DOM/layout cost
+  // ── PARTICLE SYSTEM ───────────────────────────────────────────────
+  const _particles = [];
+  const _MAX_PARTICLES = 80;
+
+  function _spawnExplosion(x, y, color, count, radius) {
+    if (_particles.length >= _MAX_PARTICLES) return;
+    const n = Math.min(count, _MAX_PARTICLES - _particles.length);
+    for (let i = 0; i < n; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 40 + Math.random() * (radius * 1.8);
+      _particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 0.3 + Math.random() * 0.4,
+        age: 0,
+        size: 2 + Math.random() * 3,
+        color,
+      });
+    }
+  }
+
+  function _tickParticles(dt) {
+    for (let i = _particles.length - 1; i >= 0; i--) {
+      const p = _particles[i];
+      p.age += dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vx *= 0.88;
+      p.vy *= 0.88;
+      if (p.age >= p.life) { _particles[i] = _particles[_particles.length - 1]; _particles.length--; }
+    }
+  }
+
+  function _drawParticles(ctx) {
+    if (_particles.length === 0) return;
+    for (const p of _particles) {
+      const a = Math.max(0, 1 - p.age / p.life);
+      ctx.globalAlpha = a * 0.85;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * a, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  // ── END PARTICLE SYSTEM ───────────────────────────────────────────
   const _dmgNums = [];
   function _spawnDmgNum(x, y, text, isCrit) {
     if (_dmgNums.length >= 12) return; // hard cap

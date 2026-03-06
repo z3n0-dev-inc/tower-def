@@ -9,45 +9,45 @@
 
 const TOWER_DAMAGE_CONFIG = {
   //              damage  fireRate  range
-  gunner:       { damage:  15,  fireRate: 1.2,  range: 120 },
-  archer:       { damage:  10,  fireRate: 1.8,  range: 160 },
-  sniper:       { damage:  80,  fireRate: 0.38, range: 265 },
-  rocketeer:    { damage:  60,  fireRate: 0.55, range: 130 },
-  freezer:      { damage:  10,  fireRate: 0.8,  range: 110 },
-  flamer:       { damage:   8,  fireRate: 8.0,  range:  90 },
-  tesla:        { damage:  40,  fireRate: 0.9,  range: 140 },
-  laser:        { damage:  12,  fireRate: 14,   range: 180 },
-  mortar:       { damage:  95,  fireRate: 0.28, range: 200 },
-  venom:        { damage:  20,  fireRate: 1.4,  range: 140 },
-  omega:        { damage: 400,  fireRate: 0.24, range: 200 },
-  phantom:      { damage: 250,  fireRate: 0.72, range: 305 },
-  temporal:     { damage:  28,  fireRate: 0.15, range: 999 },
-  reaper:       { damage: 160,  fireRate: 0.85, range: 200 },
+  gunner:       { damage:  20,  fireRate: 1.4,  range: 125 },
+  archer:       { damage:  14,  fireRate: 2.0,  range: 165 },
+  sniper:       { damage: 100,  fireRate: 0.42, range: 275 },
+  rocketeer:    { damage:  75,  fireRate: 0.6,  range: 135 },
+  freezer:      { damage:  12,  fireRate: 0.9,  range: 115 },
+  flamer:       { damage:  10,  fireRate: 9.0,  range:  95 },
+  tesla:        { damage:  50,  fireRate: 1.0,  range: 145 },
+  laser:        { damage:  15,  fireRate: 16,   range: 185 },
+  mortar:       { damage: 115,  fireRate: 0.32, range: 210 },
+  venom:        { damage:  25,  fireRate: 1.5,  range: 145 },
+  omega:        { damage: 500,  fireRate: 0.28, range: 210 },
+  phantom:      { damage: 300,  fireRate: 0.80, range: 315 },
+  temporal:     { damage:  35,  fireRate: 0.18, range: 999 },
+  reaper:       { damage: 200,  fireRate: 0.90, range: 210 },
   shadow_commander: { damage: 9999,  fireRate: 3.0, range: 999 },
   neon_warden:      { damage: 9999,  fireRate: 8.0, range: 999 },
   void_hunter:      { damage: 99999, fireRate: 4.0, range: 999 },
   // NEW TOWERS v13
-  crossbow:     { damage:  22,  fireRate: 2.2,  range: 175 },  // piercing bolts
-  cryomancer:   { damage:  35,  fireRate: 0.6,  range: 135 },  // freeze + shatter
-  buzzsaw:      { damage:  18,  fireRate: 6.0,  range:  85 },  // spinning blade aoe
-  beacon:       { damage:   5,  fireRate: 0.5,  range: 160 },  // support: buffs nearby towers
-  pyre:         { damage:  12,  fireRate: 4.0,  range: 100 },  // ground fire pool
-  railgun:      { damage: 320,  fireRate: 0.22, range: 310 },  // extreme pierce
-  necromancer:  { damage:  45,  fireRate: 1.1,  range: 155 },  // raises dead enemies as helpers
-  stormcaller:  { damage:  55,  fireRate: 0.85, range: 185 },  // lightning + wind
+  crossbow:     { damage:  28,  fireRate: 2.4,  range: 180 },
+  cryomancer:   { damage:  42,  fireRate: 0.65, range: 140 },
+  buzzsaw:      { damage:  22,  fireRate: 7.0,  range:  90 },
+  beacon:       { damage:   6,  fireRate: 0.5,  range: 165 },
+  pyre:         { damage:  15,  fireRate: 4.5,  range: 105 },
+  railgun:      { damage: 380,  fireRate: 0.25, range: 320 },
+  necromancer:  { damage:  55,  fireRate: 1.2,  range: 160 },
+  stormcaller:  { damage:  65,  fireRate: 0.95, range: 190 },
   // NEW TOWERS v14
-  spiker:       { damage:  30,  fireRate: 1.6,  range: 130 }, // drops spike strips on path
-  chrono:       { damage:   0,  fireRate: 0.12, range: 170 }, // global time dilation field
-  magnet:       { damage:  25,  fireRate: 2.0,  range: 115 }, // pulls enemies off path
-  artillery:    { damage: 200,  fireRate: 0.18, range: 240 }, // long-range bombardment
-  infector:     { damage:   8,  fireRate: 1.8,  range: 140 }, // viral DoT that spreads
-  golem:        { damage:  70,  fireRate: 0.55, range: 105 }, // heavy melee stomp
-  drone_bay:     { damage:  14,  fireRate: 2.0,  range: 150 },
-  apache:        { damage:  75,  fireRate: 0.48, range: 170 },
-  stormwing:     { damage:  28,  fireRate: 1.6,  range: 190 },
-  stratobomber:  { damage: 150,  fireRate: 0.24, range: 215 },
-  spectre:       { damage: 240,  fireRate: 0.78, range: 335 },
-  sky_fortress:  { damage: 650,  fireRate: 0.19, range: 255 },
+  spiker:       { damage:  38,  fireRate: 1.8,  range: 135 },
+  chrono:       { damage:   0,  fireRate: 0.14, range: 175 },
+  magnet:       { damage:  30,  fireRate: 2.2,  range: 120 },
+  artillery:    { damage: 240,  fireRate: 0.20, range: 250 },
+  infector:     { damage:  10,  fireRate: 2.0,  range: 145 },
+  golem:        { damage:  85,  fireRate: 0.60, range: 110 },
+  drone_bay:     { damage:  18,  fireRate: 2.2,  range: 155 },
+  apache:        { damage:  90,  fireRate: 0.52, range: 175 },
+  stormwing:     { damage:  35,  fireRate: 1.8,  range: 195 },
+  stratobomber:  { damage: 180,  fireRate: 0.27, range: 225 },
+  spectre:       { damage: 290,  fireRate: 0.85, range: 345 },
+  sky_fortress:  { damage: 800,  fireRate: 0.22, range: 265 },
 };
 const TOWER_DEFS = (() => {
   const C = TOWER_DAMAGE_CONFIG;
@@ -2502,8 +2502,8 @@ class Tower {
           this.angle = Math.atan2(dy, dx);
         }
       }
-    } else {
-      // Ground tower — stationary
+    } else if (!this.isEconomy) {
+      // Ground combat tower — stationary
       this.target = this._pickTarget(enemies);
       if (this.target) {
         const dx = this.target.x - this.x;
@@ -2517,8 +2517,14 @@ class Tower {
       }
     }
 
-    this.bullets = this.bullets.filter(b => !b.dead);
-    this.bullets.forEach(b => b.update(dt));
+    // In-place bullet update + removal (no filter allocation)
+    let bw = 0;
+    for (let bi = 0; bi < this.bullets.length; bi++) {
+      const b = this.bullets[bi];
+      b.update(dt);
+      if (!b.dead) this.bullets[bw++] = b;
+    }
+    this.bullets.length = bw;
   }
 
   _pickTarget(enemies) {
@@ -2548,21 +2554,39 @@ class Tower {
   _fire(target, allEnemies) {
     const d = this.def;
     const effDmg = this.damage * this.auraBuff;
+
+    // Determine damage type for immunity checks — specific IDs take priority
+    let damageType = 'bullet';
+    const _id = d.id;
+    if (_id === 'tesla' || _id === 'stormcaller' || _id === 'neon_warden' || _id === 'beacon' || _id === 'buzzsaw' || _id === 'magnet')
+      damageType = 'electric';
+    else if (_id === 'freezer' || _id === 'cryomancer' || _id === 'temporal' || _id === 'chrono')
+      damageType = 'ice';
+    else if (_id === 'mortar' || _id === 'rocketeer' || _id === 'stratobomber' || _id === 'artillery')
+      damageType = 'explosive';
+    else if (_id === 'flamer' || _id === 'pyre' || _id === 'infector' || _id === 'apache')
+      damageType = 'fire';
+    else if (this.burn > 0)
+      damageType = 'fire';
+    else if (this.slow > 0 && this.burn === 0)
+      damageType = 'ice';
+
     this.bullets.push(new Bullet({
       x: this.x, y: this.y,
       target,
-      damage:     effDmg,
-      speed:      d.bulletSpeed,
-      color:      d.bulletColor,
-      size:       d.bulletSize,
-      splash:     this.splash,
-      slow:       this.slow,
+      damage:      effDmg,
+      speed:       d.bulletSpeed,
+      color:       d.bulletColor,
+      size:        d.bulletSize,
+      splash:      this.splash,
+      slow:        this.slow,
       slowDuration: d.slowDuration || 2,
-      burn:       this.burn,
-      chain:      this.chain,
-      pierce:     this.pierce,
-      armorPierce:this.armorPierce,
-      instaKill:  this.instaKill || (this.level >= 2 && d.id === 'phantom'),
+      burn:        this.burn,
+      chain:       this.chain,
+      pierce:      this.pierce,
+      armorPierce: this.armorPierce,
+      damageType,
+      instaKill:   this.instaKill || (this.level >= 2 && d.id === 'phantom'),
       instaKillThreshold: this.instaKillThreshold,
       allEnemies,
     }));
@@ -2702,23 +2726,38 @@ class Bullet {
   constructor(opts) {
     Object.assign(this, opts);
     this.dead = false;
-    this.hitEnemies = new Set();
+    this.hitEnemies = [];  // array is faster for small N (< 20 hits)
     this.age = 0;
   }
 
   update(dt) {
     this.age += dt;
     if (!this.target || this.target.dead) {
-      if (this.pierce > 0 && this.allEnemies) {
-        let nearest = null, bestDist = Infinity;
+      // Always try to retarget to nearest live enemy within reasonable range
+      if (this.allEnemies) {
+        let nearest = null, bestDist = this.pierce > 0 ? Infinity : 120;
         for (const e of this.allEnemies) {
-          if (e.dead || this.hitEnemies.has(e)) continue;
+          if (e.dead || this.hitEnemies.includes(e)) continue;
           const d = Math.hypot(e.x-this.x, e.y-this.y);
           if (d < bestDist) { bestDist = d; nearest = e; }
         }
         if (nearest) this.target = nearest;
         else { this.dead = true; return; }
       } else { this.dead = true; return; }
+    }
+
+    // Instant-hit towers (bulletSpeed = 0): spawn at tower, immediately apply to all in splash range
+    if (this.speed === 0) {
+      // If splash is 0, treat as a global AoE (e.g. chrono tower)
+      if (this.splash === 0 && this.allEnemies) {
+        for (const e of this.allEnemies) {
+          if (!e.dead) e.takeDamage(this.damage, this);
+        }
+        this.dead = true;
+      } else {
+        this._hit(this.target);
+      }
+      return;
     }
 
     const dx = this.target.x - this.x, dy = this.target.y - this.y;
@@ -2731,38 +2770,48 @@ class Bullet {
   }
 
   _hit(enemy) {
-    if (this.hitEnemies.has(enemy)) { this.dead = true; return; }
+    if (this.hitEnemies.includes(enemy)) { this.dead = true; return; }
+
+    // Apply damage — immunity is checked inside takeDamage
     const threshold = this.instaKillThreshold || 0;
     if (this.instaKill || (threshold > 0 && enemy.hp < enemy.maxHp * threshold)) {
-      enemy.takeDamage(enemy.hp+1, this);
+      enemy.takeDamage(enemy.hp + 1, this);
     } else {
-      const dmg = this.armorPierce ? this.damage : this.damage*(1-(enemy.armor||0));
-      enemy.takeDamage(dmg, this);
+      enemy.takeDamage(this.damage, this);
     }
-    this.hitEnemies.add(enemy);
+    this.hitEnemies.push(enemy);
 
+    // Splash — skip already-hit enemies, apply damage type immunity
     if (this.splash > 0 && this.allEnemies) {
-      this.allEnemies.forEach(e => {
-        if (e===enemy || e.dead) return;
-        const d = Math.hypot(e.x-enemy.x, e.y-enemy.y);
+      for (const e of this.allEnemies) {
+        if (e === enemy || e.dead || this.hitEnemies.includes(e)) continue;
+        const d = Math.hypot(e.x - enemy.x, e.y - enemy.y);
         if (d <= this.splash) {
-          const dmg = this.armorPierce ? this.damage : this.damage*(1-(e.armor||0));
-          e.takeDamage(dmg*(1-(d/this.splash)*0.5), this);
+          const falloff = 1 - (d / this.splash) * 0.5;
+          e.takeDamage(this.damage * falloff, this);
+          this.hitEnemies.push(e);
         }
-      });
+      }
     }
 
+    // Chain lightning — sort by distance for more natural chaining
     if (this.chain > 0 && this.allEnemies) {
       let chained = 0, prev = enemy;
-      for (const e of this.allEnemies) {
-        if (chained >= this.chain) break;
-        if (e===enemy || e.dead || this.hitEnemies.has(e)) continue;
-        if (Math.hypot(e.x-prev.x, e.y-prev.y) < 150) {
-          const dmg = this.armorPierce ? this.damage*0.6 : this.damage*0.6*(1-(e.armor||0));
-          e.takeDamage(dmg, this);
-          this.hitEnemies.add(e);
-          prev = e; chained++;
+      let chainDmg = this.damage * 0.65;
+      while (chained < this.chain) {
+        // Find nearest unchit enemy to current chain node
+        let nearest = null, nearDist = 200;
+        for (const e of this.allEnemies) {
+          if (e.dead || this.hitEnemies.includes(e)) continue;
+          const d = Math.hypot(e.x - prev.x, e.y - prev.y);
+          if (d < nearDist) { nearDist = d; nearest = e; }
         }
+        if (!nearest) break;
+        nearest.takeDamage(chainDmg, this);
+        this.hitEnemies.push(nearest);
+        prev = nearest;
+        chainDmg *= 0.8; // each chain link does less damage
+        chained++;
       }
     }
 

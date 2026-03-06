@@ -279,28 +279,62 @@ function generateWaves(mapId, totalWaves, waveModifier, isInfinite) {
     const isMoab=w%5===0, isBfb=w%10===0, isZomg=w%20===0, isBad=w%40===0, isPhantom=w%80===0;
     if (isPhantom) {
       wave.isBossWave=true;
-      wave.enemies.push({type:'phantom',count:1,interval:0},{type:'bad',count:1+Math.floor(w/80),interval:2.0},{type:'zomg',count:2+Math.floor(w/40),interval:1.5},{type:'ceramic',count:6+Math.floor(w/8),interval:0.4});
+      wave.enemies.push(
+        {type:'phantom',count:1,interval:0},
+        {type:'bad',count:1+Math.floor(w/80),interval:2.0},
+        {type:'zomg',count:2+Math.floor(w/40),interval:1.5},
+        {type:'bfb',count:2+Math.floor(w/30),interval:1.0},
+        {type:'ceramic',count:8+Math.floor(w/8),interval:0.3}
+      );
     } else if (isBad) {
       wave.isBossWave=true;
-      wave.enemies.push({type:'bad',count:1+Math.floor(w/60),interval:0},{type:'zomg',count:1+Math.floor(w/40),interval:1.8},{type:'bfb',count:Math.max(1,Math.floor(w/25)),interval:1.2},{type:'ceramic',count:4+Math.floor(w/8),interval:0.35});
+      wave.enemies.push(
+        {type:'bad',count:1+Math.floor(w/60),interval:0},
+        {type:'zomg',count:2+Math.floor(w/40),interval:1.5},
+        {type:'bfb',count:Math.max(2,Math.floor(w/25)),interval:1.0},
+        {type:'ceramic',count:6+Math.floor(w/8),interval:0.3}
+      );
     } else if (isZomg) {
       wave.isBossWave=true;
-      wave.enemies.push({type:'zomg',count:1+Math.floor(w/30),interval:0},{type:'bfb',count:1+Math.floor(w/20),interval:1.5},{type:'moab',count:Math.max(1,Math.floor(w/12)),interval:0.9},{type:'ceramic',count:3+Math.floor(w/8),interval:0.35});
+      wave.enemies.push(
+        {type:'zomg',count:1+Math.floor(w/30),interval:0},
+        {type:'bfb',count:2+Math.floor(w/20),interval:1.2},
+        {type:'moab',count:Math.max(2,Math.floor(w/12)),interval:0.7},
+        {type:'ceramic',count:5+Math.floor(w/8),interval:0.28}
+      );
     } else if (isBfb) {
       wave.isBossWave=true;
-      wave.enemies.push({type:'bfb',count:1+Math.floor(w/20),interval:1.0},{type:'moab',count:1+Math.floor(w/10),interval:0.7},{type:'rainbow',count:3+Math.floor(w/6),interval:0.3},{type:'ceramic',count:2+Math.floor(w/8),interval:0.4});
+      wave.enemies.push(
+        {type:'bfb',count:1+Math.floor(w/20),interval:0.8},
+        {type:'moab',count:2+Math.floor(w/10),interval:0.6},
+        {type:'rainbow',count:5+Math.floor(w/6),interval:0.25},
+        {type:'ceramic',count:4+Math.floor(w/8),interval:0.3}
+      );
     } else if (isMoab) {
       wave.isBossWave=true;
-      wave.enemies.push({type:'moab',count:1+Math.floor(w/12),interval:0.9},{type:'ceramic',count:2+Math.floor(w/6),interval:0.35},{type:'rainbow',count:2+Math.floor(w/4),interval:0.3});
+      wave.enemies.push(
+        {type:'moab',count:1+Math.floor(w/12),interval:0.7},
+        {type:'ceramic',count:3+Math.floor(w/6),interval:0.28},
+        {type:'rainbow',count:3+Math.floor(w/4),interval:0.22}
+      );
     } else {
       const avail = _availableTypes(w);
-      const totalCount = Math.floor((6 + w*1.8) * (waveModifier||1));
-      const groups = Math.min(4, 1+Math.floor(w/4));
+      // Scale count more aggressively for satisfying waves
+      const totalCount = Math.floor((8 + w*2.2) * (waveModifier||1));
+      const groups = Math.min(5, 1+Math.floor(w/3));
       for (let g2=0;g2<groups;g2++) {
-        const eligibles = avail.slice(Math.max(0, avail.length - 4));
+        const eligibles = avail.slice(Math.max(0, avail.length - 5));
         const type = eligibles[Math.floor(Math.random()*eligibles.length)];
-        const interval = Math.max(0.28, 0.7 - w*0.01 - Math.random()*0.1);
+        const interval = Math.max(0.18, 0.55 - w*0.012 - Math.random()*0.08);
         wave.enemies.push({type, count:Math.ceil(totalCount/groups), interval});
+      }
+      // Every 3rd regular wave: add a tougher surprise group
+      if (w % 3 === 0 && w >= 4) {
+        const surpriseTypes = avail.filter(t => ['lead','ceramic','zebra','purple'].includes(t));
+        if (surpriseTypes.length > 0) {
+          const sType = surpriseTypes[Math.floor(Math.random()*surpriseTypes.length)];
+          wave.enemies.push({type:sType, count:Math.ceil(totalCount*0.3), interval:0.4});
+        }
       }
     }
     waves.push(wave);
@@ -326,14 +360,25 @@ class Enemy {
     this.isBoss = !!(def.isBoss || def.isBlimp);
     this.immunities = def.immunities || [];
 
-    const ws = Math.pow(1.42, Math.max(0, waveNum-1)) * (waveModifier||1);
-    this.maxHp = def.hp===1 ? 1 : Math.floor(def.hp * ws * 2.5);
+    const wm = waveModifier || 1;
+    // HP scales exponentially but caps sanely for blimps
+    const hpScale = def.isBlimp
+      ? Math.pow(1.28, Math.max(0, waveNum - 1)) * wm
+      : Math.pow(1.42, Math.max(0, waveNum - 1)) * wm;
+    this.maxHp = def.hp === 1 ? 1 : Math.floor(def.hp * hpScale * 2.5);
     this.hp = this.maxHp;
 
-    const speedScale = 1 + waveNum * 0.035 + Math.pow(waveNum * 0.012, 1.6);
-    this.speed = (def.speed||65) * (0.9 + Math.random()*0.2) * speedScale;
+    // Speed scaling: gentle logarithmic curve — blimps cap out so they're still beatable
+    const speedWave = def.isBlimp
+      ? 1 + Math.log1p(waveNum) * 0.12           // blimps: slow ramp
+      : 1 + waveNum * 0.025 + Math.pow(waveNum * 0.008, 1.4); // balloons: faster ramp
+    this.speed = (def.speed || 65) * (0.92 + Math.random() * 0.16) * speedWave;
+    // Hard cap: blimps can't go faster than 3× base, balloons 4× base
+    const speedCap = def.isBlimp ? def.speed * 3 : def.speed * 4;
+    this.speed = Math.min(this.speed, speedCap);
     this.baseSpeed = this.speed;
-    this.reward = Math.floor((def.reward||1) * Math.sqrt(ws));
+
+    this.reward = Math.floor((def.reward || 1) * Math.sqrt(hpScale));
     this.armor  = def.armor || 0;
 
     this.path=path; this.tileSize=tileSize;
@@ -362,58 +407,128 @@ class Enemy {
 
   takeDamage(amount, bullet) {
     if (this.dead) return 0;
+
+    // Immunity check — respect bullet damageType
+    const dtype = bullet?.damageType;
+    if (dtype && this.immunities.includes(dtype)) return 0;
+
     let dmg = amount;
-    if (this.armor>0 && !bullet?.armorPierce) dmg *= (1-this.armor);
-    this.hp -= dmg; this.flashTimer = 0.08;
-    if (bullet?.slow>0) { this.speed=this.baseSpeed*(1-bullet.slow); this.slowTimer=bullet.slowDuration||2; }
-    if (bullet?.burn>0) { this.burnDmg=bullet.burn; this.burnTimer=4.0; }
-    if (this.hp<=0) { this.hp=0; this.dead=true; }
+    // Armor reduction only if bullet doesn't pierce armor
+    if (this.armor > 0 && !bullet?.armorPierce) dmg *= (1 - this.armor);
+    dmg = Math.max(0, dmg);
+
+    this.hp -= dmg;
+    this.flashTimer = 0.08;
+
+    // Slow — respect ice immunity
+    if (bullet?.slow > 0 && !this.immunities.includes('ice')) {
+      this.speed = this.baseSpeed * (1 - bullet.slow);
+      this.slowTimer = bullet.slowDuration || 2;
+    }
+
+    // Burn — respect fire/explosive immunity, apply armor to ticks too
+    if (bullet?.burn > 0 && !this.immunities.includes('fire')) {
+      this.burnDmg   = Math.max(this.burnDmg, bullet.burn); // take stronger burn
+      this.burnTimer = 4.0; // refresh duration
+      this.burnAccum = 0;   // reset tick so new burn starts clean
+      this.burnArmor = this.armor;
+    }
+
+    if (this.hp <= 0) { this.hp = 0; this.dead = true; }
     return dmg;
   }
 
-  getSpawnChildren() {
-    const def=this.def;
-    if (!def.spawnsOnDeath || this.reachedEnd) return [];
-    const children=[];
-    const s=def.spawnsOnDeath;
-    for (let i=0;i<(s.count||1);i++) {
-      const c=new Enemy(s.type,this.path,this.tileSize,this.waveNum,this.waveModifier);
-      c.pathIndex=this.pathIndex; c.pathProgress=this.pathProgress;
-      c.x=this.x; c.y=this.y; c.targetX=this.targetX; c.targetY=this.targetY; c.spawnAlpha=0.6;
-      children.push(c);
+  getSpawnChildren(waveNum, waveModifier) {
+    const def = this.def;
+    if (!def.spawnsOnDeath) return [];
+    // Blimps that leak STILL release their inner balloons (BTD6 behaviour)
+    // Regular balloons that leak do NOT (they already counted as lives lost)
+    if (this.reachedEnd && !def.isBlimp) return [];
+    const children = [];
+    const s = def.spawnsOnDeath;
+
+    const _make = (type, offsetX=0, offsetY=0) => {
+      const c = new Enemy(type, this.path, this.tileSize, waveNum || this.waveNum, waveModifier || this.waveModifier);
+      c.pathIndex    = this.pathIndex;
+      c.pathProgress = this.pathProgress;
+      c.x = this.x + offsetX;
+      c.y = this.y + offsetY;
+      c.targetX = this.targetX;
+      c.targetY = this.targetY;
+      c.spawnAlpha = 0.5;
+      c._updateTarget();
+      return c;
+    };
+
+    for (let i = 0; i < (s.count || 1); i++) {
+      const jitter = i > 0 ? (Math.random()-0.5)*this.tileSize*0.4 : 0;
+      children.push(_make(s.type, jitter, jitter));
     }
     if (s.extraType) {
-      for (let i=0;i<(s.extraCount||1);i++) {
-        const c=new Enemy(s.extraType,this.path,this.tileSize,this.waveNum,this.waveModifier);
-        c.pathIndex=this.pathIndex; c.pathProgress=this.pathProgress;
-        c.x=this.x+(Math.random()-0.5)*this.tileSize*0.5; c.y=this.y+(Math.random()-0.5)*this.tileSize*0.5;
-        c.targetX=this.targetX; c.targetY=this.targetY; c.spawnAlpha=0.6;
-        children.push(c);
+      for (let i = 0; i < (s.extraCount || 1); i++) {
+        const jx = (Math.random()-0.5)*this.tileSize*0.5;
+        const jy = (Math.random()-0.5)*this.tileSize*0.5;
+        children.push(_make(s.extraType, jx, jy));
       }
     }
     return children;
   }
 
   update(dt) {
-    this.spawnAlpha=Math.min(1,this.spawnAlpha+dt/this.spawnTime);
-    this.flashTimer=Math.max(0,this.flashTimer-dt);
-    if (this.slowTimer>0){this.slowTimer-=dt;if(this.slowTimer<=0)this.speed=this.baseSpeed;}
-    if (this.burnTimer>0){
-      this.burnAccum+=dt; this.burnTimer-=dt;
-      if(this.burnAccum>=0.5){this.hp-=this.burnDmg*0.5;this.burnAccum=0;if(this.hp<=0){this.hp=0;this.dead=true;return;}}
+    this.spawnAlpha = Math.min(1, this.spawnAlpha + dt / this.spawnTime);
+    this.flashTimer = Math.max(0, this.flashTimer - dt);
+
+    // Slow decay
+    if (this.slowTimer > 0) {
+      this.slowTimer -= dt;
+      if (this.slowTimer <= 0) this.speed = this.baseSpeed;
     }
-    const dx=this.targetX-this.x, dy=this.targetY-this.y;
-    const dist=Math.sqrt(dx*dx+dy*dy);
-    this.angle=Math.atan2(dy,dx);
-    this.pathProgress=this.pathIndex+(this.tileSize>0?1-dist/this.tileSize:0);
-    const move=this.speed*dt;
-    if (dist<=move) {
-      this.x=this.targetX; this.y=this.targetY;
+
+    // Burn damage ticks — respects armor, properly marks dead
+    if (this.burnTimer > 0) {
+      this.burnAccum += dt;
+      this.burnTimer  -= dt;
+      if (this.burnAccum >= 0.33) {
+        let burnDmg = this.burnDmg * 0.33;
+        if ((this.burnArmor || 0) > 0) burnDmg *= (1 - this.burnArmor);
+        this.hp -= burnDmg;
+        this.burnAccum = 0;
+        this.flashTimer = 0.06;
+        if (this.hp <= 0) {
+          this.hp = 0;
+          this.dead = true;
+          return; // game loop will handle children + reward
+        }
+      }
+      if (this.burnTimer <= 0) this.burnAccum = 0;
+    }
+
+    // Movement
+    const dx = this.targetX - this.x;
+    const dy = this.targetY - this.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    this.angle = Math.atan2(dy, dx);
+
+    // pathProgress: how far along the full path (used for targeting priority)
+    // Each tile segment contributes 1.0; interpolate within the current segment
+    const segLen = this.tileSize; // tiles are square so segment length ≈ tileSize
+    const segProgress = segLen > 0 ? Math.max(0, 1 - dist / segLen) : 0;
+    this.pathProgress = this.pathIndex + segProgress;
+
+    const move = this.speed * dt;
+    if (dist <= move + 0.5) {
+      this.x = this.targetX;
+      this.y = this.targetY;
       this.pathIndex++;
-      if(this.pathIndex>=this.path.length-1){this.reachedEnd=true;this.dead=true;return;}
+      if (this.pathIndex >= this.path.length - 1) {
+        this.reachedEnd = true;
+        this.dead = true;
+        return;
+      }
       this._updateTarget();
     } else {
-      this.x+=dx/dist*move; this.y+=dy/dist*move;
+      this.x += (dx / dist) * move;
+      this.y += (dy / dist) * move;
     }
   }
 
@@ -451,32 +566,54 @@ class Enemy {
 
     ctx.globalAlpha = this.spawnAlpha;
 
-    // HP bar — only shown when damaged
-    if (this.maxHp > 1 && this.hp < this.maxHp) {
-      const bw=S*(this.isBoss?2.6:2.2), bh=this.isBoss?6:3.5;
-      const bx=this.x-bw/2, by=drawY-S*(this.isBoss?1.3:1.2);
+    // HP bar — always show for blimps, show when damaged for others
+    if (this.maxHp > 1 && (this.isBoss || this.hp < this.maxHp)) {
+      const bw=S*(this.isBoss?2.8:2.4), bh=this.isBoss?7:4;
+      const bx=this.x-bw/2, by=drawY-S*(this.isBoss?1.35:1.25);
       const ratio=Math.max(0,this.hp/this.maxHp);
-      ctx.fillStyle='rgba(0,0,0,0.65)';
-      ctx.beginPath(); ctx.roundRect(bx-1,by-1,bw+2,bh+2,2); ctx.fill();
-      ctx.fillStyle = ratio>0.55?'#22c55e':ratio>0.28?'#f59e0b':'#ef4444';
-      ctx.fillRect(bx, by, bw*ratio, bh);
+      ctx.fillStyle='rgba(0,0,0,0.75)';
+      ctx.beginPath(); ctx.roundRect(bx-1,by-1,bw+2,bh+2,3); ctx.fill();
+      // HP fill with gradient
+      const hpGrad = ctx.createLinearGradient(bx, by, bx+bw*ratio, by);
+      if (ratio > 0.55) { hpGrad.addColorStop(0,'#16a34a'); hpGrad.addColorStop(1,'#22c55e'); }
+      else if (ratio > 0.28) { hpGrad.addColorStop(0,'#d97706'); hpGrad.addColorStop(1,'#fbbf24'); }
+      else { hpGrad.addColorStop(0,'#b91c1c'); hpGrad.addColorStop(1,'#ef4444'); }
+      ctx.fillStyle = hpGrad;
+      ctx.beginPath(); ctx.roundRect(bx, by, Math.max(2, bw*ratio), bh, 2); ctx.fill();
+      // Armor indicator (faint ticks if armored)
+      if (this.armor > 0) {
+        ctx.fillStyle='rgba(255,255,255,0.08)';
+        ctx.fillRect(bx, by, bw*this.armor, bh);
+      }
     }
 
     // Slow frost ring
     if (this.slowTimer > 0) {
-      ctx.globalAlpha = this.spawnAlpha * Math.min(0.45, this.slowTimer*0.22);
-      ctx.strokeStyle='#93c5fd'; ctx.lineWidth=S*0.09;
-      ctx.beginPath(); ctx.arc(this.x, drawY, S+S*0.16, 0, Math.PI*2); ctx.stroke();
+      const frostAlpha = Math.min(0.6, this.slowTimer * 0.3);
+      ctx.globalAlpha = this.spawnAlpha * frostAlpha;
+      // Ice crystal ring
+      ctx.strokeStyle='#7dd3fc'; ctx.lineWidth=S*0.10;
+      ctx.setLineDash([S*0.2, S*0.15]);
+      ctx.beginPath(); ctx.arc(this.x, drawY, S+S*0.2, 0, Math.PI*2); ctx.stroke();
+      ctx.setLineDash([]);
+      // Inner glow
+      ctx.fillStyle='rgba(147,197,253,0.12)';
+      ctx.beginPath(); ctx.arc(this.x, drawY, S*1.1, 0, Math.PI*2); ctx.fill();
     }
 
-    // Burn sparks
+    // Burn sparks — bigger, more visible fire
     if (this.burnTimer > 0) {
-      const t3=_animTime*7;
-      ctx.globalAlpha=this.spawnAlpha;
-      for(let i=0;i<4;i++){
-        const a=t3+i*1.57, r=S*(0.78+Math.sin(t3*2+i)*0.14);
-        ctx.fillStyle=i%2?'#ff5500':'#ffbb00';
-        ctx.beginPath(); ctx.arc(this.x+Math.cos(a)*r, drawY+Math.sin(a)*r, S*0.08,0,Math.PI*2); ctx.fill();
+      const t3=_animTime*8;
+      ctx.globalAlpha=this.spawnAlpha * 0.9;
+      // Fire glow
+      ctx.fillStyle='rgba(255,80,0,0.18)';
+      ctx.beginPath(); ctx.arc(this.x, drawY, S*1.1, 0, Math.PI*2); ctx.fill();
+      // Flame particles
+      for(let i=0;i<6;i++){
+        const a=t3+i*1.047, r=S*(0.65+Math.sin(t3*1.5+i)*0.22);
+        const sz = S*(0.07+Math.sin(t3+i*2)*0.05);
+        ctx.fillStyle=i%3===0?'#ff2200':i%3===1?'#ff8800':'#ffdd00';
+        ctx.beginPath(); ctx.arc(this.x+Math.cos(a)*r, drawY+Math.sin(a)*r-S*0.1, Math.max(1,sz),0,Math.PI*2); ctx.fill();
       }
     }
 
