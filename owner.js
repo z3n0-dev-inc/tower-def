@@ -397,6 +397,48 @@ const Owner = (() => {
         break;
       }
 
+      case 'grantDevPanel': {
+        if (!target) { _logTo(log, 'Enter a target Player ID', 'err'); return; }
+        if (!confirm(`Grant DEV PANEL access to "${target}"?`)) return;
+        _logTo(log, `Granting dev panel → ${target}…`);
+        // Uses PlayFab Admin UpdateUserData directly — no backend server needed
+        const res = await PF.serverCall('grantDevPanel', { targetPlayerId: target });
+        if (res.ok) {
+          _logTo(log, `✅ Dev panel granted to ${target}!`, 'ok');
+        } else {
+          // Fallback: try direct PlayFab client data write (only works on self)
+          if (target === PF.playFabId) {
+            PF.playerData.HasDevPanel = true;
+            await PF.savePlayerData();
+            Dev.show();
+            _logTo(log, '✅ Dev panel granted (self)!', 'ok');
+          } else {
+            _logTo(log, `✗ ${res.msg} — set HasDevPanel=true in PlayFab dashboard for this player`, 'err');
+          }
+        }
+        break;
+      }
+
+      case 'revokeDevPanel': {
+        if (!target) { _logTo(log, 'Enter a target Player ID', 'err'); return; }
+        if (!confirm(`Revoke DEV PANEL from "${target}"?`)) return;
+        _logTo(log, `Revoking dev panel from ${target}…`);
+        const res2 = await PF.serverCall('revokeDevPanel', { targetPlayerId: target });
+        if (res2.ok) {
+          _logTo(log, `✅ Dev panel revoked from ${target}!`, 'ok');
+        } else {
+          if (target === PF.playFabId) {
+            PF.playerData.HasDevPanel = false;
+            await PF.savePlayerData();
+            Dev.hide();
+            _logTo(log, '✅ Dev panel revoked (self)!', 'ok');
+          } else {
+            _logTo(log, `✗ ${res2.msg} — set HasDevPanel=false in PlayFab dashboard`, 'err');
+          }
+        }
+        break;
+      }
+
       case 'resetPlayer': {
         if (!target) { _logTo(log, 'Enter a target Player ID', 'err'); return; }
         if (!confirm(`RESET ALL DATA for "${target}"? THIS CANNOT BE UNDONE.`)) return;

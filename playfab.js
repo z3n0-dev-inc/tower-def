@@ -83,7 +83,7 @@ const PF = {
   async loadPlayerData() {
     if (!this.sessionTicket) return;
     const r = await this._post('/Client/GetUserData', {
-      Keys: ['Coins','BestWave','TotalKills','OwnedTowers','UnlockedMaps','IsOwner','Stats','AccountXP','GamesPlayed','MapsCompleted']
+      Keys: ['Coins','BestWave','TotalKills','OwnedTowers','UnlockedMaps','IsOwner','Stats','AccountXP','GamesPlayed','MapsCompleted','HasDevPanel']
     });
     if (r.code === 200 && r.data.Data) {
       const d = r.data.Data;
@@ -94,6 +94,7 @@ const PF = {
         OwnedTowers:   JSON.parse(d.OwnedTowers?.Value  || '["gunner","archer"]'),
         UnlockedMaps:  JSON.parse(d.UnlockedMaps?.Value || '["graveyard"]'),
         IsOwner:       d.IsOwner?.Value === 'true',
+        HasDevPanel:   d.HasDevPanel?.Value === 'true',
         Stats:         JSON.parse(d.Stats?.Value || '{}'),
         AccountXP:     parseInt(d.AccountXP?.Value     || '0'),
         GamesPlayed:   parseInt(d.GamesPlayed?.Value   || '0'),
@@ -203,9 +204,11 @@ const PF = {
       const hasPanel = this.inventory.some(i => i.itemId === 'owner_panel' || i.itemId === 'mod_panel');
       hasPanel ? Owner.show() : Owner.hide();
     }
-    // Show Dev panel if player has dev_panel item
+    // Show Dev panel if player has been explicitly granted the dev_panel item
+    // OR has HasDevPanel=true set in their PlayFab user data (set via dashboard or owner panel)
     if (typeof Dev !== 'undefined') {
-      const hasDev = this.inventory.some(i => i.itemId === 'dev_panel');
+      const hasDev = this.inventory.some(i => i.itemId === 'dev_panel')
+                  || this.playerData.HasDevPanel === true;
       hasDev ? Dev.show() : Dev.hide();
     }
   },

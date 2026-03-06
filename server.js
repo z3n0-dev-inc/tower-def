@@ -172,6 +172,32 @@ app.post('/owner/makeOwner', async (req, res) => {
   res.json({ ok: r.ok, msg: r.ok ? 'Owner status granted' : r.msg });
 });
 
+// ── Grant dev panel ───────────────────────────────────────
+app.post('/owner/grantDevPanel', async (req, res) => {
+  const { callerSession, targetPlayerId } = req.body;
+  const auth = await verifyOwner(callerSession);
+  if (!auth.ok) return res.json({ ok: false, msg: auth.msg });
+
+  const r = await pfServer('/Server/UpdateUserData', {
+    PlayFabId: targetPlayerId,
+    Data: { HasDevPanel: 'true' },
+  });
+  res.json({ ok: r.ok, msg: r.ok ? 'Dev panel granted' : r.msg });
+});
+
+// ── Revoke dev panel ──────────────────────────────────────
+app.post('/owner/revokeDevPanel', async (req, res) => {
+  const { callerSession, targetPlayerId } = req.body;
+  const auth = await verifyOwner(callerSession);
+  if (!auth.ok) return res.json({ ok: false, msg: auth.msg });
+
+  const r = await pfServer('/Server/UpdateUserData', {
+    PlayFabId: targetPlayerId,
+    Data: { HasDevPanel: 'false' },
+  });
+  res.json({ ok: r.ok, msg: r.ok ? 'Dev panel revoked' : r.msg });
+});
+
 // ── Reset player ──────────────────────────────────────────
 app.post('/owner/resetPlayer', async (req, res) => {
   const { callerSession, targetPlayerId } = req.body;
