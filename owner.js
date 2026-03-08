@@ -29,6 +29,13 @@ const Owner = (() => {
     const btnCloseMod = document.getElementById('btnCloseMod');
     if (btnCloseMod) btnCloseMod.onclick = close;
 
+    // Staff dashboard button
+    const btnStaffDash = document.getElementById('btnStaffDashboard');
+    if (btnStaffDash) btnStaffDash.onclick = () => {
+      close();
+      if (UI.StaffDashboard) UI.StaffDashboard.open();
+    };
+
     // Copy-my-ID buttons
     _bindCopyBtn('btnCopyMyId',  () => PF.playFabId);
     _bindCopyBtn('btnCopyModId', () => PF.playFabId);
@@ -359,7 +366,7 @@ const Owner = (() => {
 
       case 'giveOwnerTowers': {
         if (!target) { _logTo(log, 'Enter a target Player ID', 'err'); return; }
-        const ownerItems = ['cosmetic_shadow_commander','cosmetic_neon_warden','cosmetic_void_hunter'];
+        const ownerItems = ['cosmetic_shadow_commander','cosmetic_neon_warden','cosmetic_void_hunter','cosmetic_celestial_overlord'];
         _logTo(log, 'Granting all 3 owner characters…');
         let allOk = true;
         for (const itemId of ownerItems) {

@@ -1,386 +1,362 @@
 /**
- * server.js — Zombie Tower Defence Backend
- * Handles privileged PlayFab calls (Secret Key stays server-side).
- *
- * SETUP:
- *   npm install
- *   node server.js
- *
- * For deployment: Render, Railway, Fly.io, etc.
- * Then update SERVER_URL in js/playfab.js to your deployed URL.
+ * server.js — Zombie Tower Defence Backend v27
  */
-
 const express = require('express');
 const cors    = require('cors');
-
-// node-fetch v3 is ESM only, use dynamic import
-const fetch = (...args) => import('node-fetch').then(({ default: f }) => f(...args));
+const fetch   = (...args) => import('node-fetch').then(({ default: f }) => f(...args));
 
 const app = express();
 app.use(cors({ origin: '*' }));
 app.use(express.json());
 
-const TITLE_ID        = '100286';
-const SECRET_KEY      = 'PGWTGH1FY6CS4A7SJFHMCKQBADIMOAPKWTCRN8EHMMCUOM7OEK';
-const BASE            = `https://${TITLE_ID}.playfabapi.com`;
+const TITLE_ID        = process.env.PLAYFAB_TITLE_ID   || '100286';
+const SECRET_KEY      = process.env.PLAYFAB_SECRET_KEY || 'PGWTGH1FY6CS4A7SJFHMCKQBADIMOAPKWTCRN8EHMMCUOM7OEK';
+const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK_URL || '';
 const CATALOG_VERSION = 'ZTD_Cosmetics_v1';
+const BASE            = `https://${TITLE_ID}.playfabapi.com`;
+const ACTION_LOG_KEY  = 'ActionLog';
+const MAX_LOG         = 200;
 
-// ── PlayFab Server API helper ─────────────────────────────
 async function pfServer(endpoint, body) {
-  const res = await (await fetch)(BASE + endpoint, {
+  const res  = await (await fetch)(BASE + endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-SecretKey': SECRET_KEY },
     body: JSON.stringify(body),
   });
   const json = await res.json();
-  return { ok: json.code === 200, data: json.data, msg: json.errorMessage };
+  return { ok: json.code === 200, data: json.data, msg: json.errorMessage || '' };
 }
 
-// ── Verify caller has IsOwner = true ──────────────────────
-async function verifyOwner(sessionTicket) {
+async function resolvePlayFabId(nameOrId) {
+  if (!nameOrId) return { ok: false, msg: 'No player specified' };
+  const v = nameOrId.trim();
+  if (/^[0-9A-Fa-f]{16}$/.test(v)) return { ok: true, playFabId: v };
+  const r = await pfServer('/Server/GetUserAccountInfo', { Username: v });
+  if (r.ok && r.data?.UserInfo?.PlayFabId)
+    return { ok: true, playFabId: r.data.UserInfo.PlayFabId };
+  return { ok: false, msg: `Player "${v}" not found. Username is case-sensitive or use PlayFab ID.` };
+}
+
+async function verifySession(sessionTicket) {
   if (!sessionTicket) return { ok: false, msg: 'No session ticket' };
-  // Authenticate session
   const auth = await pfServer('/Server/AuthenticateSessionTicket', { SessionTicket: sessionTicket });
-  if (!auth.ok) return { ok: false, msg: 'Invalid session' };
-  const pfId = auth.data.UserInfo.PlayFabId;
-  // Check IsOwner flag
-  const data = await pfServer('/Server/GetUserData', { PlayFabId: pfId, Keys: ['IsOwner'] });
-  if (!data.ok || data.data?.Data?.IsOwner?.Value !== 'true') {
-    return { ok: false, msg: 'Not authorized as owner' };
-  }
-  return { ok: true, callerId: pfId };
+  if (!auth.ok) return { ok: false, msg: 'Invalid or expired session' };
+  const callerId = auth.data.UserInfo.PlayFabId;
+  const [dataRes, invRes] = await Promise.all([
+    pfServer('/Server/GetUserData',      { PlayFabId: callerId, Keys: ['IsOwner', 'IsMod'] }),
+    pfServer('/Server/GetUserInventory', { PlayFabId: callerId }),
+  ]);
+  const d   = dataRes.data?.Data || {};
+  const inv = (invRes.data?.Inventory || []).map(i => i.ItemId);
+  const isOwner = d.IsOwner?.Value === 'true' || inv.includes('owner_panel');
+  const isMod   = d.IsMod?.Value   === 'true' || inv.includes('mod_panel') || isOwner;
+  return { ok: true, callerId, isOwner, isMod };
 }
 
-// ─────────────────────────────────────────────────────────
-//  ROUTES
-// ─────────────────────────────────────────────────────────
-
-// Health check
-app.get('/', (req, res) => res.json({ status: 'ZTD Server online', title: TITLE_ID }));
-
-// ── Public leaderboard — no login required ────────────────────────
-app.get('/leaderboard/:stat', async (req, res) => {
-  const stat = req.params.stat;
-  const max  = Math.min(parseInt(req.query.max) || 100, 100);
+async function logAction(entry) {
   try {
-    const r = await pfServer('/Server/GetLeaderboard', {
-      StatisticName: stat, StartPosition: 0, MaxResultsCount: max,
+    const r   = await pfServer('/Server/GetTitleData', { Keys: [ACTION_LOG_KEY] });
+    const log = JSON.parse(r.data?.Data?.[ACTION_LOG_KEY] || '[]');
+    log.unshift({ ...entry, ts: new Date().toISOString() });
+    if (log.length > MAX_LOG) log.length = MAX_LOG;
+    await pfServer('/Admin/SetTitleData', { TitleData: { [ACTION_LOG_KEY]: JSON.stringify(log) } });
+  } catch (e) { console.error('[ActionLog]', e.message); }
+}
+
+async function sendDiscordReport(report, staffId) {
+  if (!DISCORD_WEBHOOK) return;
+  const isBanned   = (report.activeBans || []).length > 0;
+  const role       = report.isOwner ? '`owner`' : report.isMod ? '`mod`' : '`player`';
+  const banText    = isBanned
+    ? report.activeBans.map(b => `${b.Reason || 'no reason'}  ·  ${b.Expires ? `expires <t:${Math.floor(new Date(b.Expires)/1000)}:R>` : '**permanent**'}`).join('\n')
+    : 'no active bans';
+  const warnText   = (report.warnings || []).length
+    ? report.warnings.slice(0, 5).map(w => `${w.reason}  ·  ${new Date(w.date).toLocaleDateString()}`).join('\n')
+    : 'none';
+  const cosmetics  = (report.inventory || []).join(', ') || 'none';
+
+  const embed = {
+    color: isBanned ? 0xed4245 : 0x5865f2,
+    title: `Staff Report: ${report.displayName}`,
+    description: `**${report.displayName}**  ·  \`${report.playFabId}\`\n${role}  ·  last login ${report.lastLogin ? new Date(report.lastLogin).toLocaleDateString() : 'unknown'}`,
+    fields: [
+      { name: 'Stats', value: `Wave **${report.bestWave}**  ·  Kills **${report.totalKills}**  ·  XP **${report.accountXP}**  ·  Coins **${report.coins}**`, inline: false },
+      { name: 'Inventory / Cosmetics', value: cosmetics.slice(0, 1024), inline: false },
+      { name: 'Active Bans', value: banText, inline: false },
+      ...(report.warnings?.length ? [{ name: `Warnings (${report.warnings.length})`, value: warnText, inline: false }] : []),
+    ],
+    timestamp: new Date().toISOString(),
+    footer: { text: `Reported by ${staffId}  ·  ZTD` },
+  };
+  try {
+    await (await fetch)(DISCORD_WEBHOOK, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ embeds: [embed] }),
     });
+  } catch (e) { console.error('[Discord]', e.message); }
+}
+
+async function buildPlayerReport(pfId) {
+  const [profileRes, statsRes, banRes, invRes, dataRes] = await Promise.all([
+    pfServer('/Server/GetUserAccountInfo',  { PlayFabId: pfId }),
+    pfServer('/Server/GetPlayerStatistics', { PlayFabId: pfId }),
+    pfServer('/Server/GetUserBans',         { PlayFabId: pfId }),
+    pfServer('/Server/GetUserInventory',    { PlayFabId: pfId }),
+    pfServer('/Server/GetUserData', { PlayFabId: pfId, Keys: ['Warnings','OwnedTowers','Coins','BestWave','TotalKills','AccountXP','IsOwner','IsMod'] }),
+  ]);
+  const profile    = profileRes.data?.UserInfo || {};
+  const stats      = {};
+  (statsRes.data?.Statistics || []).forEach(s => { stats[s.StatisticName] = s.Value; });
+  const now        = Date.now();
+  const allBans    = banRes.data?.BanData || [];
+  const activeBans = allBans.filter(b => b.Active && (!b.Expires || new Date(b.Expires).getTime() > now));
+  const inventory  = (invRes.data?.Inventory || []).map(i => i.ItemId);
+  const ud         = dataRes.data?.Data || {};
+  const safeJson   = (val, fb) => { try { return JSON.parse(val || JSON.stringify(fb)); } catch { return fb; } };
+  return {
+    playFabId:   pfId,
+    displayName: profile.TitleInfo?.DisplayName || profile.Username || pfId,
+    username:    profile.Username || pfId,
+    created:     profile.TitleInfo?.Created  || null,
+    lastLogin:   profile.TitleInfo?.LastLogin || null,
+    stats,
+    coins:       ud.Coins?.Value      || '0',
+    bestWave:    ud.BestWave?.Value   || '0',
+    totalKills:  ud.TotalKills?.Value || '0',
+    accountXP:   ud.AccountXP?.Value  || '0',
+    ownedTowers: safeJson(ud.OwnedTowers?.Value, []),
+    inventory,
+    activeBans,
+    allBans,
+    warnings:    safeJson(ud.Warnings?.Value, []),
+    isOwner:     ud.IsOwner?.Value === 'true' || inventory.includes('owner_panel'),
+    isMod:       ud.IsMod?.Value   === 'true' || inventory.includes('mod_panel'),
+  };
+}
+
+// ── Routes ────────────────────────────────────────────────────────
+app.get('/', (_, res) => res.json({ status: 'ZTD online', title: TITLE_ID }));
+
+app.get('/leaderboard/:stat', async (req, res) => {
+  try {
+    const r = await pfServer('/Server/GetLeaderboard', { StatisticName: req.params.stat, StartPosition: 0, MaxResultsCount: Math.min(parseInt(req.query.max)||100,100) });
     res.json({ ok: true, leaderboard: r.data?.Leaderboard || [] });
-  } catch (e) { res.json({ ok: false, msg: e.message, leaderboard: [] }); }
+  } catch (e) { res.json({ ok: false, leaderboard: [], msg: e.message }); }
 });
 
+// Ban check — called on every login, returns ban info for ban screen
+app.post('/auth/checkBan', async (req, res) => {
+  const { playFabId } = req.body;
+  if (!playFabId) return res.json({ ok: true, banned: false });
+  try {
+    const r   = await pfServer('/Server/GetUserBans', { PlayFabId: playFabId });
+    const now = Date.now();
+    const ban = (r.data?.BanData || []).find(b => b.Active && (!b.Expires || new Date(b.Expires).getTime() > now));
+    if (ban) {
+      const ms   = ban.Expires ? new Date(ban.Expires).getTime() - now : null;
+      const dur  = ms ? (ms < 3600000 ? `${Math.floor(ms/60000)} minutes` : ms < 86400000 ? `${Math.floor(ms/3600000)} hours` : `${Math.floor(ms/86400000)} days`) : null;
+      return res.json({ ok: true, banned: true, reason: ban.Reason || 'No reason given', expires: ban.Expires || null, permanent: !ban.Expires, durationText: dur });
+    }
+    res.json({ ok: true, banned: false });
+  } catch { res.json({ ok: true, banned: false }); }
+});
 
-// ── Grant catalog item (cosmetics) ───────────────────────
-// This is the primary cosmetic grant method.
-// All cosmetics live in the PlayFab catalog (ZTD_Cosmetics_v1).
+app.post('/owner/lookupPlayer', async (req, res) => {
+  const auth = await verifySession(req.body.callerSession);
+  if (!auth.ok || !auth.isMod) return res.json({ ok: false, msg: 'Not authorized' });
+  const resolved = await resolvePlayFabId(req.body.targetPlayerId);
+  if (!resolved.ok) return res.json({ ok: false, msg: resolved.msg });
+  const pfId = resolved.playFabId;
+  const [profileRes, statsRes, banRes] = await Promise.all([
+    pfServer('/Server/GetUserAccountInfo',  { PlayFabId: pfId }),
+    pfServer('/Server/GetPlayerStatistics', { PlayFabId: pfId }),
+    pfServer('/Server/GetUserBans',         { PlayFabId: pfId }),
+  ]);
+  const profile   = profileRes.data?.UserInfo || {};
+  const stats     = {};
+  (statsRes.data?.Statistics || []).forEach(s => { stats[s.StatisticName] = s.Value; });
+  const now       = Date.now();
+  const activeBan = (banRes.data?.BanData || []).find(b => b.Active && (!b.Expires || new Date(b.Expires).getTime() > now));
+  res.json({ ok: true, playFabId: pfId, profile: {
+    DisplayName: profile.TitleInfo?.DisplayName || profile.Username || pfId,
+    Username: profile.Username, Created: profile.TitleInfo?.Created, LastLogin: profile.TitleInfo?.LastLogin,
+    BannedUntil: activeBan?.Expires || null, BanReason: activeBan?.Reason || null, IsBanned: !!activeBan,
+  }, stats });
+});
+
+app.post('/staff/playerReport', async (req, res) => {
+  const { callerSession, targetPlayerId, sendToDiscord } = req.body;
+  const auth = await verifySession(callerSession);
+  if (!auth.ok || !auth.isMod) return res.json({ ok: false, msg: 'Not authorized' });
+  const resolved = await resolvePlayFabId(targetPlayerId);
+  if (!resolved.ok) return res.json({ ok: false, msg: resolved.msg });
+  try {
+    const report = await buildPlayerReport(resolved.playFabId);
+    await logAction({ action: 'STAFF_REPORT', staffId: auth.callerId, targetId: resolved.playFabId, targetName: report.displayName });
+    if (sendToDiscord) await sendDiscordReport(report, auth.callerId);
+    res.json({ ok: true, report });
+  } catch (e) { res.json({ ok: false, msg: e.message }); }
+});
+
+app.post('/staff/actionLog', async (req, res) => {
+  const auth = await verifySession(req.body.callerSession);
+  if (!auth.ok || !auth.isMod) return res.json({ ok: false, log: [], msg: 'Not authorized' });
+  try {
+    const r = await pfServer('/Server/GetTitleData', { Keys: [ACTION_LOG_KEY] });
+    res.json({ ok: true, log: JSON.parse(r.data?.Data?.[ACTION_LOG_KEY] || '[]') });
+  } catch (e) { res.json({ ok: false, log: [], msg: e.message }); }
+});
+
+app.post('/owner/banPlayer', async (req, res) => {
+  const { callerSession, targetPlayerId, reason, hours } = req.body;
+  const auth = await verifySession(callerSession);
+  if (!auth.ok || !auth.isMod) return res.json({ ok: false, msg: 'Not authorized' });
+  const resolved = await resolvePlayFabId(targetPlayerId);
+  if (!resolved.ok) return res.json({ ok: false, msg: resolved.msg });
+  const pfId = resolved.playFabId;
+  const dur  = hours && parseInt(hours) > 0 ? parseInt(hours) : null;
+  const r    = await pfServer('/Server/BanUsers', { Bans: [{ PlayFabId: pfId, Reason: reason || 'No reason given', ...(dur ? { DurationInHours: dur } : {}) }] });
+  if (r.ok) {
+    await pfServer('/Server/UpdateUserData', { PlayFabId: pfId, Data: { IsBanned: 'true', BanReason: reason || 'Banned' } });
+    await logAction({ action: 'BAN', staffId: auth.callerId, targetId: pfId, detail: `${reason || 'No reason'}${dur ? ` for ${dur}h` : ' — PERMANENT'}` });
+  }
+  res.json({ ok: r.ok, msg: r.ok ? `Banned${dur ? ` for ${dur}h` : ' permanently'}` : (r.msg || 'Ban failed') });
+});
+
+app.post('/owner/unbanPlayer', async (req, res) => {
+  const { callerSession, targetPlayerId } = req.body;
+  const auth = await verifySession(callerSession);
+  if (!auth.ok || !auth.isMod) return res.json({ ok: false, msg: 'Not authorized' });
+  const resolved = await resolvePlayFabId(targetPlayerId);
+  if (!resolved.ok) return res.json({ ok: false, msg: resolved.msg });
+  const pfId   = resolved.playFabId;
+  const banRes = await pfServer('/Server/GetUserBans', { PlayFabId: pfId });
+  const active = (banRes.data?.BanData || []).filter(b => b.Active && (!b.Expires || new Date(b.Expires) > new Date()));
+  if (!active.length) return res.json({ ok: false, msg: 'No active bans found' });
+  const r = await pfServer('/Server/RevokeBans', { BanIds: active.map(b => b.BanId) });
+  if (r.ok) {
+    await pfServer('/Server/UpdateUserData', { PlayFabId: pfId, Data: { IsBanned: 'false', BanReason: '' } });
+    await logAction({ action: 'UNBAN', staffId: auth.callerId, targetId: pfId });
+  }
+  res.json({ ok: r.ok, msg: r.ok ? 'Unbanned' : (r.msg || 'Unban failed') });
+});
+
+app.post('/owner/warnPlayer', async (req, res) => {
+  const { callerSession, targetPlayerId, reason } = req.body;
+  const auth = await verifySession(callerSession);
+  if (!auth.ok || !auth.isMod) return res.json({ ok: false, msg: 'Not authorized' });
+  const resolved = await resolvePlayFabId(targetPlayerId);
+  if (!resolved.ok) return res.json({ ok: false, msg: resolved.msg });
+  const pfId  = resolved.playFabId;
+  const ex    = await pfServer('/Server/GetUserData', { PlayFabId: pfId, Keys: ['Warnings'] });
+  const warns = JSON.parse(ex.data?.Data?.Warnings?.Value || '[]');
+  warns.push({ reason: reason || 'No reason', date: new Date().toISOString(), by: auth.callerId });
+  const r = await pfServer('/Server/UpdateUserData', { PlayFabId: pfId, Data: { Warnings: JSON.stringify(warns) } });
+  if (r.ok) await logAction({ action: 'WARN', staffId: auth.callerId, targetId: pfId, detail: reason || 'No reason' });
+  res.json({ ok: r.ok, msg: r.ok ? `Warning #${warns.length} issued` : (r.msg || 'Failed') });
+});
+
+app.post('/owner/kickPlayer', async (req, res) => {
+  const { callerSession, targetPlayerId } = req.body;
+  const auth = await verifySession(callerSession);
+  if (!auth.ok || !auth.isMod) return res.json({ ok: false, msg: 'Not authorized' });
+  const resolved = await resolvePlayFabId(targetPlayerId);
+  if (!resolved.ok) return res.json({ ok: false, msg: resolved.msg });
+  const r = await pfServer('/Server/UpdateUserData', { PlayFabId: resolved.playFabId, Data: { ForceKick: Date.now().toString() } });
+  if (r.ok) await logAction({ action: 'KICK', staffId: auth.callerId, targetId: resolved.playFabId });
+  res.json({ ok: r.ok, msg: r.ok ? 'Kick sent' : (r.msg || 'Failed') });
+});
+
+app.post('/owner/mutePlayer', async (req, res) => {
+  const { callerSession, targetPlayerId, hours } = req.body;
+  const auth = await verifySession(callerSession);
+  if (!auth.ok || !auth.isMod) return res.json({ ok: false, msg: 'Not authorized' });
+  const resolved = await resolvePlayFabId(targetPlayerId);
+  if (!resolved.ok) return res.json({ ok: false, msg: resolved.msg });
+  const until = new Date(Date.now() + (parseInt(hours) || 1) * 3600000).toISOString();
+  const r     = await pfServer('/Server/UpdateUserData', { PlayFabId: resolved.playFabId, Data: { MutedUntil: until } });
+  if (r.ok) await logAction({ action: 'MUTE', staffId: auth.callerId, targetId: resolved.playFabId, detail: `${hours || 1}h` });
+  res.json({ ok: r.ok, msg: r.ok ? `Muted until ${until}` : (r.msg || 'Failed') });
+});
+
 app.post('/owner/grantCatalogItem', async (req, res) => {
   const { callerSession, targetPlayerId, itemId, catalogVersion } = req.body;
-  const auth = await verifyOwner(callerSession);
-  if (!auth.ok) return res.json({ ok: false, msg: auth.msg });
-  if (!targetPlayerId || !itemId) return res.json({ ok: false, msg: 'Missing targetPlayerId or itemId' });
-
-  const r = await pfServer('/Server/GrantItemsToUser', {
-    PlayFabId:      targetPlayerId,
-    ItemIds:        [itemId],
-    CatalogVersion: catalogVersion || CATALOG_VERSION,
-  });
-
-  // If the item has a linked tower ID, also update OwnedTowers
-  if (r.ok) {
-    // Fetch catalog item CustomData to get towerId
-    const catalog = await pfServer('/Server/GetCatalogItems', { CatalogVersion: catalogVersion || CATALOG_VERSION });
-    if (catalog.ok) {
-      const catItem = (catalog.data.Catalog || []).find(i => i.ItemId === itemId);
-      if (catItem) {
-        let custom = {};
-        try { custom = typeof catItem.CustomData === 'string' ? JSON.parse(catItem.CustomData) : (catItem.CustomData || {}); } catch {}
-        if (custom.towerId) {
-          const existing = await pfServer('/Server/GetUserData', { PlayFabId: targetPlayerId, Keys: ['OwnedTowers'] });
-          const towers = JSON.parse(existing.data?.Data?.OwnedTowers?.Value || '[]');
-          if (!towers.includes(custom.towerId)) towers.push(custom.towerId);
-          await pfServer('/Server/UpdateUserData', { PlayFabId: targetPlayerId, Data: { OwnedTowers: JSON.stringify(towers) } });
-        }
-      }
-    }
-  }
-
-  res.json({ ok: r.ok, msg: r.ok ? 'Item granted' : r.msg });
+  const auth = await verifySession(callerSession);
+  if (!auth.ok || !auth.isOwner) return res.json({ ok: false, msg: 'Owner only' });
+  const r = await pfServer('/Server/GrantItemsToUser', { PlayFabId: targetPlayerId, ItemIds: [itemId], CatalogVersion: catalogVersion || CATALOG_VERSION });
+  if (r.ok) await logAction({ action: 'GRANT_ITEM', staffId: auth.callerId, targetId: targetPlayerId, detail: itemId });
+  res.json({ ok: r.ok, msg: r.ok ? 'Granted' : r.msg });
 });
 
-// ── Give all towers ───────────────────────────────────────
 app.post('/owner/giveAllTowers', async (req, res) => {
   const { callerSession, targetPlayerId, towerIds } = req.body;
-  const auth = await verifyOwner(callerSession);
-  if (!auth.ok) return res.json({ ok: false, msg: auth.msg });
-
-  const r = await pfServer('/Server/UpdateUserData', {
-    PlayFabId: targetPlayerId,
-    Data: { OwnedTowers: JSON.stringify(towerIds || []) },
-  });
-  res.json({ ok: r.ok, msg: r.ok ? 'All towers granted' : r.msg });
+  const auth = await verifySession(callerSession);
+  if (!auth.ok || !auth.isOwner) return res.json({ ok: false, msg: 'Owner only' });
+  const r = await pfServer('/Server/UpdateUserData', { PlayFabId: targetPlayerId, Data: { OwnedTowers: JSON.stringify(towerIds || []) } });
+  res.json({ ok: r.ok, msg: r.ok ? 'Towers granted' : r.msg });
 });
 
-// ── Unlock all maps + perks ──────────────────────────────
 app.post('/owner/unlockAllPerks', async (req, res) => {
   const { callerSession, targetPlayerId, mapIds } = req.body;
-  const auth = await verifyOwner(callerSession);
-  if (!auth.ok) return res.json({ ok: false, msg: auth.msg });
-
-  const allMaps = mapIds || [
-    'graveyard','city_ruins','volcano','arctic','inferno',
-    'nuclear_wasteland','shadow_realm','omega_facility'
-  ];
-
-  const r = await pfServer('/Server/UpdateUserData', {
-    PlayFabId: targetPlayerId,
-    Data: {
-      AllPerksUnlocked: 'true',
-      UnlockedMaps: JSON.stringify(allMaps),
-    },
-  });
-  res.json({ ok: r.ok, msg: r.ok ? `All ${allMaps.length} maps unlocked` : r.msg });
+  const auth = await verifySession(callerSession);
+  if (!auth.ok || !auth.isOwner) return res.json({ ok: false, msg: 'Owner only' });
+  const maps = mapIds || ['graveyard','city_ruins','volcano','arctic','inferno','nuclear_wasteland','shadow_realm','omega_facility'];
+  const r    = await pfServer('/Server/UpdateUserData', { PlayFabId: targetPlayerId, Data: { AllPerksUnlocked: 'true', UnlockedMaps: JSON.stringify(maps) } });
+  res.json({ ok: r.ok, msg: r.ok ? `${maps.length} maps unlocked` : r.msg });
 });
 
-// ── Give coins ────────────────────────────────────────────
 app.post('/owner/giveCoins', async (req, res) => {
   const { callerSession, targetPlayerId, amount } = req.body;
-  const auth = await verifyOwner(callerSession);
-  if (!auth.ok) return res.json({ ok: false, msg: auth.msg });
-
-  const existing = await pfServer('/Server/GetUserData', { PlayFabId: targetPlayerId, Keys: ['Coins'] });
-  const current  = parseInt(existing.data?.Data?.Coins?.Value || '0');
-  const newCoins = current + (parseInt(amount) || 0);
-
-  const r = await pfServer('/Server/UpdateUserData', {
-    PlayFabId: targetPlayerId,
-    Data: { Coins: String(newCoins) },
-  });
-  res.json({ ok: r.ok, msg: r.ok ? `${newCoins} total coins set` : r.msg });
+  const auth = await verifySession(callerSession);
+  if (!auth.ok || !auth.isOwner) return res.json({ ok: false, msg: 'Owner only' });
+  const ex  = await pfServer('/Server/GetUserData', { PlayFabId: targetPlayerId, Keys: ['Coins'] });
+  const cur = parseInt(ex.data?.Data?.Coins?.Value || '0');
+  const r   = await pfServer('/Server/UpdateUserData', { PlayFabId: targetPlayerId, Data: { Coins: String(cur + (parseInt(amount) || 0)) } });
+  res.json({ ok: r.ok, msg: r.ok ? `${cur + parseInt(amount)} coins` : r.msg });
 });
 
-// ── Grant owner status ────────────────────────────────────
 app.post('/owner/makeOwner', async (req, res) => {
   const { callerSession, targetPlayerId } = req.body;
-  const auth = await verifyOwner(callerSession);
-  if (!auth.ok) return res.json({ ok: false, msg: auth.msg });
-
-  const r = await pfServer('/Server/UpdateUserData', {
-    PlayFabId: targetPlayerId,
-    Data: { IsOwner: 'true' },
-  });
-  res.json({ ok: r.ok, msg: r.ok ? 'Owner status granted' : r.msg });
+  const auth = await verifySession(callerSession);
+  if (!auth.ok || !auth.isOwner) return res.json({ ok: false, msg: 'Owner only' });
+  const r = await pfServer('/Server/UpdateUserData', { PlayFabId: targetPlayerId, Data: { IsOwner: 'true' } });
+  if (r.ok) await logAction({ action: 'MAKE_OWNER', staffId: auth.callerId, targetId: targetPlayerId });
+  res.json({ ok: r.ok, msg: r.ok ? 'Owner granted' : r.msg });
 });
 
-// ── Grant dev panel ───────────────────────────────────────
 app.post('/owner/grantDevPanel', async (req, res) => {
   const { callerSession, targetPlayerId } = req.body;
-  const auth = await verifyOwner(callerSession);
-  if (!auth.ok) return res.json({ ok: false, msg: auth.msg });
-
-  const r = await pfServer('/Server/UpdateUserData', {
-    PlayFabId: targetPlayerId,
-    Data: { HasDevPanel: 'true' },
-  });
+  const auth = await verifySession(callerSession);
+  if (!auth.ok || !auth.isOwner) return res.json({ ok: false, msg: 'Owner only' });
+  const r = await pfServer('/Server/UpdateUserData', { PlayFabId: targetPlayerId, Data: { HasDevPanel: 'true' } });
   res.json({ ok: r.ok, msg: r.ok ? 'Dev panel granted' : r.msg });
 });
 
-// ── Revoke dev panel ──────────────────────────────────────
 app.post('/owner/revokeDevPanel', async (req, res) => {
   const { callerSession, targetPlayerId } = req.body;
-  const auth = await verifyOwner(callerSession);
-  if (!auth.ok) return res.json({ ok: false, msg: auth.msg });
-
-  const r = await pfServer('/Server/UpdateUserData', {
-    PlayFabId: targetPlayerId,
-    Data: { HasDevPanel: 'false' },
-  });
+  const auth = await verifySession(callerSession);
+  if (!auth.ok || !auth.isOwner) return res.json({ ok: false, msg: 'Owner only' });
+  const r = await pfServer('/Server/UpdateUserData', { PlayFabId: targetPlayerId, Data: { HasDevPanel: 'false' } });
   res.json({ ok: r.ok, msg: r.ok ? 'Dev panel revoked' : r.msg });
 });
 
-// ── Reset player ──────────────────────────────────────────
 app.post('/owner/resetPlayer', async (req, res) => {
   const { callerSession, targetPlayerId } = req.body;
-  const auth = await verifyOwner(callerSession);
-  if (!auth.ok) return res.json({ ok: false, msg: auth.msg });
-
-  const r = await pfServer('/Server/UpdateUserData', {
-    PlayFabId: targetPlayerId,
-    Data: { Coins:'100', BestWave:'0', TotalKills:'0',
-            OwnedTowers:'["gunner","archer"]',
-            UnlockedMaps:'["graveyard"]' },
-  });
+  const auth = await verifySession(callerSession);
+  if (!auth.ok || !auth.isOwner) return res.json({ ok: false, msg: 'Owner only' });
+  const r = await pfServer('/Server/UpdateUserData', { PlayFabId: targetPlayerId, Data: { Coins:'100', BestWave:'0', TotalKills:'0', OwnedTowers:'["gunner","archer"]', UnlockedMaps:'["graveyard"]' } });
+  if (r.ok) await logAction({ action: 'RESET_PLAYER', staffId: auth.callerId, targetId: targetPlayerId });
   res.json({ ok: r.ok, msg: r.ok ? 'Player reset' : r.msg });
 });
 
-// ─────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`\n🧟 ZTD Server running → http://localhost:${PORT}`);
-  console.log(`   PlayFab Title:    ${TITLE_ID}`);
-  console.log(`   Catalog Version:  ${CATALOG_VERSION}`);
-  console.log(`   Endpoints:        /owner/*\n`);
-});
-
-// ── Resolve PlayFab ID from username OR ID ────────────────
-async function resolvePlayFabId(nameOrId) {
-  // If it looks like a PlayFab ID (hex, ~16 chars), use directly
-  if (/^[0-9A-Fa-f]{16}$/.test(nameOrId)) return { ok: true, playFabId: nameOrId };
-  // Otherwise look up by username
-  const r = await pfServer('/Server/GetUserAccountInfo', { Username: nameOrId });
-  if (r.ok && r.data?.UserInfo?.PlayFabId) return { ok: true, playFabId: r.data.UserInfo.PlayFabId };
-  // Try DisplayName lookup via leaderboard isn't great; try direct account lookup
-  return { ok: false, msg: `Player "${nameOrId}" not found. Try their PlayFab ID instead.` };
-}
-
-// ── Lookup player profile (for mod panel) ─────────────────
-app.post('/owner/lookupPlayer', async (req, res) => {
-  const { callerSession, targetPlayerId } = req.body;
-  if (!callerSession) return res.json({ ok: false, msg: 'Not authenticated' });
-  // Verify caller has at least mod access
-  const auth = await pfServer('/Server/AuthenticateSessionTicket', { SessionTicket: callerSession });
-  if (!auth.ok) return res.json({ ok: false, msg: 'Invalid session' });
-  const callerId = auth.data.UserInfo.PlayFabId;
-  const callerData = await pfServer('/Server/GetUserData', { PlayFabId: callerId, Keys: ['IsOwner', 'IsMod'] });
-  const callerD = callerData.data?.Data || {};
-  const isOwnerOrMod = callerD.IsOwner?.Value === 'true' || callerD.IsMod?.Value === 'true';
-  if (!isOwnerOrMod) return res.json({ ok: false, msg: 'Not authorized' });
-
-  const resolved = await resolvePlayFabId(targetPlayerId);
-  if (!resolved.ok) return res.json({ ok: false, msg: resolved.msg });
-  const pfId = resolved.playFabId;
-
-  const [profileRes, statsRes, banRes] = await Promise.all([
-    pfServer('/Server/GetUserAccountInfo', { PlayFabId: pfId }),
-    pfServer('/Server/GetPlayerStatistics', { PlayFabId: pfId }),
-    pfServer('/Server/GetUserBans', { PlayFabId: pfId }),
-  ]);
-
-  const profile = profileRes.data?.UserInfo || {};
-  const statsArr = statsRes.data?.Statistics || [];
-  const stats = {};
-  statsArr.forEach(s => { stats[s.StatisticName] = s.Value; });
-
-  const now = new Date();
-  const activeBan = (banRes.data?.BanData || []).find(b => !b.Expires || new Date(b.Expires) > now);
-
-  res.json({
-    ok: true,
-    playFabId: pfId,
-    profile: {
-      DisplayName: profile.TitleInfo?.DisplayName || profile.Username || pfId,
-      Username: profile.Username,
-      Created: profile.TitleInfo?.Created,
-      LastLogin: profile.TitleInfo?.LastLogin,
-      BannedUntil: activeBan?.Expires || null,
-    },
-    stats,
-  });
-});
-
-// ── Ban player (by name or ID) ─────────────────────────────
-app.post('/owner/banPlayer', async (req, res) => {
-  const { callerSession, targetPlayerId, reason, hours } = req.body;
-  const auth = await verifyOwner(callerSession);
-  if (!auth.ok) {
-    // Allow mods too — verify mod access
-    const authAny = await pfServer('/Server/AuthenticateSessionTicket', { SessionTicket: callerSession });
-    if (!authAny.ok) return res.json({ ok: false, msg: 'Invalid session' });
-    const callerId = authAny.data.UserInfo.PlayFabId;
-    const callerData = await pfServer('/Server/GetUserData', { PlayFabId: callerId, Keys: ['IsMod'] });
-    if (callerData.data?.Data?.IsMod?.Value !== 'true') return res.json({ ok: false, msg: 'Not authorized' });
-  }
-
-  const resolved = await resolvePlayFabId(targetPlayerId);
-  if (!resolved.ok) return res.json({ ok: false, msg: resolved.msg });
-  const pfId = resolved.playFabId;
-
-  const banReq = {
-    Bans: [{
-      PlayFabId: pfId,
-      Reason: reason || 'No reason given',
-      ...(hours && hours > 0 ? { DurationInHours: parseInt(hours) } : {}),
-    }]
-  };
-  const r = await pfServer('/Server/BanUsers', banReq);
-  if (r.ok) {
-    // Also store ban flag in user data for in-game checks
-    await pfServer('/Server/UpdateUserData', { PlayFabId: pfId, Data: { IsBanned: 'true', BanReason: reason || 'Banned' } });
-  }
-  res.json({ ok: r.ok, msg: r.ok ? `Player banned${hours > 0 ? ` for ${hours}h` : ' permanently'}` : (r.msg || 'Ban failed') });
-});
-
-// ── Unban player ──────────────────────────────────────────
-app.post('/owner/unbanPlayer', async (req, res) => {
-  const { callerSession, targetPlayerId } = req.body;
-  const auth = await verifyOwner(callerSession);
-  if (!auth.ok) {
-    const authAny = await pfServer('/Server/AuthenticateSessionTicket', { SessionTicket: callerSession });
-    if (!authAny.ok) return res.json({ ok: false, msg: 'Invalid session' });
-    const callerId = authAny.data.UserInfo.PlayFabId;
-    const callerData = await pfServer('/Server/GetUserData', { PlayFabId: callerId, Keys: ['IsMod'] });
-    if (callerData.data?.Data?.IsMod?.Value !== 'true') return res.json({ ok: false, msg: 'Not authorized' });
-  }
-
-  const resolved = await resolvePlayFabId(targetPlayerId);
-  if (!resolved.ok) return res.json({ ok: false, msg: resolved.msg });
-  const pfId = resolved.playFabId;
-
-  // Get active bans first
-  const banRes = await pfServer('/Server/GetUserBans', { PlayFabId: pfId });
-  const activeBans = (banRes.data?.BanData || []).filter(b => !b.Expires || new Date(b.Expires) > new Date());
-  if (!activeBans.length) return res.json({ ok: false, msg: 'No active bans found' });
-
-  const r = await pfServer('/Server/RevokeBans', { BanIds: activeBans.map(b => b.BanId) });
-  if (r.ok) {
-    await pfServer('/Server/UpdateUserData', { PlayFabId: pfId, Data: { IsBanned: 'false', BanReason: '' } });
-  }
-  res.json({ ok: r.ok, msg: r.ok ? 'Player unbanned' : (r.msg || 'Unban failed') });
-});
-
-// ── Warn player ───────────────────────────────────────────
-app.post('/owner/warnPlayer', async (req, res) => {
-  const { callerSession, targetPlayerId, reason } = req.body;
-  const authAny = await pfServer('/Server/AuthenticateSessionTicket', { SessionTicket: callerSession });
-  if (!authAny.ok) return res.json({ ok: false, msg: 'Invalid session' });
-
-  const resolved = await resolvePlayFabId(targetPlayerId);
-  if (!resolved.ok) return res.json({ ok: false, msg: resolved.msg });
-  const pfId = resolved.playFabId;
-
-  const existing = await pfServer('/Server/GetUserData', { PlayFabId: pfId, Keys: ['Warnings'] });
-  const warnings = JSON.parse(existing.data?.Data?.Warnings?.Value || '[]');
-  warnings.push({ reason: reason || 'No reason', date: new Date().toISOString() });
-
-  const r = await pfServer('/Server/UpdateUserData', { PlayFabId: pfId, Data: { Warnings: JSON.stringify(warnings) } });
-  res.json({ ok: r.ok, msg: r.ok ? `Warning issued (total: ${warnings.length})` : (r.msg || 'Failed') });
-});
-
-// ── Kick player (flag for forced logout) ──────────────────
-app.post('/owner/kickPlayer', async (req, res) => {
-  const { callerSession, targetPlayerId } = req.body;
-  const authAny = await pfServer('/Server/AuthenticateSessionTicket', { SessionTicket: callerSession });
-  if (!authAny.ok) return res.json({ ok: false, msg: 'Invalid session' });
-
-  const resolved = await resolvePlayFabId(targetPlayerId);
-  if (!resolved.ok) return res.json({ ok: false, msg: resolved.msg });
-  const pfId = resolved.playFabId;
-
-  const r = await pfServer('/Server/UpdateUserData', { PlayFabId: pfId, Data: { ForceKick: Date.now().toString() } });
-  res.json({ ok: r.ok, msg: r.ok ? 'Kick signal sent' : (r.msg || 'Failed') });
-});
-
-// ── Mute player ───────────────────────────────────────────
-app.post('/owner/mutePlayer', async (req, res) => {
-  const { callerSession, targetPlayerId, hours } = req.body;
-  const authAny = await pfServer('/Server/AuthenticateSessionTicket', { SessionTicket: callerSession });
-  if (!authAny.ok) return res.json({ ok: false, msg: 'Invalid session' });
-
-  const resolved = await resolvePlayFabId(targetPlayerId);
-  if (!resolved.ok) return res.json({ ok: false, msg: resolved.msg });
-  const pfId = resolved.playFabId;
-
-  const muteUntil = new Date(Date.now() + (hours || 1) * 3600000).toISOString();
-  const r = await pfServer('/Server/UpdateUserData', { PlayFabId: pfId, Data: { MutedUntil: muteUntil } });
-  res.json({ ok: r.ok, msg: r.ok ? `Muted until ${muteUntil}` : (r.msg || 'Failed') });
+app.listen(PORT, async () => {
+  console.log(`\n🧟 ZTD Server v27 → http://localhost:${PORT}`);
+  console.log(`   Discord webhook: ${DISCORD_WEBHOOK ? '✅ set' : '⚠️  not set (optional)'}`);
+  try {
+    const test = await pfServer('/Server/GetTitleData', { Keys: ['_ping'] });
+    console.log(`   PlayFab (${TITLE_ID}): ${test.ok ? '✅ connected' : '⚠️  ' + test.msg}`);
+  } catch (e) { console.log(`   PlayFab: ⚠️  ${e.message}`); }
+  console.log('');
 });

@@ -1026,26 +1026,64 @@ const Game = (() => {
     // Map (cached offscreen canvas)
     ctx.drawImage(mapCanvas, 0, 0);
 
-    // Placement preview
+    // Placement preview — BTD6-style
     if (placingTower && hoverTile) {
       const [col, row] = hoverTile;
       const canPlace = _canPlace(col, row);
       const canAffordPlace = money >= placingTower.cost;
+      const cx2 = col*tileSize + tileSize/2;
+      const cy2 = row*tileSize + tileSize/2;
+      const valid = canPlace && canAffordPlace;
+      const rCol = valid ? '#39ff14' : '#ff2244';
+      const rColAlpha = valid ? 'rgba(57,255,20,' : 'rgba(255,34,68,';
 
-      // Tile fill — red tinted if can't afford too
-      const tileCol = !canAffordPlace
-        ? 'rgba(239,68,68,0.38)'
-        : (canPlace ? 'rgba(39,174,96,0.32)' : 'rgba(192,57,43,0.32)');
-      ctx.fillStyle = tileCol;
-      ctx.fillRect(col*tileSize, row*tileSize, tileSize, tileSize);
+      // ── Range fill — soft tinted disc ──
+      ctx.beginPath();
+      ctx.arc(cx2, cy2, placingTower.range, 0, Math.PI*2);
+      ctx.fillStyle = valid ? 'rgba(57,255,20,0.07)' : 'rgba(255,34,68,0.07)';
+      ctx.fill();
 
-      // Can't afford overlay: diagonal stripes
+      // ── Range ring — solid bright ring like BTD6 ──
+      ctx.beginPath();
+      ctx.arc(cx2, cy2, placingTower.range, 0, Math.PI*2);
+      ctx.strokeStyle = valid ? 'rgba(57,255,20,0.75)' : 'rgba(255,34,68,0.7)';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      // ── Second ring pulse (animated) ──
+      const pulseFrac = ((_animTime*1.2) % 1);
+      const pulseR = placingTower.range * (0.5 + pulseFrac * 0.5);
+      const pulseAlpha = (1 - pulseFrac) * 0.35;
+      ctx.beginPath();
+      ctx.arc(cx2, cy2, pulseR, 0, Math.PI*2);
+      ctx.strokeStyle = valid ? `rgba(57,255,20,${pulseAlpha})` : `rgba(255,34,68,${pulseAlpha})`;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // ── Tile highlight — colored square with rounded feel ──
+      const tileAlpha = valid ? 0.28 : 0.38;
+      ctx.fillStyle = valid ? `rgba(57,255,20,${tileAlpha})` : `rgba(255,34,68,${tileAlpha})`;
+      ctx.beginPath();
+      ctx.roundRect(col*tileSize+2, row*tileSize+2, tileSize-4, tileSize-4, 4);
+      ctx.fill();
+
+      // ── Tile border ──
+      ctx.strokeStyle = valid ? 'rgba(57,255,20,0.9)' : 'rgba(255,34,68,0.9)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(col*tileSize+2, row*tileSize+2, tileSize-4, tileSize-4, 4);
+      ctx.stroke();
+
+      // ── Can't afford: diagonal warning stripes ──
       if (!canAffordPlace) {
         ctx.save();
-        ctx.globalAlpha = 0.18;
-        ctx.strokeStyle = '#ef4444';
-        ctx.lineWidth = 3;
-        for (let si = -tileSize; si < tileSize*2; si += 10) {
+        ctx.beginPath();
+        ctx.roundRect(col*tileSize+2, row*tileSize+2, tileSize-4, tileSize-4, 4);
+        ctx.clip();
+        ctx.globalAlpha = 0.22;
+        ctx.strokeStyle = '#ff2244';
+        ctx.lineWidth = 4;
+        for (let si = -tileSize; si < tileSize*2; si += 12) {
           ctx.beginPath();
           ctx.moveTo(col*tileSize + si, row*tileSize);
           ctx.lineTo(col*tileSize + si + tileSize, row*tileSize + tileSize);
@@ -1054,57 +1092,125 @@ const Game = (() => {
         ctx.restore();
       }
 
-      // Range circle
-      ctx.beginPath();
-      ctx.arc(col*tileSize+tileSize/2, row*tileSize+tileSize/2, placingTower.range, 0, Math.PI*2);
-      ctx.strokeStyle = !canAffordPlace ? 'rgba(239,68,68,0.5)' : (canPlace ? 'rgba(39,174,96,0.55)' : 'rgba(192,57,43,0.55)');
-      ctx.fillStyle   = !canAffordPlace ? 'rgba(239,68,68,0.05)' : (canPlace ? 'rgba(39,174,96,0.06)' : 'rgba(192,57,43,0.06)');
-      ctx.lineWidth = 1.5;
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.globalAlpha = canAffordPlace ? 0.7 : 0.35;
+      // ── Tower sprite preview ──
+      ctx.globalAlpha = valid ? 0.85 : 0.45;
       const previewFn = (typeof TowerArt !== 'undefined' && TowerArt[placingTower.id]) || null;
-      if (previewFn) previewFn(ctx, col*tileSize+tileSize/2, row*tileSize+tileSize/2, tileSize, placingTower.color);
+      if (previewFn) previewFn(ctx, cx2, cy2 - Math.floor(tileSize*0.04), tileSize, placingTower.color, 0, _animTime);
       ctx.globalAlpha = 1;
 
-      // Cost badge — prominent
-      const badgeY = row*tileSize + tileSize*0.84;
-      const badgeX = col*tileSize + tileSize/2;
-      ctx.font = `bold ${Math.floor(tileSize*0.3)}px 'Barlow Condensed', sans-serif`;
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      // ── Floating info badge — BTD6-style pill above cursor ──
+      const badgePad = 7;
+      const badgeFont = Math.floor(tileSize * 0.28);
+      ctx.font = `700 ${badgeFont}px 'Orbitron', 'Barlow Condensed', sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
       if (!canAffordPlace) {
-        // Draw cost badge with red background
         const needed = placingTower.cost - money;
-        ctx.fillStyle = 'rgba(0,0,0,0.72)';
-        ctx.beginPath(); ctx.roundRect(badgeX-tileSize*0.42, badgeY-tileSize*0.14, tileSize*0.84, tileSize*0.28, 4); ctx.fill();
-        ctx.fillStyle = '#ef4444';
-        ctx.fillText(`-$${needed} SHORT`, badgeX, badgeY);
+        const label = `-$${needed.toLocaleString()} SHORT`;
+        const tw = ctx.measureText(label).width;
+        const bw2 = tw + badgePad*2, bh2 = badgeFont + badgePad*1.6;
+        const bx2 = cx2 - bw2/2, by2 = row*tileSize - bh2 - 6;
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+        ctx.beginPath(); ctx.roundRect(bx2+2, by2+2, bw2, bh2, bh2/2); ctx.fill();
+        // Red pill
+        const bgRed = ctx.createLinearGradient(bx2,by2,bx2,by2+bh2);
+        bgRed.addColorStop(0,'rgba(200,20,30,0.95)'); bgRed.addColorStop(1,'rgba(130,10,15,0.95)');
+        ctx.fillStyle = bgRed;
+        ctx.beginPath(); ctx.roundRect(bx2, by2, bw2, bh2, bh2/2); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,80,80,0.7)'; ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.roundRect(bx2, by2, bw2, bh2, bh2/2); ctx.stroke();
+        ctx.fillStyle = '#ffbbbb';
+        ctx.fillText(label, cx2, by2+bh2/2);
       } else {
-        ctx.fillStyle = 'rgba(0,0,0,0.6)';
-        ctx.beginPath(); ctx.roundRect(badgeX-tileSize*0.32, badgeY-tileSize*0.13, tileSize*0.64, tileSize*0.26, 4); ctx.fill();
-        ctx.fillStyle = '#4ade80';
-        ctx.fillText(`$${placingTower.cost}`, badgeX, badgeY);
+        const label = `$${placingTower.cost.toLocaleString()}`;
+        const tw = ctx.measureText(label).width;
+        const bw2 = tw + badgePad*2.5, bh2 = badgeFont + badgePad*1.6;
+        const bx2 = cx2 - bw2/2, by2 = row*tileSize - bh2 - 6;
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.65)';
+        ctx.beginPath(); ctx.roundRect(bx2+2, by2+2, bw2, bh2, bh2/2); ctx.fill();
+        // Green pill
+        const bgGrn = ctx.createLinearGradient(bx2,by2,bx2,by2+bh2);
+        bgGrn.addColorStop(0,'rgba(20,140,55,0.95)'); bgGrn.addColorStop(1,'rgba(10,90,30,0.95)');
+        ctx.fillStyle = bgGrn;
+        ctx.beginPath(); ctx.roundRect(bx2, by2, bw2, bh2, bh2/2); ctx.fill();
+        ctx.strokeStyle = 'rgba(57,255,20,0.65)'; ctx.lineWidth=1.5;
+        ctx.beginPath(); ctx.roundRect(bx2, by2, bw2, bh2, bh2/2); ctx.stroke();
+        // Coin icon
+        ctx.fillStyle = '#ffd700';
+        ctx.beginPath(); ctx.arc(bx2+bh2/2, by2+bh2/2, bh2*0.28, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#fff8a0';
+        ctx.font = `700 ${Math.floor(badgeFont*0.7)}px 'Orbitron', sans-serif`;
+        ctx.fillText('$', bx2+bh2/2, by2+bh2/2+1);
+        ctx.font = `700 ${badgeFont}px 'Orbitron', 'Barlow Condensed', sans-serif`;
+        ctx.fillStyle = '#aaffaa';
+        ctx.fillText(label, cx2 + bh2*0.1, by2+bh2/2);
       }
+
+      // ── Tower name badge (below cursor) ──
+      const nameFontSz = Math.floor(tileSize * 0.22);
+      ctx.font = `600 ${nameFontSz}px 'Orbitron', 'Barlow Condensed', sans-serif`;
+      const nameW = ctx.measureText(placingTower.name).width + 14;
+      const nameH = nameFontSz + 8;
+      const nameX = cx2 - nameW/2;
+      const nameY = (row+1)*tileSize + 4;
+      ctx.fillStyle = 'rgba(0,0,0,0.75)';
+      ctx.beginPath(); ctx.roundRect(nameX+1, nameY+1, nameW, nameH, nameH/2); ctx.fill();
+      ctx.fillStyle = 'rgba(10,16,28,0.92)';
+      ctx.beginPath(); ctx.roundRect(nameX, nameY, nameW, nameH, nameH/2); ctx.fill();
+      ctx.strokeStyle = valid ? 'rgba(57,255,20,0.5)' : 'rgba(255,34,68,0.4)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.roundRect(nameX, nameY, nameW, nameH, nameH/2); ctx.stroke();
+      ctx.fillStyle = valid ? '#aaffaa' : '#ffaaaa';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(placingTower.name, cx2, nameY + nameH/2);
+
+      // ── Rarity dot indicator ──
+      const rarityDotColors = { basic:'#aaaaaa', advanced:'#4488ff', special:'#cc44ff', legendary:'#ffd700' };
+      const rdCol = rarityDotColors[placingTower.rarity] || '#aaa';
+      ctx.fillStyle = rdCol;
+      ctx.beginPath(); ctx.arc(nameX+8, nameY+nameH/2, 3, 0, Math.PI*2); ctx.fill();
+
+      // ── AIR badge ──
       if (placingTower.isAir) {
-        ctx.font = `bold ${Math.floor(tileSize*0.22)}px 'Barlow Condensed', sans-serif`;
-        ctx.fillStyle = '#00e5ff';
-        ctx.fillText('AIR', col*tileSize+tileSize/2, row*tileSize+tileSize*0.18);
+        ctx.font = `700 ${Math.floor(tileSize*0.2)}px 'Orbitron', sans-serif`;
+        const airW = ctx.measureText('✈ AIR').width + 12;
+        const airH = tileSize*0.2 + 8;
+        const airX = cx2 - airW/2, airY = row*tileSize + tileSize*0.06;
+        ctx.fillStyle = 'rgba(0,180,255,0.85)';
+        ctx.beginPath(); ctx.roundRect(airX, airY, airW, airH, airH/2); ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText('✈ AIR', cx2, airY + airH/2);
+      }
+
+      // ── Owner glow aura for owner towers ──
+      if (placingTower.ownerOnly) {
+        const oGrad = ctx.createRadialGradient(cx2, cy2, 0, cx2, cy2, tileSize*0.8);
+        oGrad.addColorStop(0, `rgba(255,215,0,${0.15+0.1*Math.sin(_animTime*4)})`);
+        oGrad.addColorStop(1, 'rgba(255,215,0,0)');
+        ctx.fillStyle = oGrad;
+        ctx.beginPath(); ctx.arc(cx2, cy2, tileSize*0.8, 0, Math.PI*2); ctx.fill();
       }
     }
 
-    // Hover range
+    // Hover range — show range ring when hovering placed tower
     if (!placingTower && hoverTile) {
       const [col, row] = hoverTile;
       const hovered = towers.find(t => t.tileX === col && t.tileY === row);
       if (hovered && !hovered.selected) {
-        ctx.beginPath();
-        ctx.arc(hovered.x, hovered.y, hovered.range, 0, Math.PI*2);
-        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-        ctx.lineWidth = 1;
-        ctx.setLineDash([4, 4]);
-        ctx.stroke();
-        ctx.setLineDash([]);
+        const rarityAlphas = { basic:0.25, advanced:0.35, special:0.45, legendary:0.55 };
+        const alpha = rarityAlphas[hovered.def.rarity] || 0.25;
+        const hcol = hovered.def.color || '#aaaaaa';
+        // Range fill
+        ctx.beginPath(); ctx.arc(hovered.x, hovered.y, hovered.range, 0, Math.PI*2);
+        ctx.fillStyle = hcol + '12'; ctx.fill();
+        // Range ring
+        ctx.beginPath(); ctx.arc(hovered.x, hovered.y, hovered.range, 0, Math.PI*2);
+        ctx.strokeStyle = hcol + Math.floor(alpha*255).toString(16).padStart(2,'0');
+        ctx.lineWidth = 1.8;
+        ctx.setLineDash([6, 4]); ctx.stroke(); ctx.setLineDash([]);
       }
     }
 

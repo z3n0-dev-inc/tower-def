@@ -257,6 +257,418 @@ const UI = (() => {
     });
   }
 
+  // ── Tower palette SVG icon renderer ──────────────────────────────────────
+  // Returns an inline SVG string representing each tower type visually.
+  // Replaces emojis with real drawn icons that match the tower's identity.
+  function _towerSvgIcon(def) {
+    const id = def.id;
+    const col = def.color || '#8899aa';
+    const c2 = col;
+
+    // Map of tower id → inline SVG (32×32 viewport)
+    const icons = {
+      gunner: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="16,4 28,10 28,22 16,28 4,22 4,10" fill="#1e2e44" stroke="#3a5070" stroke-width="1.5"/>
+        <circle cx="16" cy="16" r="7" fill="#2a4060"/>
+        <rect x="13" y="3" width="3" height="12" rx="1" fill="#44607a"/>
+        <rect x="16" y="3" width="3" height="12" rx="1" fill="#44607a"/>
+        <rect x="13" y="3" width="6" height="2" fill="#ffd060"/>
+      </svg>`,
+
+      archer: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <rect x="12" y="6" width="8" height="20" rx="2" fill="#2d4420" stroke="#4a6a30" stroke-width="1"/>
+        <path d="M10,16 A8,8 0 0,1 22,16" fill="none" stroke="#5a8a30" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="16" y1="8" x2="16" y2="24" stroke="#c8d890" stroke-width="1.5"/>
+        <polygon points="16,6 18,11 14,11" fill="#ffe060"/>
+      </svg>`,
+
+      sniper: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <rect x="14" y="4" width="4" height="22" rx="1.5" fill="#5a3a8a"/>
+        <rect x="12" y="4" width="8" height="3" rx="1" fill="#7a5aaa"/>
+        <circle cx="16" cy="18" r="4" fill="#3a2060" stroke="#7a5aaa" stroke-width="1.5"/>
+        <circle cx="16" cy="18" r="2" fill="none" stroke="#aaa0cc" stroke-width="1"/>
+        <line x1="16" y1="14" x2="16" y2="22" stroke="#aaa0cc" stroke-width="0.8"/>
+        <line x1="12" y1="18" x2="20" y2="18" stroke="#aaa0cc" stroke-width="0.8"/>
+        <rect x="10" y="14" width="12" height="2.5" rx="1" fill="#4a3070"/>
+      </svg>`,
+
+      rocketeer: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="16,2 20,14 16,12 12,14" fill="#cc5500"/>
+        <rect x="11" y="12" width="10" height="12" rx="3" fill="#c45a1a"/>
+        <rect x="9" y="18" width="4" height="8" rx="2" fill="#a04010"/>
+        <rect x="19" y="18" width="4" height="8" rx="2" fill="#a04010"/>
+        <circle cx="16" cy="17" r="3" fill="#ff8822"/>
+        <rect x="14" y="24" width="4" height="3" rx="1" fill="#ff5500"/>
+      </svg>`,
+
+      freezer: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="12" fill="#1a3050" stroke="#4a90d0" stroke-width="1.5"/>
+        <line x1="16" y1="5" x2="16" y2="27" stroke="#88ccee" stroke-width="2"/>
+        <line x1="5" y1="16" x2="27" y2="16" stroke="#88ccee" stroke-width="2"/>
+        <line x1="8" y1="8" x2="24" y2="24" stroke="#88ccee" stroke-width="1.5"/>
+        <line x1="24" y1="8" x2="8" y2="24" stroke="#88ccee" stroke-width="1.5"/>
+        <circle cx="16" cy="16" r="3" fill="#aaddff"/>
+        <circle cx="16" cy="5" r="1.5" fill="#cceeFF"/><circle cx="16" cy="27" r="1.5" fill="#cceeFF"/>
+        <circle cx="5" cy="16" r="1.5" fill="#cceeFF"/><circle cx="27" cy="16" r="1.5" fill="#cceeFF"/>
+      </svg>`,
+
+      flamer: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <rect x="13" y="16" width="6" height="12" rx="1.5" fill="#884420"/>
+        <rect x="11" y="14" width="10" height="5" rx="2" fill="#662a10"/>
+        <rect x="14" y="8" width="4" height="8" rx="1" fill="#7a3010"/>
+        <path d="M13,14 Q9,10 11,6 Q13,10 11,12 Q13,8 16,6 Q14,10 16,12 Q17,8 20,7 Q18,11 20,14 Z" fill="#ff5500"/>
+        <path d="M14,14 Q12,11 13,9 Q15,11 14,13 Q16,9 18,10 Q17,12 18,14 Z" fill="#ffaa00"/>
+        <circle cx="16" cy="9" r="2" fill="#ffdd00"/>
+      </svg>`,
+
+      tesla: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="16,2 30,9 30,23 16,30 2,23 2,9" fill="#1a1a2a" stroke="#f0c030" stroke-width="1.5"/>
+        <circle cx="16" cy="16" r="7" fill="#2a2a10" stroke="#f0c030" stroke-width="1"/>
+        <path d="M16,8 L13,15 L16,14 L13,24 L18,15 L15,16 Z" fill="#fff060"/>
+      </svg>`,
+
+      laser: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <rect x="11" y="12" width="10" height="14" rx="3" fill="#3a1010"/>
+        <rect x="13" y="5" width="6" height="10" rx="2" fill="#5a1010"/>
+        <circle cx="16" cy="10" r="4" fill="#cc0020" stroke="#ff0040" stroke-width="1"/>
+        <circle cx="16" cy="10" r="2" fill="#ff2244"/>
+        <line x1="16" y1="5" x2="16" y2="3" stroke="#ff0040" stroke-width="2" stroke-linecap="round"/>
+      </svg>`,
+
+      mortar: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <rect x="8" y="20" width="16" height="6" rx="2" fill="#555566"/>
+        <rect x="10" y="18" width="12" height="5" rx="2" fill="#6a6a7a"/>
+        <rect x="14" y="6" width="4" height="15" rx="2" fill="#4a4a5a"/>
+        <ellipse cx="16" cy="6" rx="5" ry="3" fill="#3a3a4a" stroke="#7a7a8a" stroke-width="1"/>
+        <circle cx="16" cy="6" r="2" fill="#aaaacc"/>
+      </svg>`,
+
+      venom: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="16,2 26,8 26,24 16,30 6,24 6,8" fill="#0a2820" stroke="#10a070" stroke-width="1.5"/>
+        <circle cx="16" cy="16" r="6" fill="#103a28" stroke="#10d090" stroke-width="1"/>
+        <path d="M13,13 Q16,10 19,13 Q16,18 13,13 Z" fill="#00ee88"/>
+        <path d="M13,19 Q16,22 19,19" fill="none" stroke="#00ee88" stroke-width="1.5"/>
+        <circle cx="13" cy="15" r="1.5" fill="#00ff88"/><circle cx="19" cy="15" r="1.5" fill="#00ff88"/>
+      </svg>`,
+
+      omega: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="14" fill="#1a0830" stroke="#9944ff" stroke-width="1.5"/>
+        <circle cx="16" cy="16" r="9" fill="#2a1040" stroke="#cc66ff" stroke-width="1"/>
+        <text x="16" y="21" text-anchor="middle" font-size="13" font-weight="bold" fill="#cc88ff" font-family="serif">Ω</text>
+      </svg>`,
+
+      phantom: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <rect x="14" y="4" width="4" height="20" rx="1" fill="#4a3a6a"/>
+        <rect x="10" y="8" width="12" height="3" rx="1" fill="#6a5a8a"/>
+        <circle cx="16" cy="18" r="5" fill="#2a1a50" stroke="#6a5a9a" stroke-width="1"/>
+        <line x1="16" y1="13" x2="16" y2="23" stroke="#9a8acc" stroke-width="0.8"/>
+        <line x1="11" y1="18" x2="21" y2="18" stroke="#9a8acc" stroke-width="0.8"/>
+        <circle cx="16" cy="18" r="1.5" fill="#cc99ff"/>
+      </svg>`,
+
+      temporal: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="13" fill="#102030" stroke="#0099cc" stroke-width="1.5"/>
+        <circle cx="16" cy="16" r="9" fill="none" stroke="#0099cc" stroke-width="1" stroke-dasharray="3,2"/>
+        <line x1="16" y1="16" x2="16" y2="8" stroke="#00ccee" stroke-width="2" stroke-linecap="round"/>
+        <line x1="16" y1="16" x2="22" y2="18" stroke="#0099cc" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="16" cy="16" r="2" fill="#00eeff"/>
+      </svg>`,
+
+      reaper: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16,4 Q8,8 8,18 L12,28 L20,28 L24,18 Q24,8 16,4 Z" fill="#1a1a2a"/>
+        <path d="M16,6 Q10,10 10,17" fill="none" stroke="#cc0040" stroke-width="2"/>
+        <path d="M14,26 Q16,20 18,26" fill="#cc0040"/>
+        <circle cx="16" cy="12" r="3" fill="#880020" stroke="#ff0040" stroke-width="1"/>
+        <line x1="8" y1="16" x2="24" y2="16" stroke="#440020" stroke-width="1.5"/>
+      </svg>`,
+
+      // New towers
+      cannon: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <rect x="6" y="18" width="20" height="8" rx="2" fill="#6b4a1e"/>
+        <ellipse cx="8" cy="24" rx="5" ry="5" fill="#7a5a28" stroke="#3a2a0e" stroke-width="1.5"/>
+        <ellipse cx="24" cy="24" rx="5" ry="5" fill="#7a5a28" stroke="#3a2a0e" stroke-width="1.5"/>
+        <rect x="11" y="15" width="10" height="7" rx="1" fill="#887050"/>
+        <rect x="13" y="4" width="7" height="18" rx="3" fill="#555566"/>
+        <ellipse cx="16.5" cy="4" rx="4.5" ry="3" fill="#333344"/>
+        <rect x="12" y="8" width="9" height="2" rx="1" fill="#333344"/>
+        <rect x="12" y="13" width="9" height="2" rx="1" fill="#333344"/>
+      </svg>`,
+
+      watchtower: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <rect x="10" y="6" width="12" height="22" rx="1" fill="#8a9aaa"/>
+        <rect x="8" y="4" width="4" height="6" rx="0.5" fill="#9aaabb"/>
+        <rect x="14" y="4" width="4" height="6" rx="0.5" fill="#9aaabb"/>
+        <rect x="20" y="4" width="4" height="6" rx="0.5" fill="#9aaabb"/>
+        <rect x="13" y="12" width="6" height="9" rx="0.5" fill="#1a2530"/>
+        <rect x="14" y="13" width="4" height="7" rx="0.5" fill="#0a1520"/>
+        <line x1="10" y1="15" x2="22" y2="15" stroke="#707880" stroke-width="1"/>
+        <line x1="10" y1="20" x2="22" y2="20" stroke="#707880" stroke-width="1"/>
+        <rect x="8" y="26" width="16" height="4" rx="1" fill="#707880"/>
+      </svg>`,
+
+      gauss: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="16,2 28,8 28,24 16,30 4,24 4,8" fill="#0a1828" stroke="#0088cc" stroke-width="1.5"/>
+        <rect x="14" y="4" width="4" height="20" rx="1.5" fill="#1a3048"/>
+        <rect x="12" y="7" width="8" height="2.5" rx="1" fill="#0066aa"/>
+        <rect x="12" y="11" width="8" height="2.5" rx="1" fill="#0066aa"/>
+        <rect x="12" y="15" width="8" height="2.5" rx="1" fill="#0066aa"/>
+        <ellipse cx="16" cy="4" rx="4" ry="2.5" fill="#003366" stroke="#00aaff" stroke-width="1"/>
+        <circle cx="16" cy="4" r="1.5" fill="#00ccff"/>
+      </svg>`,
+
+      pyromancer: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <path d="M11,30 L11,18 L8,18 L16,6 L24,18 L21,18 L21,30 Z" fill="#6a1010"/>
+        <rect x="12" y="22" width="8" height="3" rx="1" fill="#cc8820"/>
+        <circle cx="16" cy="10" r="4" fill="#cc7755"/>
+        <path d="M12,8 Q13,5 16,4 Q14,7 15,8 Q16,5 19,5 Q17,8 18,9 Q16,6 14,8 Z" fill="#ff5500"/>
+        <path d="M14,9 Q15,7 16,8 Q15.5,7 17,8 Z" fill="#ffcc00"/>
+        <line x1="20" y1="14" x2="26" y2="6" stroke="#8a5020" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="26" cy="6" r="3" fill="#ff6600"/>
+        <circle cx="26" cy="6" r="1.5" fill="#ffdd00"/>
+      </svg>`,
+
+      shockwave: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="16,2 28,9 28,23 16,30 4,23 4,9" fill="#2a2010" stroke="#cc9900" stroke-width="1.5"/>
+        <circle cx="16" cy="16" r="9" fill="#3a3010"/>
+        <circle cx="16" cy="16" r="6" fill="none" stroke="#cc9900" stroke-width="2"/>
+        <circle cx="16" cy="16" r="3" fill="#ffaa00"/>
+        <circle cx="16" cy="16" r="1.5" fill="#ffffff"/>
+        <line x1="16" y1="7" x2="16" y2="10" stroke="#cc9900" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="16" y1="22" x2="16" y2="25" stroke="#cc9900" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="7" y1="16" x2="10" y2="16" stroke="#cc9900" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="22" y1="16" x2="25" y2="16" stroke="#cc9900" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>`,
+
+      crossbow: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <rect x="14" y="4" width="4" height="22" rx="1" fill="#5a3a18"/>
+        <rect x="6" y="14" width="20" height="4" rx="2" fill="#8a6030"/>
+        <path d="M6,16 Q6,12 16,11 Q26,12 26,16" fill="none" stroke="#c8a040" stroke-width="2"/>
+        <line x1="8" y1="16" x2="24" y2="16" stroke="#c8d880" stroke-width="1"/>
+        <polygon points="16,4 18,8 14,8" fill="#ffe060"/>
+      </svg>`,
+
+      cryomancer: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="12" fill="#0a1830" stroke="#2266aa" stroke-width="1.5"/>
+        <polygon points="16,6 17.7,11.5 23.5,11.5 18.9,14.8 20.6,20.3 16,17 11.4,20.3 13.1,14.8 8.5,11.5 14.3,11.5" fill="#4488cc"/>
+        <circle cx="16" cy="16" r="3" fill="#88ccff"/>
+      </svg>`,
+
+      buzzsaw: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="12" fill="#2a2a2a" stroke="#888" stroke-width="1"/>
+        <circle cx="16" cy="16" r="7" fill="#1a1a1a" stroke="#aaa" stroke-width="1"/>
+        <circle cx="16" cy="16" r="2.5" fill="#888"/>
+        <polygon points="16,4 17.2,8 20,6 18.8,10 23,10 20,13 24,16 20,19 23,22 18.8,22 20,26 17.2,24 16,28 14.8,24 12,26 13.2,22 9,22 12,19 8,16 12,13 9,10 13.2,10 12,6 14.8,8" fill="#cccccc"/>
+      </svg>`,
+
+      beacon: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <rect x="13" y="18" width="6" height="10" rx="1" fill="#2a3040"/>
+        <rect x="10" y="26" width="12" height="3" rx="1" fill="#1a2030"/>
+        <circle cx="16" cy="14" r="6" fill="#1a3040" stroke="#0088cc" stroke-width="1.5"/>
+        <circle cx="16" cy="14" r="3" fill="#0066aa"/>
+        <path d="M10,8 Q16,4 22,8" fill="none" stroke="#00aaff" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M8,5 Q16,0 24,5" fill="none" stroke="#0066cc" stroke-width="1" stroke-linecap="round"/>
+      </svg>`,
+
+      pyre: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="16,2 24,12 20,12 22,22 16,18 10,22 12,12 8,12" fill="#cc3300"/>
+        <polygon points="16,6 21,13 18,13 19.5,20 16,17 12.5,20 14,13 11,13" fill="#ff6600"/>
+        <circle cx="16" cy="14" r="3" fill="#ffcc00"/>
+        <rect x="13" y="22" width="6" height="8" rx="1" fill="#4a2010"/>
+      </svg>`,
+
+      railgun: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="16,2 28,9 28,23 16,30 4,23 4,9" fill="#0a1420" stroke="#4488cc" stroke-width="1"/>
+        <rect x="14" y="4" width="4" height="22" rx="1" fill="#1a2840"/>
+        <rect x="12" y="4" width="8" height="2.5" rx="1" fill="#334466"/>
+        <rect x="10" y="8" width="12" height="1.5" rx="0.7" fill="#2244aa"/>
+        <rect x="10" y="11.5" width="12" height="1.5" rx="0.7" fill="#2244aa"/>
+        <rect x="10" y="15" width="12" height="1.5" rx="0.7" fill="#2244aa"/>
+        <circle cx="16" cy="4" r="2" fill="#4488ff"/>
+      </svg>`,
+
+      necromancer: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <path d="M10,30 L10,18 L8,18 L16,8 L24,18 L22,18 L22,30 Z" fill="#1a1a2a"/>
+        <circle cx="16" cy="12" r="5" fill="#2a2a40" stroke="#8844cc" stroke-width="1.5"/>
+        <circle cx="14" cy="11" r="1.5" fill="#aa44ff"/><circle cx="18" cy="11" r="1.5" fill="#aa44ff"/>
+        <path d="M13,14 Q16,16 19,14" fill="none" stroke="#6622aa" stroke-width="1.5"/>
+        <line x1="16" y1="17" x2="16" y2="22" stroke="#6622aa" stroke-width="2"/>
+        <path d="M12,22 Q16,20 20,22" fill="none" stroke="#8844cc" stroke-width="1.5"/>
+      </svg>`,
+
+      stormcaller: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="13" fill="#0a1025" stroke="#5588cc" stroke-width="1.5"/>
+        <path d="M20,8 L14,16 L17,16 L12,24 L18,16 L15,16 Z" fill="#88aaff"/>
+        <path d="M10,12 Q16,6 22,12 Q26,18 20,22 Q16,24 12,22 Q8,18 10,12 Z" fill="none" stroke="#4466aa" stroke-width="1.5"/>
+        <circle cx="16" cy="16" r="2" fill="#aaccff"/>
+      </svg>`,
+
+      spiker: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <rect x="13" y="12" width="6" height="16" rx="2" fill="#442244"/>
+        <polygon points="16,4 18.5,11 13.5,11" fill="#aa4488"/>
+        <polygon points="8,16 13,14 13,18" fill="#882266"/>
+        <polygon points="24,16 19,14 19,18" fill="#882266"/>
+        <circle cx="16" cy="16" r="3" fill="#cc66aa"/>
+      </svg>`,
+
+      chrono: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="13" fill="#0a1a2a" stroke="#0099cc" stroke-width="1.5"/>
+        <circle cx="16" cy="16" r="9" fill="none" stroke="#0066aa" stroke-width="1"/>
+        <circle cx="16" cy="16" r="5" fill="none" stroke="#0088cc" stroke-width="1"/>
+        <line x1="16" y1="16" x2="16" y2="9" stroke="#00ccff" stroke-width="2" stroke-linecap="round"/>
+        <line x1="16" y1="16" x2="21" y2="18" stroke="#0099aa" stroke-width="1.5" stroke-linecap="round"/>
+        <circle cx="16" cy="16" r="2" fill="#00eeff"/>
+      </svg>`,
+
+      magnet: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <path d="M6,24 L6,14 Q6,6 16,6 Q26,6 26,14 L26,24 L22,24 L22,14 Q22,10 16,10 Q10,10 10,14 L10,24 Z" fill="#993322"/>
+        <rect x="6" y="22" width="6" height="5" rx="1" fill="#4444cc"/>
+        <rect x="20" y="22" width="6" height="5" rx="1" fill="#cccc00"/>
+        <circle cx="16" cy="16" r="3" fill="#cc2222"/>
+      </svg>`,
+
+      artillery: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <rect x="6" y="22" width="20" height="6" rx="2" fill="#556677"/>
+        <ellipse cx="9" cy="26" rx="4" ry="4" fill="#667788" stroke="#445566" stroke-width="1"/>
+        <ellipse cx="23" cy="26" rx="4" ry="4" fill="#667788" stroke="#445566" stroke-width="1"/>
+        <rect x="11" y="19" width="10" height="5" rx="1" fill="#778899"/>
+        <rect x="14" y="5" width="5" height="17" rx="2.5" fill="#445566"/>
+        <ellipse cx="16.5" cy="5" rx="3.5" ry="2.5" fill="#334455" stroke="#667788" stroke-width="1"/>
+      </svg>`,
+
+      infector: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="12" fill="#0a1a10" stroke="#22aa44" stroke-width="1.5"/>
+        <circle cx="16" cy="16" r="7" fill="#102210" stroke="#44cc66" stroke-width="1"/>
+        <circle cx="16" cy="13" r="2.5" fill="#22dd66"/>
+        <circle cx="13" cy="18" r="2" fill="#22dd66"/>
+        <circle cx="19" cy="18" r="2" fill="#22dd66"/>
+        <line x1="16" y1="15.5" x2="13" y2="18" stroke="#22aa44" stroke-width="1"/>
+        <line x1="16" y1="15.5" x2="19" y2="18" stroke="#22aa44" stroke-width="1"/>
+      </svg>`,
+
+      golem: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <rect x="10" y="16" width="12" height="14" rx="2" fill="#6a6050"/>
+        <rect x="8" y="20" width="4" height="8" rx="2" fill="#5a5040"/>
+        <rect x="20" y="20" width="4" height="8" rx="2" fill="#5a5040"/>
+        <circle cx="16" cy="12" r="7" fill="#7a7060"/>
+        <circle cx="13" cy="11" r="2" fill="#e08020"/>
+        <circle cx="19" cy="11" r="2" fill="#e08020"/>
+        <circle cx="13" cy="11" r="1" fill="#0a0a0a"/>
+        <circle cx="19" cy="11" r="1" fill="#0a0a0a"/>
+      </svg>`,
+
+      drone_bay: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <rect x="10" y="14" width="12" height="12" rx="2" fill="#2a3a44"/>
+        <rect x="12" y="16" width="8" height="8" rx="1" fill="#1a2a34"/>
+        <ellipse cx="9" cy="12" rx="5" ry="3" fill="#334455"/>
+        <ellipse cx="23" cy="12" rx="5" ry="3" fill="#334455"/>
+        <circle cx="9" cy="12" r="2" fill="#4488aa"/>
+        <circle cx="23" cy="12" r="2" fill="#4488aa"/>
+        <line x1="9" y1="12" x2="14" y2="16" stroke="#224466" stroke-width="1.5"/>
+        <line x1="23" y1="12" x2="18" y2="16" stroke="#224466" stroke-width="1.5"/>
+      </svg>`,
+
+      apache: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="16" cy="18" rx="11" ry="5" fill="#4a5a2a"/>
+        <ellipse cx="14" cy="16" rx="5" ry="4" fill="#5a6a34"/>
+        <rect x="23" y="17" width="7" height="2" rx="1" fill="#3a4a1a"/>
+        <rect x="2" y="18" width="4" height="2" rx="1" fill="#3a4a1a"/>
+        <line x1="16" y1="10" x2="16" y2="12" stroke="#555" stroke-width="2"/>
+        <line x1="6" y1="10" x2="26" y2="10" stroke="#666" stroke-width="2" stroke-linecap="round"/>
+        <line x1="16" y1="24" x2="28" y2="22" stroke="#3a4a1a" stroke-width="1.5"/>
+        <circle cx="14" cy="18" r="2" fill="#aabbcc"/>
+      </svg>`,
+
+      stormwing: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="16,5 28,20 22,19 22,26 10,26 10,19 4,20" fill="#335577"/>
+        <polygon points="16,8 25,19 20,18 20,23 12,23 12,18 7,19" fill="#446688"/>
+        <circle cx="16" cy="18" r="3" fill="#aabbcc"/>
+        <line x1="16" y1="10" x2="16" y2="6" stroke="#8899aa" stroke-width="2"/>
+      </svg>`,
+
+      stratobomber: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="16,6 30,16 26,18 26,24 6,24 6,18 2,16" fill="#3a4a2a"/>
+        <rect x="13" y="12" width="6" height="12" rx="2" fill="#4a5a34"/>
+        <ellipse cx="10" cy="20" rx="3" ry="2" fill="#2a3a1a"/>
+        <ellipse cx="22" cy="20" rx="3" ry="2" fill="#2a3a1a"/>
+        <circle cx="16" cy="18" r="2.5" fill="#778866"/>
+        <polygon points="14,24 16,30 18,24" fill="#555"/>
+      </svg>`,
+
+      spectre: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="16,5 30,14 28,24 4,24 2,14" fill="#2a3040"/>
+        <ellipse cx="16" cy="16" rx="8" ry="5" fill="#3a4050"/>
+        <circle cx="16" cy="16" r="3" fill="#5566aa"/>
+        <ellipse cx="8" cy="22" rx="3" ry="2" fill="#1a2030"/>
+        <ellipse cx="24" cy="22" rx="3" ry="2" fill="#1a2030"/>
+        <line x1="4" y1="18" x2="28" y2="18" stroke="#4455aa" stroke-width="1"/>
+      </svg>`,
+
+      sky_fortress: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="16,2 30,10 30,22 16,30 2,22 2,10" fill="#1a2030" stroke="#cc8820" stroke-width="1.5"/>
+        <polygon points="16,6 26,12 26,20 16,26 6,20 6,12" fill="#2a3040" stroke="#886610" stroke-width="1"/>
+        <circle cx="16" cy="16" r="6" fill="#1a2030" stroke="#cc8820" stroke-width="1.5"/>
+        <circle cx="16" cy="16" r="3" fill="#cc8820"/>
+        <line x1="16" y1="6" x2="16" y2="10" stroke="#cc8820" stroke-width="2"/>
+        <line x1="16" y1="22" x2="16" y2="26" stroke="#cc8820" stroke-width="2"/>
+        <line x1="6" y1="16" x2="10" y2="16" stroke="#cc8820" stroke-width="2"/>
+        <line x1="22" y1="16" x2="26" y2="16" stroke="#cc8820" stroke-width="2"/>
+      </svg>`,
+
+      celestial_overlord: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="14" fill="#1a1000"/>
+        <ellipse cx="16" cy="16" rx="14" ry="6" fill="none" stroke="#ffd700" stroke-width="1.2" opacity="0.8"/>
+        <ellipse cx="16" cy="16" rx="10" ry="4" fill="none" stroke="#ff88ff" stroke-width="1" opacity="0.7" transform="rotate(60,16,16)"/>
+        <ellipse cx="16" cy="16" rx="10" ry="4" fill="none" stroke="#00eeff" stroke-width="1" opacity="0.7" transform="rotate(120,16,16)"/>
+        <!-- hull -->
+        <polygon points="16,4 19,13 16,20 13,13" fill="#ffd700"/>
+        <polygon points="16,6 17.5,12 16,17 14.5,12" fill="#fff8a0"/>
+        <!-- wings -->
+        <polygon points="19,12 28,10 26,17 19,15" fill="rgba(255,215,0,0.7)"/>
+        <polygon points="13,12 4,10 6,17 13,15" fill="rgba(255,215,0,0.7)"/>
+        <!-- crown -->
+        <polygon points="14,4 15,2 16,4 17,2 18,4 19,3 18,5 14,5 13,3" fill="#ffd700" stroke="#fff8a0" stroke-width="0.5"/>
+        <!-- gem -->
+        <circle cx="16" cy="3" r="1" fill="#ff4444"/>
+        <!-- engine glow -->
+        <circle cx="16" cy="20" r="3" fill="rgba(255,140,0,0.8)"/>
+        <circle cx="16" cy="20" r="1.5" fill="#ffffff"/>
+        <!-- sparkles -->
+        <circle cx="6" cy="8" r="1" fill="#ffd700" opacity="0.9"/>
+        <circle cx="26" cy="8" r="1" fill="#ff88ff" opacity="0.9"/>
+        <circle cx="4" cy="18" r="1" fill="#00eeff" opacity="0.9"/>
+        <circle cx="28" cy="18" r="1" fill="#ffd700" opacity="0.9"/>
+      </svg>`,
+
+      banana_farm: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <rect x="6" y="18" width="20" height="12" rx="2" fill="#4a7a20"/>
+        <ellipse cx="16" cy="18" rx="12" ry="5" fill="#5a8a28"/>
+        <path d="M10,14 Q12,8 16,10 Q14,14 10,14 Z" fill="#ffd020"/>
+        <path d="M14,12 Q16,6 20,9 Q17,13 14,12 Z" fill="#ffdd00"/>
+        <path d="M18,13 Q22,8 24,12 Q20,14 18,13 Z" fill="#ffd020"/>
+      </svg>`,
+
+      monkey_bank: `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <rect x="6" y="12" width="20" height="16" rx="3" fill="#aa7722"/>
+        <rect x="8" y="10" width="16" height="5" rx="2" fill="#cc9933"/>
+        <rect x="12" y="8" width="8" height="4" rx="1.5" fill="#bb8822"/>
+        <rect x="14" y="6" width="4" height="4" rx="1" fill="#ddaa44"/>
+        <rect x="13" y="16" width="6" height="2" rx="1" fill="#665511"/>
+        <text x="16" y="25" text-anchor="middle" font-size="8" font-weight="bold" fill="#ffdd66" font-family="sans-serif">$</text>
+      </svg>`,
+    };
+
+    // Look up icon by id, fallback to a generic icon using the tower's color
+    if (icons[id]) {
+      return `<span class="tp-svg-icon">${icons[id]}</span>`;
+    }
+    // Generic fallback — colored circle with first letter
+    const letter = def.name ? def.name[0] : '?';
+    return `<span class="tp-svg-icon"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="14" fill="${col}44" stroke="${col}" stroke-width="1.5"/>
+      <text x="16" y="21" text-anchor="middle" font-size="14" font-weight="bold" fill="${col}" font-family="sans-serif">${letter}</text>
+    </svg></span>`;
+  }
+
   function _addPaletteItem(palette, def, owned, isOwnerItem) {
     const item = document.createElement('div');
     item.className = 'tp-item' + (owned ? '' : ' locked');
@@ -272,7 +684,7 @@ const UI = (() => {
       : '';
 
     item.innerHTML = `
-      <div class="tp-icon">${def.icon}${def.isAir ? '<span class="tp-air-badge">AIR</span>' : ''}</div>
+      <div class="tp-icon">${_towerSvgIcon(def)}${def.isAir ? '<span class="tp-air-badge">AIR</span>' : ''}</div>
       <div class="tp-name">${def.name}</div>
       <div class="tp-cost" style="color:${costColor}">${owned ? '💰'+def.cost : '🔒'}</div>
       ${ecoChip}
@@ -569,6 +981,8 @@ const UI = (() => {
       _buildMapGrid();
       if (PF.isOwner) _showOwnerTrigger();
       else _hideOwnerTrigger();
+    } else if (res.banned) {
+      _showBanScreen(res.reason, res.durationText, res.permanent);
     } else {
       _setAuthStatus(res.msg, 'err');
     }
@@ -1127,6 +1541,137 @@ const UI = (() => {
     setTimeout(() => { el.classList.remove('ach-show'); setTimeout(() => el.remove(), 500); }, 3500);
   }
 
+    // ── Ban screen ───────────────────────────────
+  function _showBanScreen(reason, durationText, permanent) {
+    let e = document.getElementById('banScreen');
+    if (e) e.remove();
+    e = document.createElement('div');
+    e.id = 'banScreen';
+    e.style.cssText = 'position:fixed;inset:0;background:#0a0a0a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999;font-family:monospace;';
+    e.innerHTML = '<div style="border:2px solid #ed4245;padding:40px 48px;max-width:480px;text-align:center;background:#111;">'
+      + '<div style="font-size:48px;margin-bottom:16px">🔨</div>'
+      + '<div style="font-size:22px;font-weight:bold;color:#ed4245;letter-spacing:2px;margin-bottom:8px">YOU ARE BANNED</div>'
+      + '<div style="font-size:13px;color:#aaa;margin-bottom:20px">' + (permanent ? 'This ban is permanent.' : 'Duration: ' + (durationText || 'unknown')) + '</div>'
+      + '<div style="background:#1a1a1a;border:1px solid #333;padding:12px 16px;font-size:12px;color:#ccc;text-align:left;">'
+      + '<span style="color:#666;font-size:10px;text-transform:uppercase;letter-spacing:1px">Reason</span><br>'
+      + '<span style="color:#fff">' + (reason || 'No reason given') + '</span></div>'
+      + '<div style="margin-top:24px;font-size:10px;color:#444">Contact a moderator to appeal this ban.</div>'
+      + '</div>';
+    document.body.appendChild(e);
+  }
+
+  // ── Staff Dashboard ──────────────────────────
+  const StaffDashboard = (() => {
+    let _el = null;
+
+    function open() {
+      if (!PF.isLoggedIn()) return;
+      if (_el) { _el.remove(); _el = null; }
+      _el = document.createElement('div');
+      _el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9000;display:flex;align-items:center;justify-content:center;font-family:monospace;';
+      _el.innerHTML = '<div style="background:#111;border:1px solid #333;width:700px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #222;background:#0d0d0d;">'
+        + '<span style="font-size:13px;font-weight:bold;color:#fff;letter-spacing:2px">STAFF DASHBOARD</span>'
+        + '<button id="sdClose" style="background:none;border:none;color:#666;font-size:18px;cursor:pointer;">X</button>'
+        + '</div>'
+        + '<div style="display:flex;border-bottom:1px solid #222;">'
+        + '<button id="sdTabReport" style="flex:1;padding:10px;background:#1a1a1a;border:none;border-bottom:2px solid #5865f2;color:#fff;font-family:monospace;font-size:11px;cursor:pointer;letter-spacing:1px">PLAYER REPORT</button>'
+        + '<button id="sdTabLog" style="flex:1;padding:10px;background:#0d0d0d;border:none;border-bottom:2px solid transparent;color:#666;font-family:monospace;font-size:11px;cursor:pointer;letter-spacing:1px">ACTION LOG</button>'
+        + '</div>'
+        + '<div style="flex:1;overflow-y:auto;padding:16px;" id="sdContent"></div>'
+        + '</div>';
+      document.body.appendChild(_el);
+      document.getElementById('sdClose').onclick = close;
+      document.getElementById('sdTabReport').onclick = () => { _setTab('report'); _renderReport(); };
+      document.getElementById('sdTabLog').onclick    = () => { _setTab('log');    _renderLog();    };
+      _renderReport();
+    }
+
+    function _setTab(t) {
+      document.getElementById('sdTabReport').style.background = t==='report'?'#1a1a1a':'#0d0d0d';
+      document.getElementById('sdTabReport').style.color      = t==='report'?'#fff':'#666';
+      document.getElementById('sdTabReport').style.borderBottomColor = t==='report'?'#5865f2':'transparent';
+      document.getElementById('sdTabLog').style.background    = t==='log'?'#1a1a1a':'#0d0d0d';
+      document.getElementById('sdTabLog').style.color         = t==='log'?'#fff':'#666';
+      document.getElementById('sdTabLog').style.borderBottomColor    = t==='log'?'#5865f2':'transparent';
+    }
+
+    function close() { if (_el) { _el.remove(); _el = null; } }
+
+    function _row(label, val) {
+      return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #1a1a1a;">'
+        + '<span style="color:#666;font-size:10px;text-transform:uppercase;letter-spacing:1px">' + label + '</span>'
+        + '<span style="color:#ccc;font-size:11px">' + val + '</span></div>';
+    }
+
+    function _renderReport() {
+      const c = document.getElementById('sdContent');
+      c.innerHTML = '<div style="margin-bottom:14px;">'
+        + '<div style="font-size:10px;color:#666;letter-spacing:1px;margin-bottom:6px">PLAYER ID OR USERNAME</div>'
+        + '<div style="display:flex;gap:8px;">'
+        + '<input id="sdTarget" placeholder="PlayFab ID or exact username" style="flex:1;background:#1a1a1a;border:1px solid #333;color:#fff;padding:8px 10px;font-family:monospace;font-size:11px;outline:none;">'
+        + '<button id="sdLookup" style="background:#5865f2;border:none;color:#fff;padding:8px 16px;font-family:monospace;font-size:11px;cursor:pointer;letter-spacing:1px">LOOK UP</button>'
+        + '</div></div>'
+        + '<div id="sdResult"></div>';
+      document.getElementById('sdLookup').onclick = _doLookup;
+      document.getElementById('sdTarget').onkeydown = function(e) { if (e.key === 'Enter') _doLookup(); };
+    }
+
+    async function _doLookup() {
+      const target = (document.getElementById('sdTarget').value || '').trim();
+      if (!target) return;
+      const res = document.getElementById('sdResult');
+      res.innerHTML = '<div style="color:#666;font-size:11px;padding:10px 0">Looking up player...</div>';
+      const r = await PF.staffCall('playerReport', { targetPlayerId: target, sendToDiscord: false });
+      if (!r.ok) { res.innerHTML = '<div style="color:#ed4245;font-size:11px;padding:10px 0">Error: ' + r.msg + '</div>'; return; }
+      const p = r.report;
+      const isBanned = (p.activeBans || []).length > 0;
+      const banText  = isBanned ? p.activeBans.map(function(b){ return (b.Reason||'no reason') + ' - ' + (b.Expires ? new Date(b.Expires).toLocaleDateString() : 'permanent'); }).join(', ') : 'none';
+      res.innerHTML = '<div style="background:#1a1a1a;padding:14px;margin-bottom:10px;">'
+        + '<div style="font-size:14px;font-weight:bold;color:' + (isBanned ? '#ed4245' : '#fff') + ';margin-bottom:10px">' + p.displayName + (isBanned ? ' [BANNED]' : '') + '</div>'
+        + _row('PlayFab ID', p.playFabId)
+        + _row('Username', p.username)
+        + _row('Joined', p.created ? new Date(p.created).toLocaleDateString() : '?')
+        + _row('Last Login', p.lastLogin ? new Date(p.lastLogin).toLocaleDateString() : '?')
+        + _row('Best Wave', p.bestWave)
+        + _row('Total Kills', p.totalKills)
+        + _row('XP', p.accountXP)
+        + _row('Coins', p.coins)
+        + _row('Active Bans', banText)
+        + _row('Warnings', String((p.warnings || []).length))
+        + _row('Inventory', (p.inventory || []).join(', ') || 'none')
+        + '</div>'
+        + '<button id="sdSendDiscord" data-target="' + target + '" style="background:#5865f2;border:none;color:#fff;padding:7px 14px;font-family:monospace;font-size:10px;cursor:pointer;letter-spacing:1px">SEND TO DISCORD</button>';
+      document.getElementById('sdSendDiscord').onclick = function() { _sendToDiscord(this.dataset.target, this); };
+    }
+
+    async function _sendToDiscord(target, btn) {
+      btn.textContent = 'Sending...'; btn.disabled = true;
+      const r = await PF.staffCall('playerReport', { targetPlayerId: target, sendToDiscord: true });
+      btn.textContent = r.ok ? 'Sent!' : 'Failed';
+      setTimeout(function(){ btn.textContent = 'SEND TO DISCORD'; btn.disabled = false; }, 2500);
+    }
+
+    async function _renderLog() {
+      const c = document.getElementById('sdContent');
+      c.innerHTML = '<div style="color:#666;font-size:11px;padding:10px 0">Loading action log...</div>';
+      const r = await PF.staffCall('actionLog', {});
+      if (!r.ok) { c.innerHTML = '<div style="color:#ed4245;font-size:11px">' + r.msg + '</div>'; return; }
+      if (!r.log.length) { c.innerHTML = '<div style="color:#555;font-size:11px;padding:10px 0">No actions logged yet.</div>'; return; }
+      var colors = { BAN:'#ed4245', UNBAN:'#57f287', WARN:'#fee75c', KICK:'#ff9940', MUTE:'#aaa', STAFF_REPORT:'#5865f2', MAKE_OWNER:'#ffd700', RESET_PLAYER:'#ff6b6b' };
+      c.innerHTML = r.log.map(function(entry) {
+        return '<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #1a1a1a;">'
+          + '<span style="color:' + (colors[entry.action]||'#aaa') + ';font-size:10px;font-weight:bold;min-width:90px;padding-top:1px">' + entry.action + '</span>'
+          + '<div style="flex:1;">'
+          + '<div style="font-size:11px;color:#ccc">' + (entry.targetName || entry.targetId || '?') + (entry.detail ? ' <span style="color:#555">· ' + entry.detail + '</span>' : '') + '</div>'
+          + '<div style="font-size:9px;color:#444;margin-top:2px">' + new Date(entry.ts).toLocaleString() + ' · by ' + entry.staffId + '</div>'
+          + '</div></div>';
+      }).join('');
+    }
+
+    return { open, close };
+  })();
+
   // ── PUBLIC ────────────────────────────────────
   return {
     init, showScreen, startGame,
@@ -1137,6 +1682,7 @@ const UI = (() => {
     get ownedTowers() { return ownedTowers; },
     toggleIngameLB, showIngameLeaderboard, hideIngameLeaderboard,
     showAchievement,
+    StaffDashboard,
   };
 
 })();

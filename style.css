@@ -2107,3 +2107,363 @@ kbd {
 }
 
 /* END OVERHAUL v25 */
+
+/* ═══ TOWER PALETTE SVG ICONS ═══ */
+.tp-svg-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: 0 auto;
+}
+
+.tp-svg-icon svg {
+  width: 32px;
+  height: 32px;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.8));
+  transition: filter 0.15s, transform 0.15s;
+}
+
+.tp-item:hover:not(.locked):not(.cant-afford) .tp-svg-icon svg {
+  filter: drop-shadow(0 2px 6px rgba(255,200,50,0.4)) drop-shadow(0 1px 3px rgba(0,0,0,0.8));
+  transform: scale(1.1);
+}
+
+.tp-item.selected .tp-svg-icon svg {
+  filter: drop-shadow(0 0 6px rgba(255,215,0,0.7)) drop-shadow(0 1px 3px rgba(0,0,0,0.8));
+}
+
+.tp-item.cant-afford .tp-svg-icon svg {
+  filter: grayscale(80%) brightness(0.5) drop-shadow(0 1px 2px rgba(0,0,0,0.6));
+}
+
+/* Fix tp-icon container sizing for SVG */
+.tp-icon {
+  font-size: 0 !important; /* hide text fallbacks if any */
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  position: relative;
+}
+
+/* END SVG ICONS */
+
+/* ═══════════════════════════════════════════════════════════════
+   BTD6-STYLE SIDE PANEL + PLACEMENT UI OVERHAUL  v26
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── SIDE PANEL — dark military command bay ── */
+.side-panel {
+  width: 208px !important;
+  background: linear-gradient(180deg,
+    #060c18 0%, #080e1e 30%, #06101a 100%) !important;
+  border-left: 1px solid rgba(255,180,0,0.14) !important;
+  box-shadow: -4px 0 40px rgba(0,0,0,0.8), inset 1px 0 0 rgba(255,200,0,0.04) !important;
+}
+
+/* sp-block with stronger separation */
+.sp-block {
+  border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+  padding: 9px 10px 11px !important;
+  position: relative;
+}
+.sp-block::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 10px; right: 10px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,180,0,0.06), transparent);
+}
+
+/* ── TOWER PALETTE — BTD6-style grid ── */
+.tower-palette {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 4px !important;
+}
+
+.tp-sep {
+  grid-column: 1/-1 !important;
+  font-family: 'Orbitron', var(--f-mono) !important;
+  font-size: 7px !important;
+  letter-spacing: 3px !important;
+  text-transform: uppercase;
+  color: rgba(255,180,50,0.45) !important;
+  padding: 6px 3px 3px !important;
+  border-top: 1px solid rgba(255,180,0,0.1) !important;
+  text-align: center;
+}
+.tp-sep:first-child { border-top: none !important; }
+.tp-sep-basic     { color: rgba(180,200,220,0.4) !important; }
+.tp-sep-advanced  { color: rgba(80,150,255,0.5) !important; }
+.tp-sep-special   { color: rgba(180,80,255,0.5) !important; }
+.tp-sep-legendary { color: rgba(255,200,0,0.6) !important; text-shadow: 0 0 8px rgba(255,180,0,0.3); }
+.tp-sep-air       { color: rgba(0,220,255,0.5) !important; }
+
+/* Tower item — card-style with rarity tint */
+.tp-item {
+  background: linear-gradient(160deg, rgba(12,18,30,0.98), rgba(7,12,22,0.98)) !important;
+  border: 1px solid rgba(255,255,255,0.07) !important;
+  border-radius: 7px !important;
+  padding: 7px 4px 5px !important;
+  cursor: pointer !important;
+  text-align: center !important;
+  transition: all 0.15s cubic-bezier(0.22,1,0.36,1) !important;
+  position: relative;
+  overflow: visible !important;
+  min-height: 72px;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+/* Rarity top-edge color bar */
+.tp-item::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 4px; right: 4px;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
+  background: rgba(180,200,220,0.3);
+  transition: background 0.2s;
+}
+.tp-item[data-rarity="advanced"]::after  { background: rgba(80,150,255,0.5); }
+.tp-item[data-rarity="special"]::after   { background: rgba(180,80,255,0.55); }
+.tp-item[data-rarity="legendary"]::after { background: rgba(255,200,0,0.7); box-shadow: 0 0 6px rgba(255,180,0,0.4); }
+
+.tp-item:hover:not(.locked):not(.cant-afford) {
+  background: linear-gradient(160deg, rgba(20,30,50,0.98), rgba(12,20,38,0.98)) !important;
+  border-color: rgba(255,215,0,0.55) !important;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.7), 0 0 14px rgba(255,180,0,0.1), inset 0 1px 0 rgba(255,255,255,0.06) !important;
+  transform: translateY(-3px) scale(1.04) !important;
+  z-index: 20 !important;
+}
+
+.tp-item.selected {
+  background: rgba(24,18,4,0.98) !important;
+  border-color: rgba(255,215,0,0.9) !important;
+  box-shadow: 0 0 0 1px rgba(255,215,0,0.4), 0 0 18px rgba(255,180,0,0.2), inset 0 0 8px rgba(255,200,0,0.06) !important;
+}
+.tp-item.selected::after { background: rgba(255,215,0,1) !important; box-shadow: 0 0 10px rgba(255,215,0,0.7) !important; }
+
+/* SVG icon sizing in 3-col grid */
+.tp-svg-icon {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 34px !important;
+  height: 34px !important;
+  margin: 0 auto 2px !important;
+}
+.tp-svg-icon svg {
+  width: 34px !important;
+  height: 34px !important;
+}
+
+.tp-icon {
+  min-height: 36px !important;
+  font-size: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: relative;
+  width: 100%;
+}
+
+.tp-name {
+  font-family: var(--f-mono) !important;
+  font-size: 6px !important;
+  letter-spacing: 0.2px !important;
+  color: rgba(180,200,230,0.6) !important;
+  text-transform: uppercase;
+  text-align: center;
+  line-height: 1.2;
+  margin-bottom: 2px;
+}
+
+.tp-cost {
+  font-family: 'Orbitron', var(--f-mono) !important;
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  line-height: 1;
+}
+
+/* AIR badge */
+.tp-air-badge {
+  position: absolute !important;
+  top: -3px !important; right: -4px !important;
+  font-size: 6px !important;
+  font-family: 'Orbitron', var(--f-mono) !important;
+  background: rgba(0,180,255,0.2) !important;
+  border: 1px solid rgba(0,200,255,0.5) !important;
+  color: #00e5ff !important;
+  border-radius: 2px !important;
+  padding: 0 3px !important;
+  letter-spacing: 0.5px !important;
+  pointer-events: none;
+}
+
+/* ECO chip */
+.tp-eco-chip {
+  position: absolute !important;
+  bottom: 2px !important; right: 2px !important;
+  font-size: 7px !important;
+  font-family: 'Orbitron', var(--f-mono) !important;
+  font-weight: 700 !important;
+  color: #66ffaa !important;
+  background: rgba(20,100,50,0.25) !important;
+  border: 1px solid rgba(50,200,100,0.35) !important;
+  border-radius: 3px !important;
+  padding: 0 3px !important;
+  line-height: 13px !important;
+}
+
+/* Locked state */
+.tp-item.locked {
+  opacity: 0.3 !important;
+  cursor: not-allowed !important;
+  filter: grayscale(80%) !important;
+}
+.tp-locked-icon {
+  position: absolute !important;
+  top: 50% !important; left: 50% !important;
+  transform: translate(-50%,-50%) !important;
+  font-size: 16px !important;
+  opacity: 0.7 !important;
+  z-index: 2;
+}
+
+/* Can't afford */
+.tp-item.cant-afford {
+  opacity: 0.4 !important;
+  filter: grayscale(60%) brightness(0.55) !important;
+  cursor: not-allowed !important;
+  border-color: rgba(220,40,40,0.2) !important;
+}
+.tp-item.cant-afford .tp-cost { color: #ff6677 !important; }
+
+/* ── SELECTED TOWER PANEL ── */
+#selPanel .sp-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.si-name {
+  font-family: 'Orbitron', var(--f-head) !important;
+  font-size: 12px !important;
+  letter-spacing: 1.5px !important;
+  color: #ddeeff !important;
+  display: block;
+  margin-bottom: 6px !important;
+  text-shadow: 0 0 8px rgba(100,180,255,0.2) !important;
+}
+
+.sel-info {
+  font-family: var(--f-mono) !important;
+  font-size: 9.5px !important;
+  color: rgba(160,185,220,0.7) !important;
+  line-height: 1.8 !important;
+  margin-bottom: 9px !important;
+}
+
+/* Upgrade button — gold CTA */
+#btnUpgrade {
+  background: linear-gradient(135deg, rgba(140,100,0,0.45), rgba(90,60,0,0.4)) !important;
+  border: 1px solid rgba(255,200,0,0.55) !important;
+  color: #ffd060 !important;
+  font-family: 'Orbitron', var(--f-mono) !important;
+  font-size: 8px !important;
+  letter-spacing: 1.5px !important;
+  box-shadow: 0 0 14px rgba(200,140,0,0.2) !important;
+  border-radius: 5px !important;
+  padding: 8px !important;
+  transition: all 0.15s !important;
+}
+#btnUpgrade:hover {
+  background: linear-gradient(135deg, rgba(180,130,0,0.6), rgba(120,80,0,0.5)) !important;
+  box-shadow: 0 0 24px rgba(255,180,0,0.4) !important;
+  transform: translateY(-1px);
+}
+
+/* Sell button */
+#btnSell {
+  background: linear-gradient(135deg, rgba(100,20,20,0.35), rgba(70,10,10,0.3)) !important;
+  border: 1px solid rgba(200,50,50,0.45) !important;
+  color: #ff8888 !important;
+  font-family: 'Orbitron', var(--f-mono) !important;
+  font-size: 8px !important;
+  letter-spacing: 1.5px !important;
+  border-radius: 5px !important;
+  padding: 7px !important;
+}
+#btnSell:hover {
+  background: linear-gradient(135deg, rgba(160,30,30,0.55), rgba(100,15,15,0.45)) !important;
+  box-shadow: 0 0 16px rgba(220,40,40,0.3) !important;
+}
+
+/* Deselect button */
+#btnDeselect {
+  font-family: 'Orbitron', var(--f-mono) !important;
+  font-size: 7.5px !important;
+  letter-spacing: 1px !important;
+  padding: 5px !important;
+  opacity: 0.6;
+}
+#btnDeselect:hover { opacity: 1; }
+
+/* ── OWNER TOWER — CELESTIAL OVERLORD special treatment ── */
+.tp-item[data-id="celestial_overlord"] {
+  background: linear-gradient(160deg, rgba(25,18,5,0.99), rgba(18,12,2,0.99)) !important;
+  border-color: rgba(255,215,0,0.7) !important;
+  box-shadow: 0 0 20px rgba(255,180,0,0.15), inset 0 0 12px rgba(255,200,0,0.05) !important;
+  animation: celestialPulse 2.5s ease-in-out infinite !important;
+}
+@keyframes celestialPulse {
+  0%,100% { box-shadow: 0 0 15px rgba(255,180,0,0.15), inset 0 0 8px rgba(255,200,0,0.04); border-color: rgba(255,215,0,0.6); }
+  50%      { box-shadow: 0 0 30px rgba(255,180,0,0.35), inset 0 0 18px rgba(255,200,0,0.1); border-color: rgba(255,215,0,1); }
+}
+.tp-item[data-id="celestial_overlord"]::after {
+  background: linear-gradient(90deg, #ffd700, #ff88ff, #00eeff, #ffd700) !important;
+  background-size: 200% 100% !important;
+  animation: celestialBar 2s linear infinite !important;
+  height: 2.5px !important;
+  box-shadow: 0 0 8px rgba(255,215,0,0.8) !important;
+}
+@keyframes celestialBar {
+  0%   { background-position: 0% 0%; }
+  100% { background-position: 200% 0%; }
+}
+.tp-item[data-id="celestial_overlord"] .tp-svg-icon svg {
+  filter: drop-shadow(0 0 5px rgba(255,215,0,0.8)) drop-shadow(0 0 12px rgba(255,180,0,0.5)) !important;
+  animation: celestialIconPulse 2s ease-in-out infinite !important;
+}
+@keyframes celestialIconPulse {
+  0%,100% { transform: scale(1); }
+  50%      { transform: scale(1.08); }
+}
+
+/* ── WAVE PREVIEW area ── */
+.wave-preview {
+  font-family: var(--f-mono) !important;
+  font-size: 9px !important;
+  color: rgba(180,200,230,0.65) !important;
+  line-height: 1.9 !important;
+  max-height: 140px !important;
+  overflow-y: auto !important;
+  scrollbar-width: thin !important;
+}
+
+/* ── HOTKEY SECTION ── */
+.hotkey-list {
+  gap: 4px !important;
+}
+.hk {
+  font-size: 8.5px !important;
+  padding: 2px 0 !important;
+}
+
+/* END BTD6 STYLE */

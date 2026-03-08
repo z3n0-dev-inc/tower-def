@@ -48,6 +48,14 @@ const TOWER_DAMAGE_CONFIG = {
   stratobomber:  { damage: 180,  fireRate: 0.27, range: 225 },
   spectre:       { damage: 290,  fireRate: 0.85, range: 345 },
   sky_fortress:  { damage: 800,  fireRate: 0.22, range: 265 },
+  // OWNER TOWER v26
+  celestial_overlord: { damage: 999999, fireRate: 12.0, range: 9999 },
+  // NEW TOWERS v25
+  cannon:        { damage: 160,  fireRate: 0.50, range: 155 },
+  watchtower:    { damage:  22,  fireRate: 3.5,  range: 220 },
+  gauss:         { damage: 440,  fireRate: 0.22, range: 295 },
+  pyromancer:    { damage:  18,  fireRate: 5.5,  range: 110 },
+  shockwave:     { damage:  95,  fireRate: 0.75, range: 130 },
 };
 const TOWER_DEFS = (() => {
   const C = TOWER_DAMAGE_CONFIG;
@@ -392,6 +400,24 @@ const TOWER_DEFS = (() => {
     maxUpgrade:0, upgrades:[],
   },
 
+  // ── THE ULTIMATE OWNER AIR TOWER ─────────────────────────────────────────
+  {
+    id:'celestial_overlord', name:'CELESTIAL OVERLORD', icon:'celestial_overlord',
+    rarity:'legendary',
+    cost:0, shopCost:0, unlocked:false, ownerOnly:true, isAir:true,
+    desc:'OWNER ONLY ★ The apex of destruction. Omnipresent divine warship that obliterates ALL enemies every frame. Infinite range, infinite pierce, instant-kill, sees invisible, chains to all, slows all. Reality itself bends.',
+    color:'#ffd700',
+    range:C.celestial_overlord.range,
+    fireRate:C.celestial_overlord.fireRate,
+    damage:C.celestial_overlord.damage,
+    bulletSpeed:9999, bulletColor:'#ffffff', bulletSize:16,
+    splash:9999, slow:0.99, slowDuration:99, chain:9999,
+    pierce:9999, armorPierce:true, canSeeInvis:true,
+    instaKill:true, instaKillThreshold:999999999,
+    aura:true, auraBonus:2.0,
+    maxUpgrade:0, upgrades:[],
+  },
+
   // ── NEW TOWERS v13 ──────────────────────────────────────────────────────
 
   // CROSSBOW — rapid-fire piercing bolts, woodpunk aesthetic
@@ -627,6 +653,98 @@ const TOWER_DEFS = (() => {
       { name:'Iron Fists',     cost:900, dmgBonus:90,  rateBonus:0.15, rangeBonus:12, armorPierce:true },
       { name:'Rock Avalanche', cost:1450,dmgBonus:180, rateBonus:0.2,  rangeBonus:18, splashBonus:20 },
       { name:'EARTHBREAKER',   cost:2800,dmgBonus:360, rateBonus:0.3,  rangeBonus:25, splashBonus:40, armorPierce:true },
+    ],
+  },
+
+  // ── NEW TOWERS v25 ─────────────────────────────────────────────────────────
+
+  // CANNON — heavy iron cannonball, big splash, mid-range brute
+  {
+    id:'cannon', name:'CANNON', icon:'cannon',
+    rarity:'basic',
+    cost:185, shopCost:0, unlocked:true,
+    desc:'Heavy iron cannon. Fires cannonballs with solid splash damage.',
+    color:'#8a7a5a',
+    range:C.cannon.range, fireRate:C.cannon.fireRate, damage:C.cannon.damage,
+    bulletSpeed:190, bulletColor:'#555566', bulletSize:8,
+    splash:50, slow:0, pierce:0, maxUpgrade:4,
+    upgrades:[
+      { name:'Iron Barrel',    cost:200, dmgBonus:40,  rateBonus:0.1,  rangeBonus:15, splashBonus:10 },
+      { name:'Grapeshot',      cost:340, dmgBonus:80,  rateBonus:0.15, rangeBonus:15, splashBonus:25, pierce:3 },
+      { name:'Siege Cannon',   cost:620, dmgBonus:160, rateBonus:0.2,  rangeBonus:25, splashBonus:50 },
+      { name:'DOOMSDAY GUN',   cost:1200,dmgBonus:350, rateBonus:0.3,  rangeBonus:40, splashBonus:90, armorPierce:true },
+    ],
+  },
+
+  // WATCHTOWER — tall stone tower, rapid-fire crossbowmen, great range
+  {
+    id:'watchtower', name:'WATCHTOWER', icon:'watchtower',
+    rarity:'basic',
+    cost:165, shopCost:0, unlocked:true,
+    desc:'Stone watchtower. Fast multi-arrow volleys, exceptional range.',
+    color:'#a0b8c8',
+    range:C.watchtower.range, fireRate:C.watchtower.fireRate, damage:C.watchtower.damage,
+    bulletSpeed:360, bulletColor:'#c8d8a0', bulletSize:3,
+    splash:0, slow:0, pierce:1, maxUpgrade:4,
+    upgrades:[
+      { name:'Reinforced',     cost:180, dmgBonus:10,  rateBonus:0.8,  rangeBonus:30 },
+      { name:'Twin Archers',   cost:310, dmgBonus:18,  rateBonus:1.5,  rangeBonus:30, pierce:2 },
+      { name:'Battle Garrison',cost:560, dmgBonus:35,  rateBonus:2.5,  rangeBonus:45, pierce:3 },
+      { name:'FORTRESS PEAK',  cost:1100,dmgBonus:70,  rateBonus:5.0,  rangeBonus:65, pierce:5, burnBonus:2 },
+    ],
+  },
+
+  // GAUSS CANNON — futuristic electromagnetic railgun, ultra-high damage piercing beam
+  {
+    id:'gauss', name:'GAUSS CANNON', icon:'gauss',
+    rarity:'legendary',
+    cost:1400, shopCost:4500, unlocked:false,
+    desc:'Electromagnetic accelerator cannon. Punches through entire enemy lines.',
+    color:'#00aaff',
+    range:C.gauss.range, fireRate:C.gauss.fireRate, damage:C.gauss.damage,
+    bulletSpeed:900, bulletColor:'#aaddff', bulletSize:3,
+    splash:0, slow:0, pierce:20, armorPierce:true, maxUpgrade:4,
+    upgrades:[
+      { name:'Charged Coils',  cost:1200, dmgBonus:140, rateBonus:0.06, rangeBonus:40 },
+      { name:'Overload',       cost:2000, dmgBonus:280, rateBonus:0.08, rangeBonus:50, pierce:30 },
+      { name:'Mass Driver',    cost:3200, dmgBonus:500, rateBonus:0.1,  rangeBonus:65, pierce:50 },
+      { name:'SINGULARITY',    cost:5800, dmgBonus:1200,rateBonus:0.18, rangeBonus:80, pierce:999, splashBonus:40, armorPierce:true },
+    ],
+  },
+
+  // PYROMANCER — robed wizard tower, casts wide fire AoE bursts
+  {
+    id:'pyromancer', name:'PYROMANCER', icon:'pyromancer',
+    rarity:'advanced',
+    cost:380, shopCost:950, unlocked:false,
+    desc:'Fire mage tower. Hurls explosive flame bursts with wide area coverage.',
+    color:'#ff6622',
+    range:C.pyromancer.range, fireRate:C.pyromancer.fireRate, damage:C.pyromancer.damage,
+    bulletSpeed:200, bulletColor:'#ff4400', bulletSize:9,
+    splash:45, slow:0, burn:4, pierce:0, maxUpgrade:4,
+    upgrades:[
+      { name:'Hot Streak',     cost:340, dmgBonus:8,   rateBonus:1.5,  rangeBonus:15, burnBonus:3 },
+      { name:'Wildfire',       cost:560, dmgBonus:16,  rateBonus:2.5,  rangeBonus:18, splashBonus:25, burnBonus:5 },
+      { name:'Pyroclasm',      cost:900, dmgBonus:30,  rateBonus:4.0,  rangeBonus:25, splashBonus:45, burnBonus:8 },
+      { name:'SOLAR FLARE',    cost:1750,dmgBonus:70,  rateBonus:8.0,  rangeBonus:40, splashBonus:80, burnBonus:15, armorPierce:true },
+    ],
+  },
+
+  // SHOCKWAVE TOWER — ground-pulse emitter, damages everything in radius
+  {
+    id:'shockwave', name:'SHOCKWAVE', icon:'shockwave',
+    rarity:'special',
+    cost:720, shopCost:2400, unlocked:false,
+    desc:'Emits ground-shaking pulses. Damages and slows every enemy in radius.',
+    color:'#dd8800',
+    range:C.shockwave.range, fireRate:C.shockwave.fireRate, damage:C.shockwave.damage,
+    bulletSpeed:0, bulletColor:'#ffcc44', bulletSize:12,
+    splash:C.shockwave.range, slow:0.35, slowDuration:1.5, pierce:99, armorPierce:false, maxUpgrade:4,
+    upgrades:[
+      { name:'Deep Tremor',    cost:640, dmgBonus:50,  rateBonus:0.15, rangeBonus:20, slowBonus:0.1 },
+      { name:'Fault Line',     cost:1050,dmgBonus:100, rateBonus:0.2,  rangeBonus:30, slowBonus:0.15 },
+      { name:'Earthquake',     cost:1700,dmgBonus:200, rateBonus:0.3,  rangeBonus:45, slowBonus:0.2, armorPierce:true },
+      { name:'WORLD SHATTER',  cost:3200,dmgBonus:420, rateBonus:0.45, rangeBonus:65, slowBonus:0.3, armorPierce:true, splashBonus:40 },
     ],
   },
 
@@ -2352,6 +2470,475 @@ const TowerArt = {
         ctx.beginPath(); ctx.arc(Math.cos(da)*S*.35, S*.35+Math.sin(da)*S*.12, S*.08,0,Math.PI*2); ctx.fill();
       }
     }
+    ctx.restore();
+  },
+
+  // CANNON — classic iron siege cannon on wooden carriage
+  cannon(ctx, x, y, s, angle, flash, t) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(angle + Math.PI/2);
+    const S = s;
+    // Wooden carriage wheels
+    ctx.fillStyle = '#6b4a1e';
+    ctx.beginPath(); ctx.ellipse(-S*.28, S*.2, S*.12, S*.12, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(S*.28, S*.2, S*.12, S*.12, 0, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#3a2a0e'; ctx.lineWidth = S*.035;
+    ctx.beginPath(); ctx.ellipse(-S*.28, S*.2, S*.12, S*.12, 0, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(S*.28, S*.2, S*.12, S*.12, 0, 0, Math.PI*2); ctx.stroke();
+    // Wheel spokes
+    ctx.strokeStyle = '#4a3010'; ctx.lineWidth = S*.02;
+    for(let i=0;i<4;i++){
+      const a = i/4*Math.PI*2;
+      [-S*.28, S*.28].forEach(wx=>{
+        ctx.beginPath(); ctx.moveTo(wx, S*.2); ctx.lineTo(wx+Math.cos(a)*S*.1, S*.2+Math.sin(a)*S*.1); ctx.stroke();
+      });
+    }
+    // Carriage body
+    ctx.fillStyle = '#7a5c28';
+    ctx.beginPath(); ctx.roundRect(-S*.32, -S*.04, S*.64, S*.2, S*.03); ctx.fill();
+    ctx.fillStyle = '#5a3c10';
+    ctx.fillRect(-S*.32, -S*.04, S*.64, S*.03);
+    // Cannon barrel — big iron tube
+    ctx.fillStyle = flash>0 ? '#cc9944' : '#444455';
+    ctx.beginPath(); ctx.roundRect(-S*.09, -S*.6, S*.18, S*.55, S*.05); ctx.fill();
+    // Barrel band rings
+    ctx.strokeStyle = '#2a2a35'; ctx.lineWidth = S*.035; ctx.lineCap = 'butt';
+    [-.5, -.3, -.12].forEach(ry => {
+      ctx.beginPath(); ctx.roundRect(-S*.1, ry*S, S*.2, S*.04, S*.01); ctx.stroke();
+    });
+    // Muzzle — wider bell shape
+    ctx.fillStyle = flash>0 ? '#ffdd88' : '#333344';
+    ctx.beginPath(); ctx.ellipse(0, -S*.6, S*.12, S*.09, 0, 0, Math.PI*2); ctx.fill();
+    // Muzzle flash
+    if(flash>0){
+      ctx.fillStyle='rgba(255,200,80,0.8)';
+      ctx.beginPath(); ctx.ellipse(0, -S*.7, S*.18, S*.14, 0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle='rgba(255,255,200,0.6)';
+      ctx.beginPath(); ctx.ellipse(0, -S*.7, S*.1, S*.08, 0, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  },
+
+  // WATCHTOWER — tall stone castle tower with battlements and arrow slits
+  watchtower(ctx, x, y, s, angle, flash, t) {
+    ctx.save(); ctx.translate(x, y);
+    const S = s;
+    // Shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    ctx.beginPath(); ctx.ellipse(0, S*.38, S*.28, S*.08, 0, 0, Math.PI*2); ctx.fill();
+    // Main tower body — tall rectangle
+    ctx.fillStyle = '#8a9aaa';
+    ctx.beginPath(); ctx.roundRect(-S*.2, -S*.55, S*.4, S*.9, S*.02); ctx.fill();
+    // Stone texture lines
+    ctx.strokeStyle = '#707880'; ctx.lineWidth = S*.015;
+    for(let i=0;i<5;i++){
+      const hy = -S*.45 + i*S*.16;
+      ctx.beginPath(); ctx.moveTo(-S*.2, hy); ctx.lineTo(S*.2, hy); ctx.stroke();
+    }
+    for(let i=0;i<3;i++){
+      ctx.beginPath(); ctx.moveTo(-S*.05+i*S*.1, -S*.55); ctx.lineTo(-S*.05+i*S*.1, S*.35); ctx.stroke();
+    }
+    // Arrow slit windows
+    ctx.fillStyle = '#1a2530';
+    ctx.beginPath(); ctx.roundRect(-S*.04, -S*.38, S*.08, S*.2, S*.02); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(-S*.04, -S*.1, S*.06, S*.14, S*.02); ctx.fill();
+    // Battlement top
+    ctx.fillStyle = '#9aaabb';
+    [-S*.18, -S*.06, S*.06].forEach(bx => {
+      ctx.beginPath(); ctx.roundRect(bx, -S*.62, S*.08, S*.1, S*.01); ctx.fill();
+    });
+    // Archer figure on top
+    ctx.fillStyle = '#2a3040';
+    ctx.beginPath(); ctx.arc(0, -S*.6, S*.06, 0, Math.PI*2); ctx.fill();
+    ctx.fillRect(-S*.04, -S*.55, S*.08, S*.12);
+    // Bow drawn toward angle
+    ctx.save(); ctx.translate(0, -S*.58); ctx.rotate(angle + Math.PI/2);
+    ctx.strokeStyle = flash>0 ? '#fff' : '#8a6030'; ctx.lineWidth = S*.025;
+    ctx.beginPath(); ctx.arc(0, 0, S*.14, -Math.PI*.5, Math.PI*.5); ctx.stroke();
+    ctx.strokeStyle = flash>0 ? '#ffe060' : '#c0c880'; ctx.lineWidth = S*.012;
+    ctx.beginPath(); ctx.moveTo(0, -S*.14); ctx.lineTo(0, S*.14); ctx.stroke();
+    if(flash>0){
+      ctx.fillStyle='rgba(255,255,160,0.9)';
+      ctx.beginPath(); ctx.moveTo(-S*.03, 0); ctx.lineTo(S*.22, 0); ctx.lineTo(-S*.03, S*.03); ctx.fill();
+    }
+    ctx.restore();
+    ctx.restore();
+  },
+
+  // GAUSS CANNON — sleek sci-fi electromagnetic accelerator with glowing coils
+  gauss(ctx, x, y, s, angle, flash, t) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(angle + Math.PI/2);
+    const S = s;
+    const T = t || 0;
+    // Base — hexagonal armored plate
+    ctx.fillStyle = '#1a2840';
+    ctx.beginPath();
+    for(let i=0;i<6;i++){
+      const a = (i/6)*Math.PI*2 - Math.PI/6;
+      i===0 ? ctx.moveTo(Math.cos(a)*S*.38, Math.sin(a)*S*.38) : ctx.lineTo(Math.cos(a)*S*.38, Math.sin(a)*S*.38);
+    }
+    ctx.closePath(); ctx.fill();
+    // Hex border glow
+    ctx.strokeStyle = flash>0 ? '#88ccff' : 'rgba(0,160,255,0.5)';
+    ctx.lineWidth = S*.025;
+    ctx.beginPath();
+    for(let i=0;i<6;i++){
+      const a=(i/6)*Math.PI*2 - Math.PI/6;
+      i===0 ? ctx.moveTo(Math.cos(a)*S*.38, Math.sin(a)*S*.38) : ctx.lineTo(Math.cos(a)*S*.38, Math.sin(a)*S*.38);
+    }
+    ctx.closePath(); ctx.stroke();
+    // Electromagnetic coils around barrel
+    ctx.strokeStyle = '#0088cc'; ctx.lineWidth = S*.04; ctx.lineCap='round';
+    const coilPositions = [-S*.42, -S*.28, -S*.14, -S*.01, S*.12];
+    coilPositions.forEach((cy2, i) => {
+      const glow = flash>0 ? 1 : (0.4 + 0.3*Math.sin(T*4 + i*1.2));
+      ctx.strokeStyle = `rgba(0,${Math.floor(160*glow+80)},255,${glow})`;
+      ctx.beginPath(); ctx.roundRect(-S*.08, cy2, S*.16, S*.07, S*.01); ctx.stroke();
+    });
+    // Main barrel — slim and angular
+    ctx.fillStyle = '#2a3a54';
+    ctx.beginPath(); ctx.roundRect(-S*.07, -S*.62, S*.14, S*.56, S*.02); ctx.fill();
+    // Barrel inner core
+    ctx.fillStyle = flash>0 ? '#aaddff' : '#1a2a40';
+    ctx.beginPath(); ctx.roundRect(-S*.03, -S*.60, S*.06, S*.52, S*.01); ctx.fill();
+    // Muzzle
+    ctx.fillStyle = flash>0 ? '#ffffff' : '#3a4a64';
+    ctx.beginPath(); ctx.ellipse(0, -S*.62, S*.1, S*.07, 0, 0, Math.PI*2); ctx.fill();
+    // Muzzle flash beam
+    if(flash>0){
+      const grad = ctx.createLinearGradient(0, -S*.62, 0, -S*1.2);
+      grad.addColorStop(0, 'rgba(150,220,255,0.9)');
+      grad.addColorStop(1, 'rgba(0,100,255,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.rect(-S*.025, -S*.62, S*.05, -S*.6); ctx.fill();
+      // Energy pulse ring
+      ctx.strokeStyle = 'rgba(0,180,255,0.7)'; ctx.lineWidth = S*.06;
+      ctx.beginPath(); ctx.ellipse(0, -S*.62, S*.18, S*.07, 0, 0, Math.PI*2); ctx.stroke();
+    }
+    ctx.restore();
+  },
+
+  // PYROMANCER — robed sorcerer tower with staff, fire orb, arcane runes
+  pyromancer(ctx, x, y, s, angle, flash, t) {
+    ctx.save(); ctx.translate(x, y);
+    const S = s;
+    const T = t || 0;
+    // Base plinth
+    ctx.fillStyle = '#3a2010';
+    ctx.beginPath(); ctx.roundRect(-S*.28, S*.2, S*.56, S*.18, S*.04); ctx.fill();
+    ctx.fillStyle = '#5a3820';
+    ctx.beginPath(); ctx.roundRect(-S*.22, S*.1, S*.44, S*.14, S*.03); ctx.fill();
+    // Robe body
+    ctx.fillStyle = '#6a1010';
+    ctx.beginPath();
+    ctx.moveTo(-S*.14, S*.1); ctx.lineTo(S*.14, S*.1);
+    ctx.lineTo(S*.18, -S*.22); ctx.lineTo(-S*.18, -S*.22);
+    ctx.closePath(); ctx.fill();
+    // Robe highlight
+    ctx.fillStyle = '#8a2020';
+    ctx.beginPath(); ctx.roundRect(-S*.04, -S*.22, S*.1, S*.3, S*.02); ctx.fill();
+    // Cloak belt
+    ctx.fillStyle = '#cc8820';
+    ctx.beginPath(); ctx.roundRect(-S*.18, -S*.06, S*.36, S*.05, S*.02); ctx.fill();
+    // Head + hood
+    ctx.fillStyle = '#3a0808';
+    ctx.beginPath();
+    ctx.moveTo(-S*.15, -S*.22); ctx.lineTo(S*.15, -S*.22);
+    ctx.lineTo(S*.08, -S*.5); ctx.lineTo(-S*.08, -S*.5);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#cc8860'; // face
+    ctx.beginPath(); ctx.arc(0, -S*.3, S*.1, 0, Math.PI*2); ctx.fill();
+    // Eyes glow
+    ctx.fillStyle = flash>0 ? '#ffffff' : '#ff4400';
+    ctx.beginPath(); ctx.arc(-S*.04, -S*.32, S*.025, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(S*.04, -S*.32, S*.025, 0, Math.PI*2); ctx.fill();
+    // Staff — pointed toward angle
+    ctx.save(); ctx.translate(S*.14, -S*.1); ctx.rotate(angle + Math.PI/2);
+    ctx.strokeStyle = '#7a5020'; ctx.lineWidth = S*.04; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -S*.55); ctx.stroke();
+    // Fire orb at tip
+    const orbPulse = flash>0 ? 1.0 : 0.7+0.3*Math.sin(T*5);
+    ctx.fillStyle = `rgba(255,${Math.floor(80+100*orbPulse)},0,${orbPulse})`;
+    ctx.beginPath(); ctx.arc(0, -S*.55, S*.1*orbPulse, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = `rgba(255,220,80,${orbPulse*0.8})`;
+    ctx.beginPath(); ctx.arc(0, -S*.55, S*.06*orbPulse, 0, Math.PI*2); ctx.fill();
+    if(flash>0){
+      ctx.fillStyle='rgba(255,200,60,0.5)';
+      ctx.beginPath(); ctx.arc(0, -S*.55, S*.2, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+    // Arcane rune circle
+    ctx.strokeStyle = `rgba(255,100,0,${0.3+0.2*Math.sin(T*2)})`;
+    ctx.lineWidth = S*.012; ctx.setLineDash([S*.04, S*.04]);
+    ctx.beginPath(); ctx.arc(0, 0, S*.32, 0, Math.PI*2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  },
+
+  // SHOCKWAVE TOWER — armored plinth with resonance ring emitter, ground-pulse
+  shockwave(ctx, x, y, s, angle, flash, t) {
+    ctx.save(); ctx.translate(x, y);
+    const S = s;
+    const T = t || 0;
+    // Expanding ground rings when firing
+    if(flash>0){
+      [0.5, 0.75, 1.0].forEach((frac, i)=>{
+        const r = frac * S * 1.2 * flash;
+        ctx.strokeStyle = `rgba(255,180,0,${0.5*(1-frac)*flash})`;
+        ctx.lineWidth = S*.08*(1-frac);
+        ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.stroke();
+      });
+    }
+    // Base — heavy armored octagon
+    ctx.fillStyle = '#2a2010';
+    ctx.beginPath();
+    for(let i=0;i<8;i++){
+      const a=(i/8)*Math.PI*2 - Math.PI/8;
+      i===0 ? ctx.moveTo(Math.cos(a)*S*.42, Math.sin(a)*S*.42) : ctx.lineTo(Math.cos(a)*S*.42, Math.sin(a)*S*.42);
+    }
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='rgba(200,150,0,0.3)'; ctx.lineWidth=S*.02;
+    ctx.beginPath();
+    for(let i=0;i<8;i++){
+      const a=(i/8)*Math.PI*2 - Math.PI/8;
+      i===0 ? ctx.moveTo(Math.cos(a)*S*.42, Math.sin(a)*S*.42) : ctx.lineTo(Math.cos(a)*S*.42, Math.sin(a)*S*.42);
+    }
+    ctx.closePath(); ctx.stroke();
+    // Emitter dome center
+    ctx.fillStyle = '#5a4020';
+    ctx.beginPath(); ctx.arc(0, 0, S*.28, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#7a5a28';
+    ctx.beginPath(); ctx.arc(-S*.05, -S*.05, S*.18, 0, Math.PI*2); ctx.fill();
+    // Resonance ring — animated
+    const ringAlpha = flash>0 ? 0.9 : (0.35+0.25*Math.sin(T*3));
+    ctx.strokeStyle = `rgba(255,180,0,${ringAlpha})`;
+    ctx.lineWidth = S*.06;
+    ctx.beginPath(); ctx.arc(0, 0, S*.2, 0, Math.PI*2); ctx.stroke();
+    // Inner core glow
+    const coreColor = flash>0 ? '#ffffff' : '#ffaa00';
+    ctx.fillStyle = coreColor;
+    ctx.beginPath(); ctx.arc(0, 0, S*.1, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = flash>0 ? 'rgba(255,240,180,0.9)' : 'rgba(255,160,0,0.6)';
+    ctx.beginPath(); ctx.arc(0, 0, S*.06, 0, Math.PI*2); ctx.fill();
+    // Decorative prongs around emitter
+    ctx.strokeStyle = '#8a6020'; ctx.lineWidth = S*.04; ctx.lineCap='round';
+    for(let i=0;i<6;i++){
+      const a = (i/6)*Math.PI*2 + T*0.5;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a)*S*.18, Math.sin(a)*S*.18);
+      ctx.lineTo(Math.cos(a)*S*.32, Math.sin(a)*S*.32);
+      ctx.stroke();
+    }
+    ctx.restore();
+  },
+
+  // CELESTIAL OVERLORD — divine warship, the apex of all towers
+  // Massive golden battleship with rotating energy rings, divine wings, god-beam
+  celestial_overlord(ctx, x, y, s, angle, flash, t) {
+    ctx.save(); ctx.translate(x, y);
+    const S = s * 1.6; // Bigger than any other tower
+    const T = t || 0;
+
+    // ── OUTER DIVINE AURA (always present) ──
+    const auraR = S * 1.4;
+    const auraGrad = ctx.createRadialGradient(0,0,auraR*0.3, 0,0,auraR);
+    auraGrad.addColorStop(0, `rgba(255,215,0,${0.12+0.08*Math.sin(T*2)})`);
+    auraGrad.addColorStop(0.6, `rgba(255,140,0,${0.07+0.04*Math.sin(T*2.3)})`);
+    auraGrad.addColorStop(1, 'rgba(255,100,0,0)');
+    ctx.fillStyle = auraGrad;
+    ctx.beginPath(); ctx.arc(0,0,auraR,0,Math.PI*2); ctx.fill();
+
+    // ── 3 ROTATING ENERGY ORBIT RINGS ──
+    for(let ri=0;ri<3;ri++){
+      const ringAngle = T*(1.2+ri*0.5) + ri*(Math.PI*2/3);
+      const ringR = S*(0.55+ri*0.18);
+      ctx.save(); ctx.rotate(ringAngle);
+      ctx.strokeStyle = ri===0 ? `rgba(255,215,0,${0.7+0.3*Math.sin(T*3)})` 
+                      : ri===1 ? `rgba(255,100,255,${0.5+0.2*Math.sin(T*2.5+1)})` 
+                      :          `rgba(0,220,255,${0.5+0.2*Math.sin(T*2+2)})`;
+      ctx.lineWidth = S*0.04;
+      ctx.setLineDash([S*0.12, S*0.06]);
+      ctx.beginPath(); ctx.ellipse(0,0,ringR,ringR*0.35,0,0,Math.PI*2); ctx.stroke();
+      ctx.setLineDash([]);
+      // Glowing orbs on ring
+      for(let oi=0;oi<4;oi++){
+        const oa = oi/4*Math.PI*2;
+        const ox = Math.cos(oa)*ringR, oy = Math.sin(oa)*ringR*0.35;
+        ctx.fillStyle = ri===0 ? '#ffd700' : ri===1 ? '#ff88ff' : '#00eeff';
+        ctx.beginPath(); ctx.arc(ox,oy,S*0.055,0,Math.PI*2); ctx.fill();
+        // Inner bright core
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath(); ctx.arc(ox,oy,S*0.025,0,Math.PI*2); ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    // ── DIVINE WINGS (animated flap) ──
+    const wingFlap = Math.sin(T*4)*0.12;
+    ctx.save(); ctx.rotate(angle + Math.PI/2);
+    // Left wing
+    ctx.save(); ctx.scale(-1,1);
+    ctx.fillStyle = 'rgba(255,215,0,0.85)';
+    ctx.beginPath();
+    ctx.moveTo(S*0.15, 0);
+    ctx.bezierCurveTo(S*0.4, -S*(0.3+wingFlap), S*0.9, -S*(0.5+wingFlap*2), S*1.1, -S*(0.1+wingFlap));
+    ctx.bezierCurveTo(S*0.8, S*(0.15+wingFlap*0.5), S*0.35, S*(0.1+wingFlap*0.3), S*0.15, S*0.05);
+    ctx.closePath(); ctx.fill();
+    // Wing feather details
+    ctx.strokeStyle = 'rgba(255,255,200,0.5)'; ctx.lineWidth = S*0.018;
+    for(let fi=0;fi<4;fi++){
+      const t2 = fi/4;
+      ctx.beginPath();
+      ctx.moveTo(S*(0.15+t2*0.4), -S*t2*(0.08+wingFlap));
+      ctx.lineTo(S*(0.3+t2*0.55), -S*(0.35+t2*0.15+wingFlap));
+      ctx.stroke();
+    }
+    ctx.restore();
+    // Right wing (mirror)
+    ctx.fillStyle = 'rgba(255,215,0,0.85)';
+    ctx.beginPath();
+    ctx.moveTo(S*0.15, 0);
+    ctx.bezierCurveTo(S*0.4, -S*(0.3+wingFlap), S*0.9, -S*(0.5+wingFlap*2), S*1.1, -S*(0.1+wingFlap));
+    ctx.bezierCurveTo(S*0.8, S*(0.15+wingFlap*0.5), S*0.35, S*(0.1+wingFlap*0.3), S*0.15, S*0.05);
+    ctx.closePath(); ctx.fill();
+    for(let fi=0;fi<4;fi++){
+      const t2 = fi/4;
+      ctx.strokeStyle = 'rgba(255,255,200,0.5)'; ctx.lineWidth = S*0.018;
+      ctx.beginPath();
+      ctx.moveTo(S*(0.15+t2*0.4), -S*t2*(0.08+wingFlap));
+      ctx.lineTo(S*(0.3+t2*0.55), -S*(0.35+t2*0.15+wingFlap));
+      ctx.stroke();
+    }
+
+    // ── SHIP HULL — sleek divine warcraft ──
+    // Main body
+    const hullGrad = ctx.createLinearGradient(-S*0.18, -S*0.5, S*0.18, S*0.5);
+    hullGrad.addColorStop(0, '#fff8d0');
+    hullGrad.addColorStop(0.25, '#ffd700');
+    hullGrad.addColorStop(0.6, '#cc9900');
+    hullGrad.addColorStop(1, '#886600');
+    ctx.fillStyle = hullGrad;
+    ctx.beginPath();
+    ctx.moveTo(0, -S*0.55);
+    ctx.bezierCurveTo(S*0.2, -S*0.4, S*0.22, -S*0.1, S*0.18, S*0.3);
+    ctx.lineTo(S*0.08, S*0.48);
+    ctx.lineTo(-S*0.08, S*0.48);
+    ctx.bezierCurveTo(-S*0.22, -S*0.1, -S*0.2, -S*0.4, 0, -S*0.55);
+    ctx.closePath(); ctx.fill();
+    // Hull highlight
+    ctx.fillStyle = 'rgba(255,255,220,0.45)';
+    ctx.beginPath();
+    ctx.moveTo(0, -S*0.52);
+    ctx.bezierCurveTo(S*0.08, -S*0.38, S*0.1, -S*0.1, S*0.06, S*0.18);
+    ctx.bezierCurveTo(-S*0.02, -S*0.1, -S*0.04, -S*0.38, 0, -S*0.52);
+    ctx.closePath(); ctx.fill();
+    // Armor plating lines
+    ctx.strokeStyle = 'rgba(180,120,0,0.6)'; ctx.lineWidth = S*0.015;
+    [-0.2, 0, 0.2].forEach(py => {
+      ctx.beginPath(); ctx.moveTo(-S*0.15, py*S); ctx.lineTo(S*0.15, py*S); ctx.stroke();
+    });
+    // Side nacelles
+    [-1,1].forEach(side => {
+      ctx.fillStyle = '#cc8800';
+      ctx.beginPath();
+      ctx.moveTo(side*S*0.18, -S*0.1);
+      ctx.lineTo(side*S*0.34, -S*0.05);
+      ctx.lineTo(side*S*0.34, S*0.18);
+      ctx.lineTo(side*S*0.18, S*0.22);
+      ctx.closePath(); ctx.fill();
+      // Engine glow
+      const engGrad = ctx.createRadialGradient(side*S*0.28, S*0.22, 0, side*S*0.28, S*0.22, S*0.12);
+      engGrad.addColorStop(0, flash>0 ? 'rgba(255,255,255,0.9)' : 'rgba(255,160,0,0.9)');
+      engGrad.addColorStop(1, 'rgba(255,80,0,0)');
+      ctx.fillStyle = engGrad;
+      ctx.beginPath(); ctx.arc(side*S*0.28, S*0.22, S*0.12, 0, Math.PI*2); ctx.fill();
+    });
+
+    // ── DIVINE CANNON BARREL ──
+    ctx.fillStyle = '#ffe060';
+    ctx.beginPath(); ctx.roundRect(-S*0.06, -S*0.72, S*0.12, S*0.22, S*0.02); ctx.fill();
+    ctx.fillStyle = '#fff8a0';
+    ctx.beginPath(); ctx.roundRect(-S*0.025, -S*0.72, S*0.05, S*0.22, S*0.01); ctx.fill();
+    // Barrel tip — glowing muzzle
+    ctx.fillStyle = flash>0 ? '#ffffff' : '#ffcc00';
+    ctx.beginPath(); ctx.ellipse(0, -S*0.72, S*0.09, S*0.06, 0, 0, Math.PI*2); ctx.fill();
+
+    // ── GOD-BEAM FIRE EFFECT ──
+    if(flash>0){
+      // Expanding divine explosion
+      const fbR = S*0.8*flash;
+      const fbGrad = ctx.createRadialGradient(0,-S*0.72,0, 0,-S*0.72,fbR);
+      fbGrad.addColorStop(0, 'rgba(255,255,255,1)');
+      fbGrad.addColorStop(0.2, 'rgba(255,220,80,0.9)');
+      fbGrad.addColorStop(0.5, 'rgba(255,100,0,0.6)');
+      fbGrad.addColorStop(1, 'rgba(255,50,0,0)');
+      ctx.fillStyle = fbGrad;
+      ctx.beginPath(); ctx.arc(0,-S*0.72,fbR,0,Math.PI*2); ctx.fill();
+      // Beam ray lines
+      ctx.strokeStyle = 'rgba(255,255,200,0.8)'; ctx.lineWidth = S*0.04;
+      for(let ri=0;ri<8;ri++){
+        const ra = (ri/8)*Math.PI*2 + T;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(ra)*S*0.09, -S*0.72+Math.sin(ra)*S*0.06);
+        ctx.lineTo(Math.cos(ra)*fbR*0.8, -S*0.72+Math.sin(ra)*fbR*0.4);
+        ctx.stroke();
+      }
+    }
+
+    // ── COCKPIT WINDOW ──
+    const cockGrad = ctx.createRadialGradient(-S*0.03, -S*0.3, 0, 0, -S*0.25, S*0.12);
+    cockGrad.addColorStop(0, 'rgba(180,240,255,0.95)');
+    cockGrad.addColorStop(0.4, 'rgba(0,160,255,0.7)');
+    cockGrad.addColorStop(1, 'rgba(0,40,100,0.8)');
+    ctx.fillStyle = cockGrad;
+    ctx.beginPath(); ctx.ellipse(0, -S*0.28, S*0.1, S*0.08, 0, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = 'rgba(180,240,255,0.6)'; ctx.lineWidth = S*0.012;
+    ctx.beginPath(); ctx.ellipse(0, -S*0.28, S*0.1, S*0.08, 0, 0, Math.PI*2); ctx.stroke();
+    // Cockpit shine
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.beginPath(); ctx.ellipse(-S*0.03, -S*0.31, S*0.04, S*0.025, -0.4, 0, Math.PI*2); ctx.fill();
+
+    // ── CROWN ON TOP ── (because it's the overlord)
+    ctx.fillStyle = '#ffd700';
+    ctx.beginPath();
+    ctx.moveTo(-S*0.12, -S*0.52);
+    ctx.lineTo(-S*0.12, -S*0.68);
+    ctx.lineTo(-S*0.06, -S*0.6);
+    ctx.lineTo(0, -S*0.72);
+    ctx.lineTo(S*0.06, -S*0.6);
+    ctx.lineTo(S*0.12, -S*0.68);
+    ctx.lineTo(S*0.12, -S*0.52);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#fff8a0'; ctx.lineWidth = S*0.015;
+    ctx.stroke();
+    // Crown gems
+    [[-S*0.09,-S*0.67],[0,-S*0.71],[S*0.09,-S*0.67]].forEach(([gx,gy],gi)=>{
+      ctx.fillStyle = gi===0?'#ff4444':gi===1?'#44ffaa':'#4488ff';
+      ctx.beginPath(); ctx.arc(gx,gy,S*0.025,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.7)';
+      ctx.beginPath(); ctx.arc(gx-S*0.008,gy-S*0.008,S*0.01,0,Math.PI*2); ctx.fill();
+    });
+
+    ctx.restore(); // angle rotation
+
+    // ── DIVINE SPARKLES orbiting (always on) ──
+    for(let sp=0;sp<8;sp++){
+      const sAngle = T*2 + sp/8*Math.PI*2;
+      const sR = S*(0.4+0.15*Math.sin(T*3+sp));
+      const sx = Math.cos(sAngle)*sR, sy = Math.sin(sAngle)*sR*0.6;
+      const sAlpha = 0.4+0.4*Math.sin(T*4+sp*0.8);
+      ctx.fillStyle = sp%3===0?`rgba(255,215,0,${sAlpha})`:sp%3===1?`rgba(255,120,255,${sAlpha})`:`rgba(100,220,255,${sAlpha})`;
+      const sSize = S*(0.025+0.015*Math.sin(T*5+sp));
+      // Draw a 4-pointed star sparkle
+      ctx.save(); ctx.translate(sx,sy); ctx.rotate(T*3+sp);
+      ctx.beginPath();
+      ctx.moveTo(0,-sSize*2); ctx.lineTo(sSize*0.4,-sSize*0.4);
+      ctx.lineTo(sSize*2,0);   ctx.lineTo(sSize*0.4,sSize*0.4);
+      ctx.lineTo(0,sSize*2);   ctx.lineTo(-sSize*0.4,sSize*0.4);
+      ctx.lineTo(-sSize*2,0);  ctx.lineTo(-sSize*0.4,-sSize*0.4);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+
     ctx.restore();
   },
 
