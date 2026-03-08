@@ -728,6 +728,25 @@ kbd { background:var(--bg4); border:1px solid var(--bdr2); border-radius:2px; pa
   bottom: 160px !important; /* stack above owner trigger */
 }
 
+.staff-trigger {
+  bottom: 242px !important; /* stack above dev trigger */
+}
+
+.ot-staff {
+  background: linear-gradient(135deg, rgba(10,12,30,0.97), rgba(20,22,50,0.97));
+  border-color: rgba(88,101,242,0.4) !important;
+}
+
+.staff-trigger .ot-pulse-ring.staff-ring {
+  border-color: #5865f2;
+}
+
+.staff-trigger.open .ot-staff,
+.staff-trigger:hover .ot-staff {
+  border-color: #5865f2 !important;
+  box-shadow: 0 0 20px rgba(88,101,242,0.35);
+}
+
 .ot-dev {
   background: linear-gradient(135deg, rgba(40,15,0,0.97), rgba(60,20,0,0.97));
   border-color: var(--dev-border) !important;

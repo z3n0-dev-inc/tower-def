@@ -29,9 +29,22 @@ const Owner = (() => {
     const btnCloseMod = document.getElementById('btnCloseMod');
     if (btnCloseMod) btnCloseMod.onclick = close;
 
-    // Staff dashboard button
+    // Staff dashboard trigger button
+    const staffTrigger = document.getElementById('staffTrigger');
+    if (staffTrigger) staffTrigger.onclick = () => {
+      if (UI.StaffDashboard) UI.StaffDashboard.open();
+    };
+
+    // Staff dashboard button (mod panel)
     const btnStaffDash = document.getElementById('btnStaffDashboard');
     if (btnStaffDash) btnStaffDash.onclick = () => {
+      close();
+      if (UI.StaffDashboard) UI.StaffDashboard.open();
+    };
+
+    // Staff dashboard button (owner panel)
+    const btnStaffDash2 = document.getElementById('btnStaffDashboard2');
+    if (btnStaffDash2) btnStaffDash2.onclick = () => {
       close();
       if (UI.StaffDashboard) UI.StaffDashboard.open();
     };
@@ -88,11 +101,15 @@ const Owner = (() => {
     if (!_role) return;
     _updateTriggerButton();
     document.getElementById('ownerTrigger').classList.remove('hidden');
+    const st = document.getElementById('staffTrigger');
+    if (st) st.classList.remove('hidden');
     _syncIngameSection();
   }
 
   function hide() {
     document.getElementById('ownerTrigger').classList.add('hidden');
+    const st2 = document.getElementById('staffTrigger');
+    if (st2) st2.classList.add('hidden');
     _panelEl('owner').classList.add('hidden');
     _panelEl('mod').classList.add('hidden');
     isOpen = false;

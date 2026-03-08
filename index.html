@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script>
+    // Set this to your Cloudflare tunnel URL — update when tunnel URL changes
+    // For a permanent URL, replace with your real domain once set up
+    window.ZTD_SERVER_URL = 'http://localhost:3000';
+  </script>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>ZOMBIE TOWER DEFENCE</title>
@@ -392,6 +397,11 @@
 
   <div class="op-scroll">
 
+    <!-- Staff Dashboard shortcut -->
+    <div class="op-section">
+      <button id="btnStaffDashboard2" class="op-btn blue" style="width:100%;justify-content:center;font-size:11px;letter-spacing:1px;">📋 STAFF DASHBOARD</button>
+    </div>
+
     <!-- Your PlayFab ID -->
     <div class="op-section">
       <div class="op-section-label">🪪 YOUR PLAYFAB ID</div>
@@ -602,6 +612,15 @@
 <!-- ═══════════════════ DEV PANEL ═══════════════════ -->
 
 <!-- ⚙️ Dev trigger — bottom right, above owner trigger -->
+<div id="staffTrigger" class="owner-trigger staff-trigger hidden">
+  <div class="ot-pulse-ring staff-ring"></div>
+  <div class="ot-pulse-ring staff-ring ot-ring-2"></div>
+  <div class="ot-content ot-staff">
+    <span class="ot-crown" style="font-size:13px">📋</span>
+    <span class="ot-label" style="color:#5865f2">STAFF</span>
+  </div>
+</div>
+
 <div id="devTrigger" class="owner-trigger dev-trigger hidden">
   <div class="ot-pulse-ring dev-ring"></div>
   <div class="ot-pulse-ring dev-ring ot-ring-2"></div>

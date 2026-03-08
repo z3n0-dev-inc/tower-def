@@ -9,7 +9,7 @@
 const PF = {
   TITLE_ID:   '100286',
   BASE:       'https://100286.playfabapi.com',
-  SERVER_URL: 'http://localhost:3000', // Change to deployed URL in production
+  SERVER_URL: (typeof window !== 'undefined' && window.ZTD_SERVER_URL) ? window.ZTD_SERVER_URL : 'http://localhost:3000',
 
   sessionTicket: null,
   playFabId:     null,

@@ -1622,7 +1622,7 @@ const UI = (() => {
       if (!target) return;
       const res = document.getElementById('sdResult');
       res.innerHTML = '<div style="color:#666;font-size:11px;padding:10px 0">Looking up player...</div>';
-      const r = await PF.staffCall('playerReport', { targetPlayerId: target, sendToDiscord: false });
+      const r = await PF.staffCall('playerReport', { targetPlayerId: target, sendToDiscord: true });
       if (!r.ok) { res.innerHTML = '<div style="color:#ed4245;font-size:11px;padding:10px 0">Error: ' + r.msg + '</div>'; return; }
       const p = r.report;
       const isBanned = (p.activeBans || []).length > 0;

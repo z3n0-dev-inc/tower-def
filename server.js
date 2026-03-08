@@ -12,6 +12,8 @@ app.use(express.json());
 const TITLE_ID        = process.env.PLAYFAB_TITLE_ID   || '100286';
 const SECRET_KEY      = process.env.PLAYFAB_SECRET_KEY || 'PGWTGH1FY6CS4A7SJFHMCKQBADIMOAPKWTCRN8EHMMCUOM7OEK';
 const DISCORD_WEBHOOK = process.env.DISCORD_WEBHOOK_URL || '';
+const BOT_URL         = process.env.BOT_URL    || 'http://localhost:3001';
+const BOT_SECRET      = process.env.BOT_SECRET || 'ztd-internal';
 const CATALOG_VERSION = 'ZTD_Cosmetics_v1';
 const BASE            = `https://${TITLE_ID}.playfabapi.com`;
 const ACTION_LOG_KEY  = 'ActionLog';
@@ -64,36 +66,17 @@ async function logAction(entry) {
 }
 
 async function sendDiscordReport(report, staffId) {
-  if (!DISCORD_WEBHOOK) return;
-  const isBanned   = (report.activeBans || []).length > 0;
-  const role       = report.isOwner ? '`owner`' : report.isMod ? '`mod`' : '`player`';
-  const banText    = isBanned
-    ? report.activeBans.map(b => `${b.Reason || 'no reason'}  ·  ${b.Expires ? `expires <t:${Math.floor(new Date(b.Expires)/1000)}:R>` : '**permanent**'}`).join('\n')
-    : 'no active bans';
-  const warnText   = (report.warnings || []).length
-    ? report.warnings.slice(0, 5).map(w => `${w.reason}  ·  ${new Date(w.date).toLocaleDateString()}`).join('\n')
-    : 'none';
-  const cosmetics  = (report.inventory || []).join(', ') || 'none';
-
-  const embed = {
-    color: isBanned ? 0xed4245 : 0x5865f2,
-    title: `Staff Report: ${report.displayName}`,
-    description: `**${report.displayName}**  ·  \`${report.playFabId}\`\n${role}  ·  last login ${report.lastLogin ? new Date(report.lastLogin).toLocaleDateString() : 'unknown'}`,
-    fields: [
-      { name: 'Stats', value: `Wave **${report.bestWave}**  ·  Kills **${report.totalKills}**  ·  XP **${report.accountXP}**  ·  Coins **${report.coins}**`, inline: false },
-      { name: 'Inventory / Cosmetics', value: cosmetics.slice(0, 1024), inline: false },
-      { name: 'Active Bans', value: banText, inline: false },
-      ...(report.warnings?.length ? [{ name: `Warnings (${report.warnings.length})`, value: warnText, inline: false }] : []),
-    ],
-    timestamp: new Date().toISOString(),
-    footer: { text: `Reported by ${staffId}  ·  ZTD` },
-  };
   try {
-    await (await fetch)(DISCORD_WEBHOOK, {
+    const res = await (await fetch)(BOT_URL + '/internal/staffReport', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ embeds: [embed] }),
+      headers: {
+        'Content-Type': 'application/json',
+        'x-bot-secret': BOT_SECRET,
+      },
+      body: JSON.stringify({ report, staffName: staffId }),
     });
+    const json = await res.json();
+    if (!json.ok) console.error('[Discord]', json.msg);
   } catch (e) { console.error('[Discord]', e.message); }
 }
 
