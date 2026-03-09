@@ -27,13 +27,17 @@ const UI = (() => {
 
     // Try auto-login first, then build UI
     _setAuthStatus('Reconnecting…', '');
-    const didLogin = await PF.tryAutoLogin();
+    const loginRes = await PF.tryAutoLogin();
 
-    if (didLogin) {
+    if (loginRes.ok) {
       console.log('[UI] Auto-login success');
       _syncPFProgress();
       _updateProfileUI();
       if (PF.isOwner) _showOwnerTrigger();
+    } else if (loginRes.banned) {
+      // Show ban screen immediately — blocks all game access
+      _showBanScreen(loginRes.reason, loginRes.durationText, loginRes.permanent);
+      return; // don't build the rest of the UI
     } else {
       _setAuthStatus('', '');
       _updateProfileUI();
@@ -49,6 +53,24 @@ const UI = (() => {
 
     // Auto-refresh leaderboard
     lbInterval = setInterval(() => _refreshLeaderboard(currentLbStat), 30000);
+
+    // ── Periodic ban check — detects bans applied while the player is logged in ──
+    setInterval(async () => {
+      if (!PF.isLoggedIn() || document.getElementById('banScreen')) return;
+      try {
+        const r = await fetch(`${PF.SERVER_URL}/auth/checkBan`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ playFabId: PF.playFabId }),
+        });
+        const data = await r.json();
+        if (data.banned) {
+          PF.sessionTicket = null; // invalidate session so they can't act
+          PF.playFabId = null;
+          _showBanScreen(data.reason, data.durationText, data.permanent);
+        }
+      } catch { /* server offline, ignore */ }
+    }, 20000);
+
     autoLoginDone = true;
   }
 
@@ -1552,21 +1574,61 @@ const UI = (() => {
 
     // ── Ban screen ───────────────────────────────
   function _showBanScreen(reason, durationText, permanent) {
-    let e = document.getElementById('banScreen');
-    if (e) e.remove();
-    e = document.createElement('div');
+    // Remove any existing ban screen
+    const existing = document.getElementById('banScreen');
+    if (existing) existing.remove();
+
+    const e = document.createElement('div');
     e.id = 'banScreen';
-    e.style.cssText = 'position:fixed;inset:0;background:#0a0a0a;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999;font-family:monospace;';
-    e.innerHTML = '<div style="border:2px solid #ed4245;padding:40px 48px;max-width:480px;text-align:center;background:#111;">'
-      + '<div style="font-size:48px;margin-bottom:16px">🔨</div>'
-      + '<div style="font-size:22px;font-weight:bold;color:#ed4245;letter-spacing:2px;margin-bottom:8px">YOU ARE BANNED</div>'
-      + '<div style="font-size:13px;color:#aaa;margin-bottom:20px">' + (permanent ? 'This ban is permanent.' : 'Duration: ' + (durationText || 'unknown')) + '</div>'
-      + '<div style="background:#1a1a1a;border:1px solid #333;padding:12px 16px;font-size:12px;color:#ccc;text-align:left;">'
-      + '<span style="color:#666;font-size:10px;text-transform:uppercase;letter-spacing:1px">Reason</span><br>'
-      + '<span style="color:#fff">' + (reason || 'No reason given') + '</span></div>'
-      + '<div style="margin-top:24px;font-size:10px;color:#444">Contact a moderator to appeal this ban.</div>'
-      + '</div>';
+    e.style.cssText = [
+      'position:fixed', 'inset:0', 'z-index:999999',
+      'background:linear-gradient(135deg,#0a0005 0%,#110008 50%,#080003 100%)',
+      'display:flex', 'flex-direction:column', 'align-items:center', 'justify-content:center',
+      'font-family:"Orbitron","Barlow Condensed",monospace',
+      'animation:banFadeIn 0.5s ease forwards',
+    ].join(';');
+
+    const durationLine = permanent
+      ? '<span style="color:#ff4455">PERMANENT BAN</span>'
+      : `<span style="color:#ff8844">DURATION: ${durationText || 'UNKNOWN'}</span>`;
+
+    e.innerHTML = `
+      <style>
+        @keyframes banFadeIn { from { opacity:0; transform:scale(1.04); } to { opacity:1; transform:scale(1); } }
+        @keyframes banGlow   { 0%,100% { box-shadow:0 0 60px rgba(220,30,50,0.35),0 0 120px rgba(180,0,30,0.15); } 50% { box-shadow:0 0 80px rgba(255,40,60,0.5),0 0 160px rgba(220,0,30,0.25); } }
+        @keyframes banPulse  { 0%,100% { opacity:1; } 50% { opacity:0.6; } }
+        @keyframes banScan   { 0% { transform:translateY(-100%); } 100% { transform:translateY(400px); } }
+        #banScreen .ban-box  { background:rgba(15,3,6,0.97); border:1px solid rgba(220,30,50,0.5); border-radius:8px; padding:44px 52px; max-width:520px; width:90%; text-align:center; animation:banGlow 3s ease-in-out infinite; position:relative; overflow:hidden; }
+        #banScreen .ban-scan { position:absolute; left:0; right:0; height:2px; background:linear-gradient(90deg,transparent,rgba(255,50,70,0.6),transparent); animation:banScan 2.5s linear infinite; }
+        #banScreen .ban-icon { font-size:64px; margin-bottom:20px; display:block; }
+        #banScreen .ban-title { font-size:28px; font-weight:900; color:#ff2233; letter-spacing:6px; text-transform:uppercase; margin-bottom:8px; text-shadow:0 0 30px rgba(255,30,50,0.6); }
+        #banScreen .ban-sub { font-size:11px; letter-spacing:3px; color:#ff6644; margin-bottom:28px; animation:banPulse 2s ease infinite; }
+        #banScreen .ban-reason-box { background:rgba(255,20,40,0.07); border:1px solid rgba(255,30,50,0.2); border-radius:5px; padding:16px 20px; margin-bottom:20px; text-align:left; }
+        #banScreen .ban-reason-label { font-size:9px; letter-spacing:3px; color:#ff4455; margin-bottom:6px; }
+        #banScreen .ban-reason-text { font-size:14px; color:#fff; font-weight:700; line-height:1.5; font-family:inherit; }
+        #banScreen .ban-duration { font-size:11px; letter-spacing:2px; margin-bottom:28px; }
+        #banScreen .ban-appeal { font-size:10px; color:#444; letter-spacing:1px; margin-top:8px; }
+        #banScreen .ban-id { font-size:9px; color:#333; margin-top:16px; font-family:monospace; }
+      </style>
+      <div class="ban-box">
+        <div class="ban-scan"></div>
+        <span class="ban-icon">🔨</span>
+        <div class="ban-title">YOU ARE BANNED</div>
+        <div class="ban-sub">ACCESS TO ZTD HAS BEEN REVOKED</div>
+        <div class="ban-reason-box">
+          <div class="ban-reason-label">REASON</div>
+          <div class="ban-reason-text">${reason || 'No reason given'}</div>
+        </div>
+        <div class="ban-duration">${durationLine}</div>
+        <div class="ban-appeal">To appeal this ban, contact a moderator on the ZTD Discord.</div>
+      </div>
+    `;
+
     document.body.appendChild(e);
+
+    // Prevent any interaction behind the ban screen
+    e.addEventListener('click', e => e.stopPropagation());
+    e.addEventListener('keydown', e => e.stopPropagation());
   }
 
   // ── Staff Dashboard ──────────────────────────

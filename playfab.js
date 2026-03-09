@@ -22,9 +22,9 @@ const PF = {
   // ── Auto-login on page load ───────────────────
   async tryAutoLogin() {
     const creds = this._getCreds();
-    if (!creds) return false;
+    if (!creds) return { ok: false };
     const res = await this.login(creds.u, creds.p, true);
-    return res.ok;
+    return res; // pass full result (including banned: true) to caller
   },
 
   _getCreds()          { try { return JSON.parse(localStorage.getItem('ztd_creds')); } catch { return null; } },
