@@ -1023,7 +1023,7 @@ const TowerArt = {
       ctx.lineWidth = S*.025; ctx.lineCap = 'round';
       // Zigzag arcs
       for(let arc=0;arc<3;arc++){
-        const a = arc/3*Math.PI*2 + Date.now()*.02;
+        const a = arc/3*Math.PI*2 + (typeof t !== 'undefined' ? t*20 : 0);
         ctx.beginPath(); ctx.moveTo(0,-S*.5);
         let cx2=0, cy=-S*.5;
         for(let i=0;i<4;i++){
@@ -3005,7 +3005,7 @@ class Tower {
   get name()  { return this.def.name; }
   get icon()  { return this.def.icon; }
 
-  getSellValue() { return Math.floor(this.totalCostSpent * 0.65); }
+  getSellValue() { return Math.floor(this.totalCostSpent * 0.80); }
 
   getUpgradeCost() {
     if (this.level >= this.def.maxUpgrade || !this.def.upgrades[this.level]) return 0;
@@ -3290,17 +3290,17 @@ class Tower {
 
     // ── Aura pulse ───────────────────────────────────────────────────────
     if (this.def.aura) {
-      const t=Date.now()*0.003;
-      this.auraAlpha=(Math.sin(t)+1)*0.09;
+      const _at = typeof _animTime !== 'undefined' ? _animTime : 0;
+      this.auraAlpha=(Math.sin(_at*3)+1)*0.09;
       ctx.beginPath(); ctx.arc(cx,cy,this.range*0.7,0,Math.PI*2);
       ctx.fillStyle=`rgba(241,196,15,${this.auraAlpha})`; ctx.fill();
     }
 
     // ── Owner glow ───────────────────────────────────────────────────────
     if (this.def.ownerOnly) {
-      const t=Date.now()*0.002;
+      const _at = typeof _animTime !== 'undefined' ? _animTime : 0;
       ctx.save();
-      ctx.globalAlpha=0.32+Math.sin(t)*0.22;
+      ctx.globalAlpha=0.32+Math.sin(_at*2)*0.22;
       ctx.strokeStyle=col; ctx.lineWidth=2;
       ctx.beginPath(); ctx.arc(cx,cy,s*0.44,0,Math.PI*2); ctx.stroke();
       ctx.restore();
@@ -3313,7 +3313,7 @@ class Bullet {
   constructor(opts) {
     Object.assign(this, opts);
     this.dead = false;
-    this.hitEnemies = [];  // array is faster for small N (< 20 hits)
+    this.hitEnemies = new Set();
     this.age = 0;
   }
 
@@ -3324,7 +3324,7 @@ class Bullet {
       if (this.allEnemies) {
         let nearest = null, bestDist = this.pierce > 0 ? Infinity : 120;
         for (const e of this.allEnemies) {
-          if (e.dead || this.hitEnemies.includes(e)) continue;
+          if (e.dead || this.hitEnemies.has(e)) continue;
           const d = Math.hypot(e.x-this.x, e.y-this.y);
           if (d < bestDist) { bestDist = d; nearest = e; }
         }
@@ -3357,7 +3357,7 @@ class Bullet {
   }
 
   _hit(enemy) {
-    if (this.hitEnemies.includes(enemy)) { this.dead = true; return; }
+    if (this.hitEnemies.has(enemy)) { this.dead = true; return; }
 
     // Apply damage — immunity is checked inside takeDamage
     const threshold = this.instaKillThreshold || 0;
@@ -3366,17 +3366,17 @@ class Bullet {
     } else {
       enemy.takeDamage(this.damage, this);
     }
-    this.hitEnemies.push(enemy);
+    this.hitEnemies.add(enemy);
 
     // Splash — skip already-hit enemies, apply damage type immunity
     if (this.splash > 0 && this.allEnemies) {
       for (const e of this.allEnemies) {
-        if (e === enemy || e.dead || this.hitEnemies.includes(e)) continue;
+        if (e === enemy || e.dead || this.hitEnemies.has(e)) continue;
         const d = Math.hypot(e.x - enemy.x, e.y - enemy.y);
         if (d <= this.splash) {
           const falloff = 1 - (d / this.splash) * 0.5;
           e.takeDamage(this.damage * falloff, this);
-          this.hitEnemies.push(e);
+          this.hitEnemies.add(e);
         }
       }
     }
@@ -3389,13 +3389,13 @@ class Bullet {
         // Find nearest unchit enemy to current chain node
         let nearest = null, nearDist = 200;
         for (const e of this.allEnemies) {
-          if (e.dead || this.hitEnemies.includes(e)) continue;
+          if (e.dead || this.hitEnemies.has(e)) continue;
           const d = Math.hypot(e.x - prev.x, e.y - prev.y);
           if (d < nearDist) { nearDist = d; nearest = e; }
         }
         if (!nearest) break;
         nearest.takeDamage(chainDmg, this);
-        this.hitEnemies.push(nearest);
+        this.hitEnemies.add(nearest);
         prev = nearest;
         chainDmg *= 0.8; // each chain link does less damage
         chained++;

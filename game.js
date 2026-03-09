@@ -146,6 +146,7 @@ const Game = (() => {
   let money, lives, score, kills, wave;
   let _livesAtWaveStart = 0;
   let _killsAtWaveStart = 0;
+  let _perfectStreak = 0; // consecutive perfect waves
   let gameOver = false, victory = false;
   let speed = 1;
   let selectedTower = null;
@@ -773,11 +774,12 @@ const Game = (() => {
         _floatText(`🍌 +$${farmTotal} FARM INCOME`, 'gold');
         _flashPill('hudMoney', 'money-gain');
       }
-      // Global interest on hand cash — generous rate
-      const interest = Math.max(10, Math.floor(money * 0.025));
+      // Global interest on hand cash — scales with wave progress
+      const interestRate = Math.min(0.06, 0.025 + wave * 0.001); // grows from 2.5% to 6% by wave 35
+      const interest = Math.max(15, Math.floor(money * interestRate));
       money += interest;
       _updateHUD();
-      _floatText(`+$${interest} INTEREST`, 'gold');
+      _floatText(`+$${interest} INTEREST (${(interestRate*100).toFixed(1)}%)`, 'gold');
 
       if (currentWaveIndex >= waves.length) {
         _triggerVictory();
@@ -785,6 +787,17 @@ const Game = (() => {
       }
       // XP for wave clear
       const _perfectWave = lives >= _livesAtWaveStart;
+      if (_perfectWave) {
+        _perfectStreak++;
+        if (_perfectStreak >= 2) {
+          const streakBonus = _perfectStreak * wave * 5;
+          money += streakBonus;
+          _floatText(`🔥 ${_perfectStreak}× PERFECT STREAK! +$${streakBonus}`, 'gold');
+          _screenFlash('gold');
+        }
+      } else {
+        _perfectStreak = 0;
+      }
       const _waveXP = AccountLevel.XP_TABLE.waveClear
         + wave * AccountLevel.XP_TABLE.surviveWaves
         + (_perfectWave ? AccountLevel.XP_TABLE.perfectWave : 0);
@@ -821,8 +834,13 @@ const Game = (() => {
         e.stompTrigger = false;
         shakeAmount = 12;
         _floatText('STOMP!', 'red');
-        // All player's bullets get cleared (shockwave knocks them away)
-        bullets = bullets.filter(b => Math.hypot(b.x - e.x, b.y - e.y) > 80);
+        // Clear nearby bullets in-place (no allocation)
+        let bw = 0;
+        for (let bi = 0; bi < bullets.length; bi++) {
+          const b = bullets[bi];
+          if (Math.hypot(b.x - e.x, b.y - e.y) > 80) bullets[bw++] = b;
+        }
+        bullets.length = bw;
       }
     }
 
@@ -1267,7 +1285,7 @@ const Game = (() => {
 
   // ── NEW FEEDBACK HELPERS ─────────────────────────────────────────
   function _screenFlash(type) {
-    const el = document.getElementById('screenFlash');
+    const el = _getDom().screenFlash;
     if (!el) return;
     el.className = 'flash-' + type;
     clearTimeout(el._t);
@@ -1275,7 +1293,8 @@ const Game = (() => {
   }
 
   function _flashPill(id, cls) {
-    const el = document.getElementById(id)?.parentElement;
+    const d = _getDom();
+    const el = (d[id] || document.getElementById(id))?.parentElement;
     if (!el) return;
     el.classList.add(cls);
     clearTimeout(el['_t_' + cls]);
@@ -1283,24 +1302,22 @@ const Game = (() => {
   }
 
   function _updateComboDisplay() {
-    const disp = document.getElementById('comboDisplay');
-    const cnt  = document.getElementById('comboCount');
-    if (!disp || !cnt) return;
+    const d = _getDom();
+    if (!d.comboDisplay || !d.comboCount) return;
     if (_combo < 5) {
-      disp.classList.add('hidden');
+      d.comboDisplay.classList.add('hidden');
     } else {
-      disp.classList.remove('hidden');
-      cnt.textContent = _combo + '×';
-      // Re-trigger pop animation
-      cnt.style.animation = 'none';
-      void cnt.offsetWidth;
-      cnt.style.animation = '';
+      d.comboDisplay.classList.remove('hidden');
+      d.comboCount.textContent = _combo + '×';
+      // Restart animation without forcing layout reflow
+      d.comboCount.classList.remove('combo-pop');
+      requestAnimationFrame(() => d.comboCount.classList.add('combo-pop'));
     }
   }
 
   const _killFeedMax = 6;
   function _addKillFeedEntry(text, isBoss) {
-    const panel = document.getElementById('killFeedPanel');
+    const panel = _getDom().killFeedPanel;
     if (!panel) return;
     const el = document.createElement('div');
     el.className = 'kf-entry' + (isBoss ? ' boss' : '');
@@ -1323,21 +1340,22 @@ const Game = (() => {
       <div class="rs-title">WAVE ${waveNum} CLEAR${perfect ? ' — PERFECT! ⭐' : ''}</div>
       <div class="rs-stat">💀 <span>${waveKills}</span> kills this wave</div>
       <div class="rs-stat">💰 <span>$${currentMoney.toLocaleString()}</span> cash</div>
+      ${_perfectStreak >= 2 ? `<div class="rs-stat" style="color:#ffd700">🔥 <span>${_perfectStreak}× streak!</span></div>` : ''}
     `;
     document.body.appendChild(el);
     setTimeout(() => el.remove(), 3400);
   }
 
   function _updateBossBar() {
-    const bar   = document.getElementById('bossBar');
-    const boss  = enemies.find(e => e.isBoss && !e.dead);
+    const d = _getDom();
+    const boss = enemies.find(e => e.isBoss && !e.dead);
     if (boss) {
-      bar.classList.add('visible');
-      document.getElementById('bossBarLabel').textContent = boss.name;
-      document.getElementById('bossBarHp').textContent    = `${Math.ceil(boss.hp)} / ${boss.maxHp}`;
-      document.getElementById('bossBarFill').style.width  = `${(boss.hp / boss.maxHp) * 100}%`;
+      d.bossBar.classList.add('visible');
+      d.bossBarLabel.textContent = boss.name;
+      d.bossBarHp.textContent    = `${Math.ceil(boss.hp)} / ${boss.maxHp}`;
+      d.bossBarFill.style.width  = `${(boss.hp / boss.maxHp) * 100}%`;
     } else {
-      bar.classList.remove('visible');
+      d.bossBar.classList.remove('visible');
     }
   }
 
@@ -1374,6 +1392,7 @@ const Game = (() => {
     canvas.onmousemove  = _onMouseMove;
     canvas.oncontextmenu = e => { e.preventDefault(); _cancelPlacement(); };
     canvas.onmouseleave  = () => { hoverTile = null; };
+    window.addEventListener('resize', () => { _canvasRect = null; }, { passive: true });
 
     document.getElementById('btnStartWave').onclick = startNextWave;
     document.getElementById('btnSpeed').onclick     = toggleSpeed;
@@ -1447,12 +1466,13 @@ const Game = (() => {
     }
   }
 
+  let _canvasRect = null;
   function _onMouseMove(e) {
-    const rect   = canvas.getBoundingClientRect();
-    const scaleX = canvas.width  / rect.width;
-    const scaleY = canvas.height / rect.height;
-    mouseX = (e.clientX - rect.left) * scaleX;
-    mouseY = (e.clientY - rect.top)  * scaleY;
+    if (!_canvasRect) _canvasRect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width  / _canvasRect.width;
+    const scaleY = canvas.height / _canvasRect.height;
+    mouseX = (e.clientX - _canvasRect.left) * scaleX;
+    mouseY = (e.clientY - _canvasRect.top)  * scaleY;
 
     const col = Math.floor(mouseX / tileSize);
     const row = Math.floor(mouseY / tileSize);
@@ -1516,12 +1536,9 @@ const Game = (() => {
     if (money < def.cost) {
       const item = document.querySelector(`.tp-item[data-id="${towerId}"]`);
       if (item) {
-        item.classList.remove('just-affordable');
-        void item.offsetWidth;
-        item.style.animation = 'none';
-        void item.offsetWidth;
-        item.style.animation = '';
-        // Pulse red border briefly
+        // Shake via CSS class, no reflow needed
+        item.classList.remove('shake-no');
+        requestAnimationFrame(() => item.classList.add('shake-no'));
         item.style.outline = '2px solid #ef4444';
         item.style.outlineOffset = '2px';
         setTimeout(() => { item.style.outline = ''; item.style.outlineOffset = ''; }, 500);
@@ -1555,7 +1572,8 @@ const Game = (() => {
     if (!selectedTower) return;
     const val = selectedTower.getSellValue();
     money += val;
-    towers = towers.filter(t => t !== selectedTower);
+    const idx = towers.indexOf(selectedTower);
+    if (idx !== -1) towers.splice(idx, 1);
     if (lastPlaced === selectedTower) lastPlaced = null;
     deselectTower();
     _updateHUD();
@@ -1596,7 +1614,8 @@ const Game = (() => {
   function _undoLastTower() {
     if (!lastPlaced || !towers.includes(lastPlaced)) return;
     const refund = lastPlaced.def.cost;
-    towers = towers.filter(t => t !== lastPlaced);
+    const idx = towers.indexOf(lastPlaced);
+    if (idx !== -1) towers.splice(idx, 1);
     money += refund;
     if (selectedTower === lastPlaced) deselectTower();
     lastPlaced = null;
@@ -1625,7 +1644,7 @@ const Game = (() => {
     });
 
     waveActive  = true;
-    spawnTimer  = 0.5;
+    spawnTimer  = 0.2;
     _livesAtWaveStart = lives;
     lastPlaced  = null; // can't undo across waves
     _updateHUD();
@@ -1646,8 +1665,9 @@ const Game = (() => {
   function stopGame() {
     if (raf) { cancelAnimationFrame(raf); raf = null; }
     document.removeEventListener('keydown', _onKey);
-    const bar = document.getElementById('bossBar');
-    if (bar) bar.classList.remove('visible');
+    const d = _getDom();
+    if (d.bossBar) d.bossBar.classList.remove('visible');
+    _domCache = null; // invalidate cache for next game session
   }
 
   function _saveInfiniteScore(waveReached) {
@@ -1810,19 +1830,45 @@ const Game = (() => {
     }
   }
 
+  // Cached HUD element references — queried once, reused every frame
+  let _domCache = null;
+  function _getDom() {
+    if (_domCache) return _domCache;
+    _domCache = {
+      hudMoney:      document.getElementById('hudMoney'),
+      hudLives:      document.getElementById('hudLives'),
+      hudWave:       document.getElementById('hudWave'),
+      hudKills:      document.getElementById('hudKills'),
+      hudAcctLevel:  document.getElementById('hudAcctLevel'),
+      hudXPBar:      document.getElementById('hudXPBar'),
+      hudAcctTitle:  document.getElementById('hudAcctTitle'),
+      bossBar:       document.getElementById('bossBar'),
+      bossBarLabel:  document.getElementById('bossBarLabel'),
+      bossBarHp:     document.getElementById('bossBarHp'),
+      bossBarFill:   document.getElementById('bossBarFill'),
+      comboDisplay:  document.getElementById('comboDisplay'),
+      comboCount:    document.getElementById('comboCount'),
+      screenFlash:   document.getElementById('screenFlash'),
+      killFeedPanel: document.getElementById('killFeedPanel'),
+      btnStartWave:  document.getElementById('btnStartWave'),
+    };
+    _domCache.livesPill = _domCache.hudLives?.parentElement;
+    return _domCache;
+  }
   // Cached HUD values — only write DOM when value actually changes
   let _hud = { money:-1, lives:-1, wave:-1, kills:-1 };
   function _updateHUD() {
-    if (money !== _hud.money) { document.getElementById('hudMoney').textContent = money; _hud.money = money; UI.refreshCanAfford(money); }
+    const d = _getDom();
+    if (money !== _hud.money) { d.hudMoney.textContent = money; _hud.money = money; UI.refreshCanAfford(money); }
     if (lives !== _hud.lives) {
-      document.getElementById('hudLives').textContent = lives; _hud.lives = lives;
-      const livesPill = document.getElementById('hudLives').parentElement;
+      d.hudLives.textContent = lives; _hud.lives = lives;
+      const livesPill = d.livesPill;
       if (lives <= 3)      { livesPill.classList.add('lives-danger'); livesPill.style.borderColor=''; }
       else if (lives <= 8) { livesPill.classList.remove('lives-danger'); livesPill.style.borderColor='rgba(251,191,36,0.5)'; }
       else                 { livesPill.classList.remove('lives-danger'); livesPill.style.borderColor=''; }
     }
-    if (wave !== _hud.wave)   { document.getElementById('hudWave').textContent = wave || '—'; _hud.wave = wave; }
-    if (kills !== _hud.kills) { document.getElementById('hudKills').textContent = kills; _hud.kills = kills; }
+    if (wave !== _hud.wave)   { d.hudWave.textContent = wave || '—'; _hud.wave = wave; }
+    if (kills !== _hud.kills) { d.hudKills.textContent = kills; _hud.kills = kills; }
     _updateLevelHUD();
   }
 
@@ -1867,21 +1913,19 @@ const Game = (() => {
   let _lastLevelHudXP = -1;
   function _updateLevelHUD() {
     const xp = AccountLevel.getXP();
-    if (xp === _lastLevelHudXP) return; // no change, skip DOM writes
+    if (xp === _lastLevelHudXP) return;
     _lastLevelHudXP = xp;
     const prog = AccountLevel.getProgress();
-    const lvlEl = document.getElementById('hudAcctLevel');
-    const barEl = document.getElementById('hudXPBar');
-    const titleEl = document.getElementById('hudAcctTitle');
-    if (lvlEl) {
-      lvlEl.textContent = prog.level;
-      lvlEl.style.color = AccountLevel.getLevelColor(prog.level);
+    const d = _getDom();
+    if (d.hudAcctLevel) {
+      d.hudAcctLevel.textContent = prog.level;
+      d.hudAcctLevel.style.color = AccountLevel.getLevelColor(prog.level);
     }
-    if (barEl) {
-      barEl.style.width = (prog.pct * 100).toFixed(1) + '%';
-      barEl.style.background = AccountLevel.getLevelColor(prog.level);
+    if (d.hudXPBar) {
+      d.hudXPBar.style.width = (prog.pct * 100).toFixed(1) + '%';
+      d.hudXPBar.style.background = AccountLevel.getLevelColor(prog.level);
     }
-    if (titleEl) titleEl.textContent = AccountLevel.getTitle(prog.level);
+    if (d.hudAcctTitle) d.hudAcctTitle.textContent = AccountLevel.getTitle(prog.level);
   }
 
     function _updateWavePreview() {
@@ -1948,7 +1992,7 @@ const Game = (() => {
   function ownerFreezeAll() {
     enemies.forEach(e => {
       e.slowTimer = 10;
-      e.speed = e.baseSpeed * 0.05;
+      e.speed = e.baseSpeed * 0.15;
       e.flashTimer = 10;
     });
     _floatText('❄️ ALL ENEMIES FROZEN!', 'green');

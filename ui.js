@@ -182,6 +182,7 @@ const UI = (() => {
   function updateTowerPalette(map) {
     const palette = document.getElementById('towerPalette');
     palette.innerHTML = '';
+    _paletteItemCache = null; // invalidate cache
 
     const allOwned = new Set([
       ...ownedTowers,
@@ -229,32 +230,40 @@ const UI = (() => {
     }
   }
 
+  // Cache for refreshCanAfford — built once when palette renders
+  let _paletteItemCache = null;
+  let _paletteCostMap = null;
+
+  function _buildPaletteCache() {
+    _paletteItemCache = Array.from(document.querySelectorAll('#towerPalette .tp-item:not(.locked)'));
+    _paletteCostMap = new Map(_paletteItemCache.map(el => {
+      const def = TOWER_DEFS.find(d => d.id === el.dataset.id);
+      return [el, def ? def.cost : Infinity];
+    }));
+  }
+
   // Dim towers player can't currently afford (called on HUD money update)
   function refreshCanAfford(money) {
-    const items = document.querySelectorAll('#towerPalette .tp-item:not(.locked)');
-    items.forEach(item => {
-      const def = TOWER_DEFS.find(d => d.id === item.dataset.id);
-      if (!def) return;
+    if (!_paletteItemCache) _buildPaletteCache();
+    for (const item of _paletteItemCache) {
+      const cost = _paletteCostMap.get(item) ?? Infinity;
       const couldAffordBefore = !item.classList.contains('cant-afford');
-      const canAffordNow = money >= def.cost;
-
+      const canAffordNow = money >= cost;
       if (!canAffordNow) {
-        item.classList.add('cant-afford');
-        item.classList.remove('affordable', 'just-affordable');
-      } else {
-        // Was cant-afford, now can afford → fire the unlock glow animation
-        if (!couldAffordBefore) {
-          item.classList.remove('just-affordable');
-          // Force reflow to restart animation
-          void item.offsetWidth;
-          item.classList.add('just-affordable');
-          // Remove after animation completes so it can re-trigger next time
-          setTimeout(() => item.classList.remove('just-affordable'), 700);
+        if (couldAffordBefore) {
+          item.classList.add('cant-afford');
+          item.classList.remove('affordable', 'just-affordable');
         }
-        item.classList.remove('cant-afford');
-        item.classList.add('affordable');
+      } else {
+        if (!couldAffordBefore) {
+          item.classList.remove('cant-afford', 'just-affordable');
+          item.classList.add('just-affordable');
+          setTimeout(() => item.classList.remove('just-affordable'), 700);
+        } else if (!item.classList.contains('affordable')) {
+          item.classList.add('affordable');
+        }
       }
-    });
+    }
   }
 
   // ── Tower palette SVG icon renderer ──────────────────────────────────────
